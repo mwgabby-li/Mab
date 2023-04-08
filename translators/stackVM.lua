@@ -31,6 +31,11 @@ local function codeExpression(state, ast)
     codeExpression(state, ast.firstChild)
     codeExpression(state, ast.secondChild)
     addCode(state, op.toName[ast.op])
+  elseif ast.tag == 'unaryOp' then
+    codeExpression(state, ast.child)
+    if ast.op == '-' then
+      addCode(state, op.unaryToName[ast.op])
+    end
   else error 'invalid tree'
   end
 end

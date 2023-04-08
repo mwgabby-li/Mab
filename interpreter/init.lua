@@ -83,6 +83,9 @@ function module.run(code, trace)
       traceBinaryOp(trace, code[pc], stack, top)
       stack[top - 1] = stack[top - 1] ~= stack[top] and 1 or 0
       top = top - 1
+    elseif code[pc] == 'negate' then
+      traceUnaryOp(trace, code[pc], stack[top])
+      stack[top] = -stack[top]
     elseif code[pc] == 'load' then
       traceTwoCodes(trace, code, pc)
       top = top + 1

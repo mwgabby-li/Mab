@@ -128,6 +128,70 @@ function module.testEmptyInput()
     lu.assertEquals(ast, expected)
 end
 
+function module.testStackedUnaryOperators()
+    local input = 'i = - - - - 4 * 3'
+    local ast = module.parse(input)
+    local expected = {
+        tag = 'assignment',
+        identifier = 'i',
+        assignment = {
+            tag = 'binaryOp',
+            firstChild = {
+                tag = 'unaryOp',
+                op = '-',
+                child = {
+                    tag = 'unaryOp',
+                    op = '-',
+                    child = {
+                        tag = 'unaryOp',
+                        op = '-',
+                        child = {
+                            tag = 'unaryOp',
+                            op = '-',
+                            child = {
+                                tag = 'number',
+                                value = 4
+                            }
+                        },
+                    },
+                },
+            },
+            op = '*',
+            secondChild = {
+                tag = 'number',
+                value = 3
+            }
+        }
+    }
+    lu.assertEquals(ast, expected)
+end
+
+function module.testUnaryOperators()
+    local input = 'i = -4 * 3'
+    local ast = module.parse(input)
+    local expected = {
+        tag = 'assignment',
+        identifier = 'i',
+        assignment = {
+            tag = 'binaryOp',
+            firstChild = {
+                tag = 'unaryOp',
+                op = '-',
+                child = {
+                    tag = 'number',
+                    value = 4
+                }
+            },
+            op = '*',
+            secondChild = {
+                tag = 'number',
+                value = 3
+            }
+        }
+    }
+    lu.assertEquals(ast, expected)
+end
+
 function module.testEmptyStatementsLeadingTrailing()
     local input = ';;;;i = 4 * 3;;;;'
     local ast = module.parse(input)
@@ -211,6 +275,36 @@ function module.testComplexSequenceResult()
     local code = module.toStackVM.translate(ast)
     local result = module.interpreter.run(code)
     lu.assertEquals(result, 139314069504)
+end
+
+function module.testExponentPrecedence()
+    local input = 'i = 2 ^ 3 ^ 4'
+    local ast = module.parse(input)
+    local expected = {
+        tag = 'assignment',
+        identifier = 'i',
+        assignment = {
+            tag = 'binaryOp',
+            firstChild = {
+                tag = 'number',
+                value = 2
+            },
+            op = '^',
+            secondChild = {
+                tag = 'binaryOp',
+                firstChild = {
+                    tag = 'number',
+                    value = 3
+                },
+                op = '^',
+                secondChild = {
+                    tag = 'number',
+                    value = 4
+                }
+            }
+        }
+    }
+    lu.assertEquals(ast, expected)
 end
 
 function module.testAllOperators()

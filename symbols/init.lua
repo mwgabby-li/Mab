@@ -46,6 +46,10 @@ module.op.toName = {
   [notEqual] = 'notEqual',
 }
 
+module.op.unaryToName = {
+    [subtract] = 'negate',
+}
+
 module.op.assign = assign * ws
 module.op.sum = C(P(add) + subtract) * ws
 module.op.term = C(P(multiply) + divide + modulus) * ws

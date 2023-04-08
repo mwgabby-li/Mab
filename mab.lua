@@ -53,13 +53,18 @@ local function nodeStatementSequence(first, rest)
   end
 end
 
-local function unaryMinusToMultiply(sign, factor)
-  if sign == '-' then
-    return { tag='binaryOp', op = '*', firstChild = { tag="number", value=-1 }, secondChild = factor }
+local function addUnaryOp(operator, expression)
+  return { tag = 'unaryOp', op = operator, child = expression }
+end
+
+local function addExponentOp(expression1, op, expression2)
+  if op then
+    return { tag = 'binaryOp', firstChild = expression1, op = op, secondChild = expression2 }
   else
-    return factor
+    return expression1
   end
 end
+
 
 local function foldBinaryOps(list)
   local tree = list[1]
@@ -71,7 +76,7 @@ end
 
 ---- Grammar -----------------------------------------------------------------------------------------------------------
 local V = lpeg.V
-local basicFactor, exponentExpr, termExpr = V'basicFactor', V'exponentExpr', V'termExpr'
+local primary, exponentExpr, termExpr = V'primary', V'exponentExpr', V'termExpr'
 local sumExpr, comparisonExpr, unaryExpr = V'sumExpr', V'comparisonExpr', V'unaryExpr'
 local statement, statementList = V'statement', V'statementList'
 local blockStatement = V'blockStatement'
@@ -94,13 +99,13 @@ statement = blockStatement +
             op.print * comparisonExpr / nodePrint,
 
               -- Identifiers and numbers
-basicFactor = numeral / nodeNumeral + identifier / nodeVariable +
+primary = numeral / nodeNumeral + identifier / nodeVariable +
               -- Sentences in the language enclosed in parentheses
               delim.openFactor * comparisonExpr * delim.closeFactor,
 
 -- From highest to lowest precedence
-unaryExpr = basicFactor + op.unarySign * basicFactor / unaryMinusToMultiply,
-exponentExpr = Ct(unaryExpr * (op.exponent * unaryExpr)^0) / foldBinaryOps,
+unaryExpr = op.unarySign * unaryExpr / addUnaryOp + primary,
+exponentExpr = unaryExpr * (op.exponent * exponentExpr)^-1 / addExponentOp,
 termExpr = Ct(exponentExpr * (op.term * exponentExpr)^0) / foldBinaryOps,
 sumExpr = Ct(termExpr * (op.sum * termExpr)^0) / foldBinaryOps,
 comparisonExpr = Ct(sumExpr * (op.comparison * sumExpr)^0) / foldBinaryOps,
