@@ -1,3 +1,5 @@
+#!/usr/bin/env lua
+
 local interpreter = require 'interpreter'
 local toStackVM = require 'translators.stackVM'
 
