@@ -106,9 +106,9 @@ primary = numeral / nodeNumeral + identifier / nodeVariable +
               delim.openFactor * comparisonExpr * delim.closeFactor,
 
 -- From highest to lowest precedence
-unaryExpr = op.unarySign * unaryExpr / addUnaryOp + primary,
-exponentExpr = unaryExpr * (op.exponent * exponentExpr)^-1 / addExponentOp,
-termExpr = Ct(exponentExpr * (op.term * exponentExpr)^0) / foldBinaryOps,
+exponentExpr = primary * (op.exponent * exponentExpr)^-1 / addExponentOp,
+unaryExpr = op.unarySign * unaryExpr / addUnaryOp + exponentExpr,
+termExpr = Ct(unaryExpr * (op.term * unaryExpr)^0) / foldBinaryOps,
 sumExpr = Ct(termExpr * (op.sum * termExpr)^0) / foldBinaryOps,
 comparisonExpr = Ct(sumExpr * (op.comparison * sumExpr)^0) / foldBinaryOps,
 }
@@ -149,8 +149,7 @@ end
 
 common.poem() print ''
 
---local input = io.read()
-local input = 'x = 1; x = x + 2;; @x'
+local input = io.read 'a'
 if show.input then
   print 'Input:'
   print(input)
