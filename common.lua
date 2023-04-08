@@ -12,7 +12,8 @@ common.I = function (tag)
 end
 
 function common.poem(all)
-    local poem = [[In dreams, Queen Mab arrives unseen,
+    local poem =
+[[In dreams, Queen Mab arrives unseen,
 A dainty fairy, slight and lean.
 Upon a carven hazelnut,
 With insect steeds, reigns finely cut.
@@ -25,13 +26,14 @@ To soldiers, scenes of battles' roar.
 Beware her touch, enchanting still,
 For fickle fate may bend at will.
 In dreams, delight may find its cost,
-As morning breaks, and all is lost.]]
+As morning breaks, and all is lost.
+]]
     if all then
         print(poem)
         return
     end
     local lines = {}
-    for line in poem:gmatch('[^\r\n]*') do
+    for line in poem:gmatch('([^\r\n]*)[\r]?[\n]') do
       lines[#lines + 1] = line
     end
     math.randomseed(os.time())

@@ -112,6 +112,7 @@ local function parse(input)
 end
 
 if arg[1] ~= nil and (string.lower(arg[1]) == '--tests' or string.lower(arg[1]) == '-t') then
+  common.poem(true)
   arg[1] = nil
   local lu = require 'External.luaunit'
   testFrontend = require 'tests':init(parse, toStackVM, interpreter)
@@ -139,8 +140,7 @@ for _, argument in ipairs(arg) do
   end
 end
 
-common.poem()
-print ''
+common.poem() print ''
 
 --local input = io.read()
 local input = 'x = 1; x = x + 2;; @x'
