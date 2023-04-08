@@ -159,10 +159,21 @@ io.write 'Parsing...'
 local start = os.clock()
 local ast = parse(input)
 print(string.format('     complete: %0.2f milliseconds.', (os.clock() - start) * 1000))
+
+if show.AST then
+  print '\nAST:'
+  print(pt.pt(ast))
+end
+
 io.write 'Translating...'
 start = os.clock()
 local code = toStackVM.translate(ast)
 print(string.format(' complete: %0.2f milliseconds.', (os.clock() - start) * 1000))
+
+if show.code then
+  print '\nGenerated code:'
+  print(pt.pt(code))
+end
 
 print 'Executing...'
 start = os.clock()
@@ -173,14 +184,6 @@ end
 local result = interpreter.run(code, trace)
 print(string.format('     Execution complete: %0.2f milliseconds.', (os.clock() - start) * 1000))
 
-if show.AST then
-  print '\nAST:'
-  print(pt.pt(ast))
-end
-if show.code then
-  print '\nGenerated code:'
-  print(pt.pt(code))
-end
 if show.trace then
   print '\nExecution trace:'
   for k, v in ipairs(trace) do
