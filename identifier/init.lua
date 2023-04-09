@@ -4,7 +4,7 @@ local lpeg = require 'lpeg'
 -- Patterns
 local P, R = lpeg.P, lpeg.R
 
-local ws = require('common').ws
+local endToken = require('common').endToken
 
 local alpha = R('AZ', 'az')
 local identifierStartCharacters = (alpha + '_') * P' '^-1
@@ -18,4 +18,4 @@ local function removeTrailingSpace(identifier)
   return identifier
 end
 
-return (identifierStartCharacters * identifierTailCharacters^0) / removeTrailingSpace * ws
+return (identifierStartCharacters * identifierTailCharacters^0) / removeTrailingSpace * endToken

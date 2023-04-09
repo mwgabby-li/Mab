@@ -1,6 +1,6 @@
 local lpeg = require 'lpeg'
 local P, C = lpeg.P, lpeg.C
-local ws = require('common').ws
+local endToken = require('common').endToken
 
 local module = { op = {}, delim = {}, sep = {}, keyword = {}  }
 
@@ -21,15 +21,15 @@ local notEqual = '~='
 local print = '@'
 
 -- Delimiters
-module.delim.openFactor = '(' * ws
-module.delim.closeFactor = ')' * ws
-module.delim.openBlock = '{' * ws
-module.delim.closeBlock = '}' * ws
+module.delim.openFactor = '(' * endToken
+module.delim.closeFactor = ')' * endToken
+module.delim.openBlock = '{' * endToken
+module.delim.closeBlock = '}' * endToken
 
 -- Separators
-module.sep.statement = ';' * ws
+module.sep.statement = ';' * endToken
 
-module.keyword.return_ = 'return' * ws
+module.keyword.return_ = 'return' * endToken
 
 module.op.toName = {
   [add] = 'add',
@@ -50,12 +50,12 @@ module.op.unaryToName = {
     [subtract] = 'negate',
 }
 
-module.op.assign = assign * ws
-module.op.sum = C(P(add) + subtract) * ws
-module.op.term = C(P(multiply) + divide + modulus) * ws
-module.op.exponent = C(exponent) * ws
-module.op.comparison = (C(greaterOrEqual) + C(greater) + C(lessOrEqual) + C(less) + C(equal) + C(notEqual)) * ws
-module.op.unarySign = C(P(add) + subtract) * ws
-module.op.print = print * ws
+module.op.assign = assign * endToken
+module.op.sum = C(P(add) + subtract) * endToken
+module.op.term = C(P(multiply) + divide + modulus) * endToken
+module.op.exponent = C(exponent) * endToken
+module.op.comparison = (C(greaterOrEqual) + C(greater) + C(lessOrEqual) + C(less) + C(equal) + C(notEqual)) * endToken
+module.op.unarySign = C(P(add) + subtract) * endToken
+module.op.print = print * endToken
 
 return module

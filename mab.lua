@@ -6,7 +6,7 @@ local toStackVM = require 'translators.stackVM'
 local lpeg = require 'lpeg'
 local pt = require 'External.pt'
 local common = require 'common'
-local ws = common.ws
+local endToken = common.endToken
 local numeral = require 'numeral'
 local identifier = require 'identifier'
 
@@ -112,7 +112,7 @@ termExpr = Ct(unaryExpr * (op.term * unaryExpr)^0) / foldBinaryOps,
 sumExpr = Ct(termExpr * (op.sum * termExpr)^0) / foldBinaryOps,
 comparisonExpr = Ct(sumExpr * (op.comparison * sumExpr)^0) / foldBinaryOps,
 }
-grammar = ws * grammar * -1
+grammar = endToken * grammar * -1
 
 local function parse(input)
   return grammar:match(input)

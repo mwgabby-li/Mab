@@ -5,9 +5,9 @@ local P, R, S = lpeg.P, lpeg.R, lpeg.S
 -- Captures
 local  C, Cc = lpeg.C, lpeg.Cc
 
-local ws = require('common').ws
+local endToken = require('common').endToken
 
-local sign = S('+-') * ws
+local sign = S('+-') * endToken
 -- Digits may be separated by single spaces for digit grouping purposes, so allow optional spaces.
 local decimalStart = R'19' * P' '^-1
 local decimalDigit = R'09' * P' '^-1
@@ -61,4 +61,4 @@ local function toNumberWithUnary(base, num)
   end
 end
 
-return (baseNumeral + decimalNumeral) / toNumberWithUnary * ws
+return (baseNumeral + decimalNumeral) / toNumberWithUnary * endToken

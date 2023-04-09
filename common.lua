@@ -2,13 +2,18 @@ local lpeg = require "lpeg"
 
 local common = {}
 
-common.ws = lpeg.locale().space^0
+local furthestMatch = 0
 
-common.I = function (tag)
-    return lpeg.P(function ()
-        print(tag)
-        return true
-    end)
+common.endToken = lpeg.locale().space^0 * 
+                  -- Track furthest match after every token!
+                  lpeg.P(
+                    function (_,position)
+                      furthestMatch = math.max(furthestMatch, position)
+                      return true
+                    end)
+
+function common.getFurthestMatch()
+  return furthestMatch
 end
 
 function common.poem(all)
