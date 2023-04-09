@@ -161,7 +161,7 @@ print(string.format('     complete: %0.2f milliseconds.', (os.clock() - start) *
 
 if show.AST then
   print '\nAST:'
-  print(pt.pt(ast))
+  print(pt.pt(ast, {'tag', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild'}))
 end
 
 io.write 'Translating...'
