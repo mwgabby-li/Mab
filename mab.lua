@@ -180,6 +180,8 @@ print(string.format('     %s: %0.2f milliseconds.', code and 'complete' or '  FA
 if code == nil then
   print '\nFailed generate code from input:'
   print(input)
+  print '\nAST:'
+  print(pt.pt(ast, {'tag', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild'}))
   return 1;
 end
 
