@@ -23,6 +23,14 @@ function common.I (tag)
     end)
 end
 
+function common.lines(string, include_newlines)
+  if include_newlines then
+    return string:gmatch('[^\r\n]*[\r]?[\n]')
+  else
+    return string:gmatch('([^\r\n]*)[\r]?[\n]')
+  end
+end
+
 function common.poem(all)
     local poem =
 [[In dreams, Queen Mab arrives unseen,
@@ -45,7 +53,7 @@ As morning breaks, and all is lost.
         return
     end
     local lines = {}
-    for line in poem:gmatch('([^\r\n]*)[\r]?[\n]') do
+    for line in common.lines(poem) do
       lines[#lines + 1] = line
     end
     math.randomseed(os.time())

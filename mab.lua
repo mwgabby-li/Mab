@@ -160,10 +160,41 @@ local ast = parse(input)
 print(string.format('     %s: %0.2f milliseconds.', ast and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 if not ast then
-  print '\nFailed to generate AST from input:'
-  print(input)
   
-  print('Furthest match was ' .. common.getFurthestMatch())
+  local furthestMatch = common.getFurthestMatch()
+  
+  -- Count the number of newlines - the number of line breaks plus one is the current line
+  local _, newlineCount = input:sub(1, furthestMatch ):gsub('\n', function() end)
+  local errorLine = newlineCount + 1
+  
+  print('\nFailed to generate AST from input. Error on line ' .. errorLine .. ':')
+
+  local contextAfter = 2
+  local contextBefore = 2
+
+  local lineNumber = 1
+  
+  -- Keep track of the current character in the subject, since we're breaking things into lines
+  local currentCharacter = 0
+  -- Number of digits tells us how much padding we should add to line numbers so they line up
+  local digits = math.ceil(math.log10(errorLine + contextAfter))
+  local includeNewlines = true
+  for line in common.lines(input, includeNewlines) do
+    if lineNumber >= errorLine - contextBefore and lineNumber <= errorLine + contextAfter then
+      local lineNumberPrefixed = string.format('%'..(digits)..'d',lineNumber) 
+      if lineNumber == errorLine then
+        local failureCharacter = furthestMatch - currentCharacter
+        io.write('>' .. lineNumberPrefixed .. ' ' .. line)
+        io.write(' ' .. string.rep(' ', #lineNumberPrefixed) .. string.rep(' ', failureCharacter) .. '^\n') 
+      else
+        io.write(' ' .. lineNumberPrefixed .. ' ' .. line)
+      end
+    end
+    
+    lineNumber = lineNumber + 1
+    currentCharacter = currentCharacter + #line
+  end
+
   return 1;
 end
 
