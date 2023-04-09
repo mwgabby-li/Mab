@@ -157,31 +157,45 @@ end
 io.write 'Parsing...'
 local start = os.clock()
 local ast = parse(input)
-print(string.format('     complete: %0.2f milliseconds.', (os.clock() - start) * 1000))
+print(string.format('     %s: %0.2f milliseconds.', ast and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+
+if not ast then
+  print '\nFailed to generate AST from input:'
+  print(input)
+  
+  print('Furthest match was ' .. common.getFurthestMatch())
+  return 1;
+end
 
 if show.AST then
   print '\nAST:'
   print(pt.pt(ast, {'tag', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild'}))
 end
 
-io.write 'Translating...'
+io.write '\nTranslating...'
 start = os.clock()
 local code = toStackVM.translate(ast)
-print(string.format(' complete: %0.2f milliseconds.', (os.clock() - start) * 1000))
+print(string.format('     %s: %0.2f milliseconds.', code and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+
+if code == nil then
+  print '\nFailed generate code from input:'
+  print(input)
+  return 1;
+end
 
 if show.code then
   print '\nGenerated code:'
   print(pt.pt(code))
 end
 
-print 'Executing...'
+print '\nExecuting...'
 start = os.clock()
 local trace = {}
 if not show.trace then
   trace = nil
 end
 local result = interpreter.run(code, trace)
-print(string.format('     Execution complete: %0.2f milliseconds.', (os.clock() - start) * 1000))
+print(string.format('     Execution %s: %0.2f milliseconds.', result and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 if show.trace then
   print '\nExecution trace:'
