@@ -16,6 +16,13 @@ function common.getFurthestMatch()
   return furthestMatch
 end
 
+function common.I (tag)
+    return lpeg.P(function ()
+        print(tag)
+        return true
+    end)
+end
+
 function common.poem(all)
     local poem =
 [[In dreams, Queen Mab arrives unseen,
