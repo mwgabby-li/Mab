@@ -1,12 +1,14 @@
 local lpeg = require "lpeg"
 
+local P = lpeg.P
+
 local common = {}
 
 local furthestMatch = 0
 
 common.endToken = lpeg.locale().space^0 * 
                   -- Track furthest match after every token!
-                  lpeg.P(
+                  P(
                     function (_,position)
                       furthestMatch = math.max(furthestMatch, position)
                       return true
@@ -17,7 +19,7 @@ function common.getFurthestMatch()
 end
 
 function common.I (tag)
-    return lpeg.P(function ()
+    return P(function ()
         print(tag)
         return true
     end)
@@ -34,7 +36,7 @@ end
 -- Counts the number of occurrences of substring in string
 function common.count(substring, string)
     local matches = 0
-    ((lpeg.P(substring)/function() matches = matches + 1 end + 1)^0):match(string)
+    ((P(substring)/function() matches = matches + 1 end + 1)^0):match(string)
     return matches
 end
 
