@@ -1,4 +1,5 @@
 local lpeg = require "lpeg"
+local symbols = require "symbols"
 
 local P = lpeg.P
 
@@ -6,7 +7,7 @@ local common = {}
 
 local furthestMatch = 0
 
-common.endToken = lpeg.locale().space^0 * 
+common.endToken = (lpeg.locale().space + symbols.comments.line)^0  *
                   -- Track furthest match after every token!
                   P(
                     function (_,position)
