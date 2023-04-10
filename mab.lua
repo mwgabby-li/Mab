@@ -157,7 +157,7 @@ end
 io.write 'Parsing...'
 local start = os.clock()
 local ast = parse(input)
-print(string.format('     %s: %0.2f milliseconds.', ast and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+print(string.format('         %s: %0.2f milliseconds.', ast and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 if not ast then
   local furthestMatch = common.getFurthestMatch()
@@ -242,7 +242,7 @@ if not show.trace then
   trace = nil
 end
 local result = interpreter.run(code, trace)
-print(string.format('     Execution %s: %0.2f milliseconds.', result and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+print(string.format('         Execution %s: %0.2f milliseconds.', result and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 if show.trace then
   print '\nExecution trace:'
