@@ -130,8 +130,19 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests' or string.lower(arg[1]) 
 end
 
 local show = {}
-for _, argument in ipairs(arg) do
-  if argument:lower() == '--tests' then
+local input_file
+local awaiting_filename = false
+for index, argument in ipairs(arg) do
+  if awaiting_filename then
+    local status, err = pcall(io.input, arg[index])
+    if not status then
+      print('Could not open file "' .. arg[index] .. '"\n\tError: ' .. err)
+      os.exit(1)
+    end
+    awaiting_filename = false
+  elseif argument:lower() == '--input' or argument:lower() == '-i' then
+    awaiting_filename = true
+  elseif argument:lower() == '--tests' then
     print('-tests must be the first argument if it is being sent in.')
     os.exit(1)
   elseif argument:lower() == '--ast' or argument:lower() == '-a' then
@@ -144,7 +155,15 @@ for _, argument in ipairs(arg) do
     show.result = true
   elseif argument:lower() == '--echo-input' or argument:lower() == '-e' then
     show.input = true
+  else
+    print('Unknown argument ' .. argument .. '.')
+    os.exit(1)
   end
+end
+
+if awaiting_filename then
+  print 'Specified -i, but no input file found.'
+  os.exit(1)
 end
 
 common.poem() print ''
