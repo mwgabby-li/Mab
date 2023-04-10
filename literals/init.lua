@@ -1,4 +1,4 @@
-local module = { op = {}, delim = {}, sep = {}, kw = {}, comment = {}  }
+local module = { op = {}, delim = {}, sep = {}, kw = {}, comments = {}  }
 
 -- Language literals, they can be customized here.
 --  Operators
@@ -16,11 +16,12 @@ module.op.greaterOrEqual = '>='
 module.op.equal = '=='
 module.op.notEqual = '~='
 module.op.print = '@'
+module.op.negate = '-'
 
 --  Comments
-module.comment.comment = '#'
-module.comment.openBlockComment = '#{'
-module.comment.closeBlockComment = '}#'
+module.comments.startLine = '#'
+module.comments.openBlock = '#{'
+module.comments.closeBlock = '}#'
 
 --  Delimiters
 module.delim.openFactor = '('
@@ -29,28 +30,28 @@ module.delim.openBlock = '{'
 module.delim.closeBlock = '}'
 
 --  Separators
-module.sep.endOfStatement = ';'
+module.sep.statement = ';'
 
 --  Keywords
 module.kw.return_ = 'return'
 
 module.op.toName = {
-  [add] = 'add',
-  [subtract] = 'subtract',
-  [multiply] = 'multiply',
-  [divide] = 'divide',
-  [modulus] = 'modulus',
-  [exponent] = 'exponent',
-  [less] = 'less',
-  [greater] = 'greater',
-  [lessOrEqual] = 'lessOrEqual',
-  [greaterOrEqual] = 'greaterOrEqual',
-  [equal] = 'equal',
-  [notEqual] = 'notEqual',
+  [module.op.add] = 'add',
+  [module.op.subtract] = 'subtract',
+  [module.op.multiply] = 'multiply',
+  [module.op.divide] = 'divide',
+  [module.op.modulus] = 'modulus',
+  [module.op.exponent] = 'exponent',
+  [module.op.less] = 'less',
+  [module.op.greater] = 'greater',
+  [module.op.lessOrEqual] = 'lessOrEqual',
+  [module.op.greaterOrEqual] = 'greaterOrEqual',
+  [module.op.equal] = 'equal',
+  [module.op.notEqual] = 'notEqual',
 }
 
 module.op.unaryToName = {
-    [subtract] = 'negate',
+    [module.op.negate] = 'negate',
 }
 
 return module

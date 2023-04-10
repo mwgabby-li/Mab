@@ -1,6 +1,6 @@
 local module = {}
-local symbols = require 'symbols'
-local op = symbols.op
+local literals = require 'literals'
+local op = literals.op
 
 local function addCode(state, opcode)
   local code = state.code

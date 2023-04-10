@@ -3,7 +3,7 @@ local P, C = lpeg.P, lpeg.C
 local l = require 'literals'
 local endToken = require('common').endToken
 
-local module = { op = {}, delim = {}, sep = {}, keyword = {}  }
+local module = { op = {}, delim = {}, sep = {}, kw = {}  }
 
 -- Delimiters
 module.delim.openFactor = l.delim.openFactor * endToken
@@ -14,7 +14,7 @@ module.delim.closeBlock = l.delim.closeBlock * endToken
 -- Separators
 module.sep.statement = l.sep.statement * endToken
 
-module.keyword.return_ = l.kw.return_ * endToken
+module.kw.return_ = l.kw.return_ * endToken
 
 module.op.assign = l.op.assign * endToken
 module.op.sum = C(P(l.op.add) + l.op.subtract) * endToken

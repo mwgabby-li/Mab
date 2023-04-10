@@ -10,11 +10,11 @@ local endToken = common.endToken
 local numeral = require 'numeral'
 local identifier = require 'identifier'
 
-local symbols = require 'symbols'
-local op = symbols.op
-local keyword = symbols.keyword
-local sep = symbols.sep
-local delim = symbols.delim
+local tokens = require 'tokens'
+local op = tokens.op
+local keyword = tokens.kw
+local sep = tokens.sep
+local delim = tokens.delim
 
 ---- AST ---------------------------------------------------------------------------------------------------------------
 local function nodeVariable(variable)
