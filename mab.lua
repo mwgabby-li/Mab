@@ -165,8 +165,23 @@ if not ast then
   -- Count the number of newlines - the number of line breaks plus one is the current line
   local newlineCount = common.count('\n', input:sub(1, furthestMatch ))
   local errorLine = newlineCount + 1
-  
-  print('\nFailed to generate AST from input. Unable to continue at line ' .. errorLine .. ':')
+
+  -- If the previous character was a newline, this means we (sort of) failed at the end of the line.
+  -- Show the failure on the previous line, and one character back so that the caret is after the last character
+  -- on that line.
+  io.write '\nFailed to generate AST from input. Unable to continue '
+  if input:sub(furthestMatch - 1, furthestMatch - 1) == '\n' then
+    errorLine = errorLine - 1
+    furthestMatch = furthestMatch - 1
+    -- On \r\n systems, we need to backtrack twice since there are two characters in a line ending,
+    -- so we will be at the same place visually as on \n systems.
+    if input:sub(furthestMatch - 1, furthestMatch - 1) == '\r' then
+      furthestMatch = furthestMatch - 1
+    end
+    print('after line ' .. errorLine .. ':')
+  else
+    print('at line ' .. errorLine .. ':')
+  end
 
   local contextAfter = 2
   local contextBefore = 2
