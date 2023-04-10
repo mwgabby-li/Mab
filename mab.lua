@@ -160,14 +160,13 @@ local ast = parse(input)
 print(string.format('     %s: %0.2f milliseconds.', ast and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 if not ast then
-  
   local furthestMatch = common.getFurthestMatch()
   
   -- Count the number of newlines - the number of line breaks plus one is the current line
-  local _, newlineCount = input:sub(1, furthestMatch ):gsub('\n', function() end)
+  local newlineCount = common.count('\n', input:sub(1, furthestMatch ))
   local errorLine = newlineCount + 1
   
-  print('\nFailed to generate AST from input. Error on line ' .. errorLine .. ':')
+  print('\nFailed to generate AST from input. Unable to continue at line ' .. errorLine .. ':')
 
   local contextAfter = 2
   local contextBefore = 2

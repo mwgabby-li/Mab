@@ -31,6 +31,13 @@ function common.lines(string, include_newlines)
   end
 end
 
+-- Counts the number of occurrences of substring in string
+function common.count(substring, string)
+    local matches = 0
+    ((lpeg.P(substring)/function() matches = matches + 1 end + 1)^0):match(string)
+    return matches
+end
+
 function common.poem(all)
     local poem =
 [[In dreams, Queen Mab arrives unseen,
