@@ -19,7 +19,7 @@ end
 
 local lineComment = literals.comments.startLine * (P(1) - '\n')^0
 local blockComment = literals.comments.openBlock *
-      (P(1) * -P(literals.comments.closeBlock))^0 * literals.comments.closeBlock
+      (P(1) - P(literals.comments.closeBlock))^0 * literals.comments.closeBlock
 local furthestMatch = 0
 common.endTokenPattern = (lpeg.locale().space + blockComment + lineComment)^0  *
                           -- Track furthest match after every token!

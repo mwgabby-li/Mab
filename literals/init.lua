@@ -22,7 +22,7 @@ module.op.negate = '-'
 --  Comments
 module.comments.startLine = '#'
 module.comments.openBlock = '#{'
-module.comments.closeBlock = '}#'
+module.comments.closeBlock = '#}'
 
 --  Delimiters
 module.delim.openFactor = '('

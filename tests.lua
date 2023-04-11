@@ -312,4 +312,116 @@ function module.testAllOperators()
     local ast = module.parse(input)
 end
 
+function module.testBlockAndLineComments()
+    local input =
+[[
+# Start comment
+
+a = 10 + 4; # End of line comment
+#{#} # Single-line block comment
+
+# Block comment inside line comment: #{ blah blah blah #}
+
+#{
+# Comments nested in block comment
+# Another one
+b = b * 10 # Commented-out line of code
+#}
+b = a * a - 10;
+c = a/b;
+
+# Disabled block comment
+
+##{
+@c;
+#}
+return c;
+# Final comment
+]]
+    local ast = module.parse(input)
+    local expected = {
+        tag = 'statementSequence',
+        firstChild = {
+            tag = 'assignment',
+            identifier = 'a',
+            assignment = {
+                tag = 'binaryOp',
+                firstChild = {
+                    tag = 'number',
+                    value = 10
+                },
+                op = '+',
+                secondChild = {
+                    tag = 'number',
+                    value = 4
+                }
+            }
+        },
+        secondChild = {
+            tag = 'statementSequence',
+            firstChild = {
+                tag = 'assignment',
+                identifier = 'b',
+                assignment = {
+                    tag = 'binaryOp',
+                    firstChild = {
+                        tag = 'binaryOp',
+                        firstChild = {
+                            tag = 'variable',
+                            value = 'a'
+                        },
+                        op = '*',
+                        secondChild = {
+                            tag = 'variable',
+                            value = 'a'
+                        }
+                    },
+                    op = '-',
+                    secondChild = {
+                        tag = 'number',
+                        value = 10
+                    }
+                }
+            },
+            secondChild = {
+                tag = 'statementSequence',
+                firstChild = {
+                    tag = 'assignment',
+                    identifier = 'c',
+                    assignment = {
+                        tag = 'binaryOp',
+                        firstChild = {
+                            tag = 'variable',
+                            value = 'a'
+                        },
+                        op = '/',
+                        secondChild = {
+                            tag = 'variable',
+                            value = 'b'
+                        }
+                    }
+                },
+                secondChild = {
+                    tag = 'statementSequence',
+                    firstChild = {
+                        tag = 'print',
+                        toPrint = {
+                            tag = 'variable',
+                            value = 'c'
+                        }
+                    },
+                    secondChild = {
+                        tag = 'return',
+                        sentence = {
+                            tag = 'variable',
+                            value = 'c'
+                        }
+                    }
+                }
+            }
+        }
+    }
+    lu.assertEquals(ast, expected)
+end
+
 return module
