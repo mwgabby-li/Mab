@@ -307,11 +307,6 @@ function module.testExponentPrecedence()
     lu.assertEquals(ast, expected)
 end
 
-function module.testAllOperators()
-    local input = 'i = 1 + 2 - 3 * 4 / 5 % 6 ^ 7'
-    local ast = module.parse(input)
-end
-
 function module.testBlockAndLineComments()
     local input =
 [[
@@ -422,6 +417,53 @@ return c;
         }
     }
     lu.assertEquals(ast, expected)
+end
+
+function module.testKeywordExcludeRules()
+  lu.assertEquals(module.parse('return1'), nil)
+  lu.assertEquals(module.parse('a = 1; returna'), nil)
+  lu.assertEquals(module.parse('return = 1'), nil)
+  lu.assertEquals(module.parse('return return'), nil)
+  lu.assertEquals(module.parse('delta x = 1; return delta x'),
+    {
+      tag = 'statementSequence',
+      firstChild = {
+        tag = 'assignment',
+        identifier = 'delta x',
+        assignment = {
+          tag = 'number',
+          value = 1
+        }
+      },
+      secondChild = {
+        tag = 'return',
+        sentence = {
+          tag = 'variable',
+          value = 'delta x'
+        }
+      }
+    }
+  )
+  lu.assertEquals(module.parse('return of the variable = 1; return return of the variable'),
+    {
+      tag = 'statementSequence',
+      firstChild = {
+        tag = 'assignment',
+        identifier = 'return of the variable',
+        assignment = {
+          tag = 'number',
+          value = 1
+        }
+      },
+      secondChild = {
+        tag = 'return',
+        sentence = {
+          tag = 'variable',
+          value = 'return of the variable'
+        }
+      }
+    }
+  )
 end
 
 return module

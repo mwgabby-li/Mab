@@ -12,9 +12,10 @@ local identifier = require 'identifier'
 
 local tokens = require 'tokens'
 local op = tokens.op
-local keyword = tokens.kw
+local KW = tokens.KW
 local sep = tokens.sep
 local delim = tokens.delim
+local I = common.I
 
 ---- AST ---------------------------------------------------------------------------------------------------------------
 local function nodeVariable(variable)
@@ -94,10 +95,10 @@ statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatemen
 blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock,
 
 statement = blockStatement +
-            -- Assignment
+            -- Assignment - must be first to allow variables that contain keywords as prefixes.
             identifier * op.assign * comparisonExpr / nodeAssignment +
             -- Return
-            keyword.return_ * comparisonExpr / nodeReturn +
+            KW'return' * comparisonExpr / nodeReturn +
             -- Print
             op.print * comparisonExpr / nodePrint,
 

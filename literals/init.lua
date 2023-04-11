@@ -1,4 +1,4 @@
-local module = { op = {}, delim = {}, sep = {}, kw = {}, comments = {}  }
+local module = { op = {}, delim = {}, sep = {}, comments = {}  }
 
 -- Language literals, they can be customized here.
 --  Operators
@@ -32,9 +32,6 @@ module.delim.closeBlock = '}'
 
 --  Separators
 module.sep.statement = ';'
-
---  Keywords
-module.kw.return_ = 'return'
 
 module.op.toName = {
   [module.op.add] = 'add',

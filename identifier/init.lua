@@ -1,8 +1,9 @@
 local lpeg = require 'lpeg'
-
+local tokens = require 'tokens'
 
 -- Patterns
 local P, R = lpeg.P, lpeg.R
+local Cmt = lpeg.Cmt
 
 local endToken = require('common').endToken
 
@@ -11,11 +12,15 @@ local identifierStartCharacters = (alpha + '_') * P' '^-1
 local digit = R'09'
 local identifierTailCharacters = (alpha + digit + '_') * P' '^-1
 
-local function removeTrailingSpace(identifier)
-  if identifier:sub(#identifier, #identifier) == ' ' then
-    identifier = identifier:sub(1, #identifier - 1)
+local function getIdentifier(subject, position, match)
+  if match:sub(#match, #match) == ' ' then
+    match = match:sub(1, #match - 1)
   end
-  return identifier
+  if tokens.kw[match] then
+    return false
+  else
+    return true, match
+  end
 end
 
-return (identifierStartCharacters * identifierTailCharacters^0) / removeTrailingSpace * endToken
+return Cmt(identifierStartCharacters * identifierTailCharacters^0, getIdentifier)* endToken

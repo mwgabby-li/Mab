@@ -10,14 +10,19 @@ end
 
 local module = { op = {}, delim = {}, sep = {}, kw = {}  }
 
+function module.KW(keyword)
+  if not module.kw[keyword] then
+    module.kw[keyword] = keyword * -lpeg.locale().alnum * endToken
+  end
+
+  return module.kw[keyword]
+end
+
 -- Delimiters
 module.delim.openFactor = T(l.delim.openFactor)
 module.delim.closeFactor = T(l.delim.closeFactor)
 module.delim.openBlock = T(l.delim.openBlock)
 module.delim.closeBlock = T(l.delim.closeBlock)
-
--- Keywords
-module.kw.return_ = l.kw.return_ * endToken
 
 -- Separators
 module.sep.statement = T(l.sep.statement)
