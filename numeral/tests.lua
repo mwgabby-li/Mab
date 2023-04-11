@@ -1,6 +1,7 @@
 local module = {}
 local lu = require 'External.luaunit'
-local numeral = require 'numeral'
+
+local numeral = require('common').testGrammar(require 'numeral')
 
 function module:testNaturalNumbers()
     lu.assertEquals(numeral:match('0'), 0)

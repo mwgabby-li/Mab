@@ -16,6 +16,7 @@ module.op.greaterOrEqual = '>='
 module.op.equal = '=='
 module.op.notEqual = '~='
 module.op.print = '@'
+module.op.positive = '+'
 module.op.negate = '-'
 
 --  Comments

@@ -3,27 +3,30 @@ local P, C = lpeg.P, lpeg.C
 local l = require 'literals'
 local endToken = require('common').endToken
 
+local function T(tokenize)
+  return tokenize * endToken
+end
+
+
 local module = { op = {}, delim = {}, sep = {}, kw = {}  }
 
 -- Delimiters
-module.delim.openFactor = l.delim.openFactor * endToken
-module.delim.closeFactor = l.delim.closeFactor * endToken
-module.delim.openBlock = l.delim.openBlock * endToken
-module.delim.closeBlock = l.delim.closeBlock * endToken
+module.delim.openFactor = T(l.delim.openFactor)
+module.delim.closeFactor = T(l.delim.closeFactor)
+module.delim.openBlock = T(l.delim.openBlock)
+module.delim.closeBlock = T(l.delim.closeBlock)
 
 -- Separators
-module.sep.statement = l.sep.statement * endToken
+module.sep.statement = T(l.sep.statement)
 
-module.kw.return_ = l.kw.return_ * endToken
-
-module.op.assign = l.op.assign * endToken
-module.op.sum = C(P(l.op.add) + l.op.subtract) * endToken
-module.op.term = C(P(l.op.multiply) + l.op.divide + l.op.modulus) * endToken
-module.op.exponent = C(l.op.exponent) * endToken
-module.op.comparison = (C(l.op.greaterOrEqual) + C(l.op.greater) +
+module.op.assign = T(l.op.assign)
+module.op.sum = T(C(P(l.op.add) + l.op.subtract))
+module.op.term = T(C(P(l.op.multiply) + l.op.divide + l.op.modulus))
+module.op.exponent = T(C(l.op.exponent))
+module.op.comparison = T((C(l.op.greaterOrEqual) + C(l.op.greater) +
                         C(l.op.lessOrEqual) + C(l.op.less) +
-                        C(l.op.equal) + C(l.op.notEqual)) * endToken
-module.op.unarySign = C(P(l.op.add) + l.op.subtract) * endToken
-module.op.print = l.op.print * endToken
+                        C(l.op.equal) + C(l.op.notEqual)))
+module.op.unarySign = T(C(P(l.op.positive) + l.op.negate))
+module.op.print = T(l.op.print)
 
 return module

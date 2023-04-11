@@ -1,6 +1,7 @@
 local module = {}
 local lu = require 'External.luaunit'
-local identifier = require 'identifier'
+local identifier = require('common').testGrammar(require 'identifier')
+local common = require 'common'
 
 function module:testIdentifiers()
     lu.assertEquals(identifier:match('_leading_underscore'), '_leading_underscore')

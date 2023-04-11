@@ -86,7 +86,8 @@ local blockStatement = V'blockStatement'
 local Ct = lpeg.Ct
 local grammar = lpeg.P
 {
-'statementList',
+'program',
+program = endToken * statementList * -1,
 
 statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
 
@@ -111,8 +112,9 @@ unaryExpr = op.unarySign * unaryExpr / addUnaryOp + exponentExpr,
 termExpr = Ct(unaryExpr * (op.term * unaryExpr)^0) / foldBinaryOps,
 sumExpr = Ct(termExpr * (op.sum * termExpr)^0) / foldBinaryOps,
 comparisonExpr = Ct(sumExpr * (op.comparison * sumExpr)^0) / foldBinaryOps,
+
+endToken = common.endTokenPattern,
 }
-grammar = endToken * grammar * -1
 
 local function parse(input)
   return grammar:match(input)
