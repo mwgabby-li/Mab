@@ -16,6 +16,9 @@ module.delim.closeFactor = T(l.delim.closeFactor)
 module.delim.openBlock = T(l.delim.openBlock)
 module.delim.closeBlock = T(l.delim.closeBlock)
 
+-- Keywords
+module.kw.return_ = l.kw.return_ * endToken
+
 -- Separators
 module.sep.statement = T(l.sep.statement)
 
