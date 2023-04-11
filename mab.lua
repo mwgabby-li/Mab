@@ -118,6 +118,7 @@ endToken = common.endTokenPattern,
 }
 
 local function parse(input)
+  common.clearFurthestMatch()
   return grammar:match(input)
 end
 

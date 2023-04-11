@@ -466,4 +466,23 @@ function module.testKeywordExcludeRules()
   )
 end
 
+function module.testFullProgram()
+  local input =
+[[
+# a is 14
+a = 10 + 4;
+#{
+  14 * 14 - 10 = 186
+#}
+b = a * a - 10;
+# (186 + 10)/14
+c = (b + 10)/a;
+return c;
+]]
+  local ast = module.parse(input)
+  local code = module.toStackVM.translate(ast)
+  local result = module.interpreter.run(code)
+  lu.assertEquals(result, 14)
+end
+
 return module

@@ -2,72 +2,78 @@ local module = {}
 local literals = require 'literals'
 local op = literals.op
 
-local function addCode(state, opcode)
-  local code = state.code
-  code[#code + 1] = opcode
+local Translator = {
+  code = {},
+  variables = {},
+  numVariables = 0,
+}
+
+function Translator:addCode(opcode)
+  self.code[#(self.code) + 1] = opcode
 end
 
-local function variableToNumber(state, variable)
-  local number = state.variables[variable]
+function Translator:variableToNumber(variable)
+  local number = self.variables[variable]
   if not number then
-    number = state.numVariables + 1
-    state.numVariables = number
-    state.variables[variable] = number
+    number = self.numVariables + 1
+    self.numVariables = number
+    self.variables[variable] = number
   end
   return number
 end
 
-local function codeExpression(state, ast)
+function Translator:codeExpression(ast)
   if ast.tag == 'number' then
-    addCode(state, 'push')
-    addCode(state, ast.value)
+    self:addCode('push')
+    self:addCode(ast.value)
   elseif ast.tag == 'variable' then
-    if state.variables[ast.value] == nil then
+    if self.variables[ast.value] == nil then
       error('Trying to load from undefined variable "' .. ast.value .. '."')
     end
-    addCode(state, 'load')
-    addCode(state, variableToNumber(state, ast.value))
+    self:addCode('load')
+    self:addCode(self:variableToNumber(ast.value))
   elseif ast.tag == 'binaryOp' then
-    codeExpression(state, ast.firstChild)
-    codeExpression(state, ast.secondChild)
-    addCode(state, op.toName[ast.op])
+    self:codeExpression(ast.firstChild)
+    self:codeExpression(ast.secondChild)
+    self:addCode(op.toName[ast.op])
   elseif ast.tag == 'unaryOp' then
-    codeExpression(state, ast.child)
+    self:codeExpression(ast.child)
     if ast.op == '-' then
-      addCode(state, op.unaryToName[ast.op])
+      self:addCode(op.unaryToName[ast.op])
     end
   else error 'invalid tree'
   end
 end
 
-local function codeStatement(state, ast)
+function Translator:codeStatement(ast)
   if ast.tag == 'emptyStatement' then
     return
   elseif ast.tag == 'statementSequence' then
-    codeStatement(state, ast.firstChild)
-    codeStatement(state, ast.secondChild)
+    self:codeStatement(ast.firstChild)
+    self:codeStatement(ast.secondChild)
   elseif ast.tag == 'return' then
-    codeExpression(state, ast.sentence)
-    addCode(state, 'return')
+    self:codeExpression(ast.sentence)
+    self:addCode('return')
   elseif ast.tag == 'assignment' then
-    codeExpression(state, ast.assignment)
-    addCode(state, 'store')
-    addCode(state, variableToNumber(state, ast.identifier))
+    self:codeExpression(ast.assignment)
+    self:addCode('store')
+    self:addCode(self:variableToNumber(ast.identifier))
   elseif ast.tag == 'print' then
-    codeExpression(state, ast.toPrint)
-    addCode(state, 'print')
+    self:codeExpression(ast.toPrint)
+    self:addCode('print')
   else error 'invalid tree'
   end
 end
 
-
 function module.translate(ast)
-  local state = {code = {}, variables = {}, numVariables = 0 }
-  codeStatement(state, ast)
-  addCode(state, 'push')
-  addCode(state, 0)
-  addCode(state, 'return')
-  return state.code
+  Translator.code = {}
+  Translator.variables = {}
+  Translator.numVariables = 0
+  Translator:codeStatement(ast)
+  Translator:addCode('push')
+  Translator:addCode(0)
+  Translator:addCode('return')
+  return Translator.code
 end
 
 return module

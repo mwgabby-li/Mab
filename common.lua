@@ -38,6 +38,10 @@ function common.getFurthestMatch()
   return furthestMatch
 end
 
+function common.clearFurthestMatch()
+  furthestMatch = 0
+end
+
 function common.lines(string, include_newlines)
   if include_newlines then
     return string:gmatch('[^\r\n]*[\r]?[\n]')
