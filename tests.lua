@@ -485,4 +485,102 @@ return c;
   lu.assertEquals(result, 14)
 end
 
+function module.testLessonFourCornerCases()
+  lu.assertEquals(module.parse 'returned = 10',
+    {
+      tag = 'assignment',
+      identifier = 'returned',
+      assignment = {
+        tag = 'number',
+        value = 10
+      }
+    }
+  )
+  lu.assertEquals(module.parse 'x=10y=20', nil)
+  
+  lu.assertEquals(module.parse(
+    [[
+      x=1;
+      returnx
+    ]]), nil)
+  
+  lu.assertEquals(module.parse(
+    [[
+      #{
+      bla bla
+    ]]), nil)
+  
+  lu.assertEquals(module.parse '#{##}', {tag = 'emptyStatement'})
+  
+  lu.assertEquals(module.parse '#{#{#}', {tag = 'emptyStatement'})
+  
+  lu.assertEquals(module.parse(
+    [[
+      #{
+      x=1
+      #}
+    ]]), {tag = 'emptyStatement'})
+    
+  lu.assertEquals(module.parse(
+    [[
+      #{#}x=1;
+      return x
+    ]]),
+    {
+      tag = 'statementSequence',
+      firstChild = {
+        tag = 'assignment',
+        identifier = 'x',
+        assignment = {
+          tag = 'number',
+          value = 1
+        }
+      },
+      secondChild = {
+        tag = 'return',
+        sentence = {
+          tag = 'variable',
+          value = 'x'
+        }
+      }
+    })
+  
+  lu.assertEquals(module.parse(
+    [[
+      #{#} x=10; #{#}
+      return x
+    ]]),
+    {
+      tag = 'statementSequence',
+      firstChild = {
+        tag = 'assignment',
+        identifier = 'x',
+        assignment = {
+          tag = 'number',
+          value = 10
+        }
+      },
+      secondChild = {
+        tag = 'return',
+        sentence = {
+          tag = 'variable',
+          value = 'x'
+        }
+      }
+    })
+    lu.assertEquals(module.parse(
+        [[
+        ##{
+        x=10
+        #}
+        ]]),{
+        tag = 'assignment',
+        identifier = 'x',
+        assignment = {
+          tag = 'number',
+          value = 10
+        }
+      })
+end
+
 return module
