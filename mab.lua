@@ -123,7 +123,7 @@ local function parse(input)
   return grammar:match(input)
 end
 
-if arg[1] ~= nil and (string.lower(arg[1]) == '--tests' or string.lower(arg[1]) == '-t') then
+if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   common.poem(true)
   arg[1] = nil
   local lu = require 'External.luaunit'
