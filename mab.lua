@@ -2,6 +2,7 @@
 
 local interpreter = require 'interpreter'
 local toStackVM = require 'translators.stackVM'
+local graphviz = require 'translators.graphviz'
 
 local lpeg = require 'lpeg'
 local pt = require 'External.pt'
@@ -139,6 +140,7 @@ local awaiting_filename = false
 for index, argument in ipairs(arg) do
   if awaiting_filename then
     local status, err = pcall(io.input, arg[index])
+    input_file = arg[index]
     if not status then
       print('Could not open file "' .. arg[index] .. '"\n\tError: ' .. err)
       os.exit(1)
@@ -159,6 +161,8 @@ for index, argument in ipairs(arg) do
     show.result = true
   elseif argument:lower() == '--echo-input' or argument:lower() == '-e' then
     show.input = true
+  elseif argument:lower() == '--graphviz' or argument:lower() == '-g' then
+    show.graphviz = true
   else
     print('Unknown argument ' .. argument .. '.')
     os.exit(1)
@@ -233,6 +237,17 @@ if not ast then
   end
 
   return 1;
+end
+
+if show.graphviz then
+  local prefix = input_file and input_file or 'temp'
+  local dotFileName = prefix .. '.dot'
+  local dotFile = io.open(dotFileName, 'wb')
+  dotFile:write(graphviz.translate(ast))
+  dotFile:close()
+  local svgFileName = prefix .. '.svg'
+  os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
+  os.execute('firefox "'.. svgFileName .. '"')
 end
 
 if show.AST then
