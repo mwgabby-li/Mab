@@ -18,6 +18,7 @@ module.op.notEqual = '~='
 module.op.print = '@'
 module.op.positive = '+'
 module.op.negate = '-'
+module.op.unaryNot = '!'
 
 --  Comments
 module.comments.startLine = '#'
@@ -50,6 +51,7 @@ module.op.toName = {
 
 module.op.unaryToName = {
     [module.op.negate] = 'negate',
+    [module.op.unaryNot] = 'not',
 }
 
 return module

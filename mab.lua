@@ -82,6 +82,7 @@ end
 local V = lpeg.V
 local primary, exponentExpr, termExpr = V'primary', V'exponentExpr', V'termExpr'
 local sumExpr, comparisonExpr, unaryExpr = V'sumExpr', V'comparisonExpr', V'unaryExpr'
+local notExpr = V'notExpr'
 local statement, statementList = V'statement', V'statementList'
 local blockStatement = V'blockStatement'
 
@@ -113,7 +114,8 @@ exponentExpr = primary * (op.exponent * exponentExpr)^-1 / addExponentOp,
 unaryExpr = op.unarySign * unaryExpr / addUnaryOp + exponentExpr,
 termExpr = Ct(unaryExpr * (op.term * unaryExpr)^0) / foldBinaryOps,
 sumExpr = Ct(termExpr * (op.sum * termExpr)^0) / foldBinaryOps,
-comparisonExpr = Ct(sumExpr * (op.comparison * sumExpr)^0) / foldBinaryOps,
+notExpr = op.unaryNot * notExpr / addUnaryOp + sumExpr,
+comparisonExpr = Ct(notExpr * (op.comparison * notExpr)^0) / foldBinaryOps,
 
 endToken = common.endTokenPattern,
 }

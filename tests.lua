@@ -583,4 +583,63 @@ function module.testLessonFourCornerCases()
       })
 end
 
+function module.testNot()
+    local ast = module.parse('return ! 1.5')
+    lu.assertEquals(ast, {
+        tag = 'return',
+        sentence = {
+        tag = 'unaryOp',
+        op = '!',
+        child = {
+        tag = 'number',
+        value = 1.5
+      }
+      }
+    })
+    local code = module.toStackVM.translate(ast)
+    lu.assertEquals(module.interpreter.run(code),0)
+  
+    local ast = module.parse('return ! ! 167')
+    lu.assertEquals(ast, {
+        tag = 'return',
+        sentence = {
+        tag = 'unaryOp',
+        op = '!',
+        child = {
+        tag = 'unaryOp',
+        op = '!',
+        child = {
+            tag = 'number',
+            value = 167
+        }
+      }
+      }
+    })
+    local code = module.toStackVM.translate(ast)
+    lu.assertEquals(module.interpreter.run(code),1)
+    
+    local ast = module.parse('return!!!12412.435')
+    lu.assertEquals(ast, {
+        tag = 'return',
+        sentence = {
+        tag = 'unaryOp',
+        op = '!',
+        child = {
+        tag = 'unaryOp',
+        op = '!',
+        child = {
+            tag = 'unaryOp',
+            op = '!',
+            child = {
+            tag = 'number',
+            value = 12412.435
+            }
+        }
+      }
+      }
+    })
+    local code = module.toStackVM.translate(ast)
+    lu.assertEquals(module.interpreter.run(code),0)
+end
+
 return module

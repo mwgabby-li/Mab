@@ -38,7 +38,7 @@ function Translator:codeExpression(ast)
     self:addCode(op.toName[ast.op])
   elseif ast.tag == 'unaryOp' then
     self:codeExpression(ast.child)
-    if ast.op == '-' then
+    if ast.op ~= '+' then
       self:addCode(op.unaryToName[ast.op])
     end
   else error 'invalid tree'
