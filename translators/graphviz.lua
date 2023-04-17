@@ -88,10 +88,14 @@ function Translator:nodeStatement(ast)
     self:appendNode(ast, false, "Empty")
     return
   elseif ast.tag == 'statementSequence' then
+    -- Save off statement nodes so that they can be rendered at the same rank
     self.statementNodeNames[#self.statementNodeNames + 1] = self:nodeName(ast)
+    -- Place the final child of the last statement node at the same rank as well.
+    -- Subjectively looks better.
     if ast.secondChild and ast.secondChild.tag ~= 'statementSequence' then
       self.statementNodeNames[#self.statementNodeNames + 1] = self:nodeName(ast.secondChild)
     end
+
     self:appendNode(ast, true, 'Statement', ast.firstChild, nil, ast.secondChild, nil)
     self:nodeStatement(ast.firstChild)
     self:nodeStatement(ast.secondChild)
@@ -100,8 +104,12 @@ function Translator:nodeStatement(ast)
     self:nodeExpression(ast.sentence)
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment)
-    self:appendNode(ast, false, '=', ast.identifier, nil, ast.assignment)
-    self:appendNode(ast.identifier, false, ast.identifier)
+    -- Identifier is not a table, so make a temporary one representing it.
+    -- That way, the AST node will refer to this table,
+    -- and we can use this table to create the identifier's node.
+    local tempIdentifierTable = {}
+    self:appendNode(ast, false, '=', tempIdentifierTable, nil, ast.assignment)
+    self:appendNode(tempIdentifierTable, false, ast.identifier)
   elseif ast.tag == 'print' then
     self:nodeExpression(ast.toPrint)
     self:appendNode(ast, false, 'Print', ast.toPrint)
