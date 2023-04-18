@@ -31,7 +31,7 @@ common.endTokenPattern = (lpeg.locale().space + blockComment + lineComment)^0  *
                           )
 
 function common.testGrammar(pattern)
-  return P{pattern, endToken=common.endTokenPattern}
+  return P{pattern * -1, endToken=common.endTokenPattern}
 end
 
 function common.getFurthestMatch()
