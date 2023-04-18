@@ -103,6 +103,13 @@ function module.run(code, trace)
       pc = pc + 1
       memory[code[pc] ] = stack[top]
       top = top - 1
+    elseif code[pc] == 'jumpIfZero' then
+      traceTwoCodes(trace, code, pc)
+      pc = pc + 1
+      if stack[top] == 0 then
+        pc = pc + code[pc]
+      end
+      top = top - 1
     elseif code[pc] == 'print' then
       traceUnaryOp(trace, code[pc], stack[top])
       print(stack[top])

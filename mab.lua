@@ -19,25 +19,35 @@ local delim = tokens.delim
 local I = common.I
 
 ---- AST ---------------------------------------------------------------------------------------------------------------
-local function nodeVariable(variable)
-  return {tag = 'variable', value = variable}
+
+local function node(tag, ...)
+  local labels = {...}
+  local parameters = table.concat(labels, ', ')
+  local fields = string.gsub(parameters, '(%w+)', '%1 = %1')
+  local code = string.format(
+    'return function(%s) return {tag = "%s", %s} end',
+    parameters, tag, fields)
+    return assert(load(code))()
 end
 
-local function nodeAssignment(identifier, assignment)
-  return {tag = 'assignment', identifier = identifier, assignment = assignment}
-end
+--local function node(tag, ...)
+--  local labels = {...}
+--  return function(...)
+--    local parameters = {...}
+--    local result = {tag = tag}
+--    for ordex, value in pairs(labels) do
+--      result[value] = parameters[ordex]
+--    end
+--    return result
+--  end
+--end
 
-local function nodePrint(toPrint)
-    return { tag='print', toPrint=toPrint }
-end
-
-local function nodeReturn(sentence)
-    return { tag='return', sentence = sentence }
-end
-
-local function nodeNumeral(num)
-    return {tag = 'number', value = num}
-end
+local nodeVariable = node('variable', 'value')
+local nodeAssignment = node('assignment', 'identifier', 'assignment')
+local nodePrint = node('print', 'toPrint')
+local nodeReturn = node('return', 'sentence')
+local nodeNumeral = node('number', 'value')
+local nodeIf = node('if', 'expression', 'block')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -99,6 +109,8 @@ blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.clos
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             identifier * op.assign * comparisonExpr / nodeAssignment +
+            -- If
+            KW'if' * comparisonExpr * blockStatement / nodeIf +
             -- Return
             KW'return' * comparisonExpr / nodeReturn +
             -- Print

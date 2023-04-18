@@ -642,4 +642,134 @@ function module.testNot()
     lu.assertEquals(module.interpreter.run(code),0)
 end
 
+function module.testIf()
+local code = [[
+a = 10 + 4;
+b = a * a - -10;
+c = a/b;
+if c < a {
+  this is a long name = 24;
+  c = 12;
+};
+return c;
+]]
+  local ast = module.parse(code)
+  lu.assertEquals(ast,
+          {
+          tag = 'statementSequence';
+          firstChild =   {
+            tag = 'assignment';
+            identifier = 'a';
+            assignment =     {
+              tag = 'binaryOp';
+              firstChild =       {
+                tag = 'number';
+                value = 10;
+                };
+              op = '+';
+              secondChild =       {
+                tag = 'number';
+                value = 4;
+                };
+              };
+            };
+          secondChild =   {
+            tag = 'statementSequence';
+            firstChild =     {
+              tag = 'assignment';
+              identifier = 'b';
+              assignment =       {
+                tag = 'binaryOp';
+                firstChild =         {
+                  tag = 'binaryOp';
+                  firstChild =           {
+                    tag = 'variable';
+                    value = 'a';
+                    };
+                  op = '*';
+                  secondChild =           {
+                    tag = 'variable';
+                    value = 'a';
+                    };
+                  };
+                op = '-';
+                secondChild =         {
+                  tag = 'unaryOp';
+                  op = '-';
+                  child =           {
+                    tag = 'number';
+                    value = 10;
+                    };
+                  };
+                };
+              };
+            secondChild =     {
+              tag = 'statementSequence';
+              firstChild =       {
+                tag = 'assignment';
+                identifier = 'c';
+                assignment =         {
+                  tag = 'binaryOp';
+                  firstChild =           {
+                    tag = 'variable';
+                    value = 'a';
+                    };
+                  op = '/';
+                  secondChild =           {
+                    tag = 'variable';
+                    value = 'b';
+                    };
+                  };
+                };
+              secondChild =       {
+                tag = 'statementSequence';
+                firstChild =         {
+                  tag = 'if';
+                  expression =           {
+                    tag = 'binaryOp';
+                    firstChild =             {
+                      tag = 'variable';
+                      value = 'c';
+                      };
+                    op = '<';
+                    secondChild =             {
+                      tag = 'variable';
+                      value = 'a';
+                      };
+                    };
+                  block =           {
+                    tag = 'statementSequence';
+                    firstChild =             {
+                      tag = 'assignment';
+                      identifier = 'this is a long name';
+                      assignment =               {
+                        tag = 'number';
+                        value = 24;
+                        };
+                      };
+                    secondChild =             {
+                      tag = 'assignment';
+                      identifier = 'c';
+                      assignment =               {
+                        tag = 'number';
+                        value = 12;
+                        };
+                      };
+                    };
+                  };
+                secondChild =         {
+                  tag = 'return';
+                  sentence =           {
+                    tag = 'variable';
+                    value = 'c';
+                    };
+                  };
+                };
+              };
+            };
+          })
+    local code = module.toStackVM.translate(ast)
+    lu.assertEquals(module.interpreter.run(code),12)
+end
+
 return module

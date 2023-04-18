@@ -8,8 +8,23 @@ local Translator = {
   numVariables = 0,
 }
 
+function Translator:currentInstructionIndex()
+  return #self.code
+end
+
+function Translator:addJump(opcode)
+  self:addCode(opcode)
+  self:addCode(0)
+  -- Will return the location of the 'zero' placeholder we just inserted.
+  return self:currentInstructionIndex()
+end
+
+function Translator:fixupJump(location)
+  self.code[location] = self:currentInstructionIndex() - location
+end
+
 function Translator:addCode(opcode)
-  self.code[#(self.code) + 1] = opcode
+  self.code[#self.code + 1] = opcode
 end
 
 function Translator:variableToNumber(variable)
@@ -58,6 +73,11 @@ function Translator:codeStatement(ast)
     self:codeExpression(ast.assignment)
     self:addCode('store')
     self:addCode(self:variableToNumber(ast.identifier))
+  elseif ast.tag == 'if' then
+    self:codeExpression(ast.expression)
+    local jumpFixup = self:addJump('jumpIfZero')
+    self:codeStatement(ast.block)
+    self:fixupJump(jumpFixup)
   elseif ast.tag == 'print' then
     self:codeExpression(ast.toPrint)
     self:addCode('print')
