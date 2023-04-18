@@ -9,9 +9,8 @@ local endToken = require('common').endToken
 
 local sign = S('+-') * endToken
 -- Digits may be separated by single spaces for digit grouping purposes, so allow optional spaces.
-local decimalStart = R'19' * P' '^-1
 local decimalDigit = R'09' * P' '^-1
-local numeralExponent = S'eE' * sign^-1 * decimalStart * decimalDigit^0
+local numeralExponent = S'eE' * sign^-1 * decimalDigit^1
 
 -- An optional (decimal point followed by zero or more decimal digits).
 local fractionOptional = ('.' * decimalDigit^0)^-1
@@ -19,6 +18,7 @@ local fractionOptional = ('.' * decimalDigit^0)^-1
 local fraction = ('.' * decimalDigit^1)
 
 -- Matches a positive nonzero numeral.
+local decimalStart = R'19' * P' '^-1
 local naturalNumber = decimalStart * decimalDigit^0
 
 local digitZero = P'0' * P' '^-1
