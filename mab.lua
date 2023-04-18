@@ -97,7 +97,7 @@ local statement, statementList = V'statement', V'statementList'
 local blockStatement = V'blockStatement'
 
 local Ct = lpeg.Ct
-local grammar = lpeg.P
+local grammar =
 {
 'program',
 program = endToken * statementList * -1,
@@ -177,6 +177,8 @@ for index, argument in ipairs(arg) do
     show.input = true
   elseif argument:lower() == '--graphviz' or argument:lower() == '-g' then
     show.graphviz = true
+  elseif argument:lower() == '--pegdebug' or argument:lower() == '-p' then
+    show.pegdebug = true
   else
     print('Unknown argument ' .. argument .. '.')
     os.exit(1)
@@ -189,6 +191,12 @@ if awaiting_filename then
 end
 
 common.poem() print ''
+
+-- Need to keep the grammar open up to here so that PegDebug can annotate it if that setting's on.
+if show.pegdebug then
+  grammar = require('External.pegdebug').trace(grammar)
+end
+grammar = lpeg.P(grammar)
 
 local input = io.read 'a'
 if show.input then
