@@ -145,6 +145,9 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   testNumerals = require 'numeral.tests'
   testIdentifiers = require 'identifier.tests'
 
+  -- Close the grammar (it's just a table at this point)
+  grammar = lpeg.P(grammar)
+
   os.exit(lu.LuaUnit.run())
 end
 
