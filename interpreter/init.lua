@@ -110,6 +110,10 @@ function module.run(code, trace)
         pc = pc + code[pc]
       end
       top = top - 1
+    elseif code[pc] == 'jump' then
+      traceTwoCodes(trace, code, pc)
+      pc = pc + 1
+      pc = pc + code[pc]
     elseif code[pc] == 'print' then
       traceUnaryOp(trace, code[pc], stack[top])
       print(stack[top])

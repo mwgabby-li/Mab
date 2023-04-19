@@ -74,10 +74,27 @@ function Translator:codeStatement(ast)
     self:addCode('store')
     self:addCode(self:variableToNumber(ast.identifier))
   elseif ast.tag == 'if' then
+    -- Expression and jump
     self:codeExpression(ast.expression)
-    local jumpFixup = self:addJump('jumpIfZero')
+    local skipIfFixup = self:addJump('jumpIfZero')
+    -- Inside of if
     self:codeStatement(ast.block)
-    self:fixupJump(jumpFixup)
+    if ast.elseBlock then
+      -- If else, we need an instruction at the end of
+      -- the 'if' block to jump past the 'else' block
+      local skipElseFixup = self:addJump('jump')
+
+      -- And our target for failing the 'if' is this 'else,'
+      -- so set its target here after the jump to the end of 'else.'
+      self:fixupJump(skipIfFixup)
+      -- Fill out the 'else'
+      self:codeStatement(ast.elseBlock)
+
+      -- Finally, set the 'skip else' jump to here, after the 'else' block
+      self:fixupJump(skipElseFixup)
+    else
+      self:fixupJump(jumpFixup)
+    end
   elseif ast.tag == 'print' then
     self:codeExpression(ast.toPrint)
     self:addCode('print')

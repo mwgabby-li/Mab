@@ -50,7 +50,7 @@ function Translator:nodeName(ast)
   return 'node_' .. self:getID(ast)
 end
 
-function Translator:appendNode(ast, sequence, label, firstChild, firstLabel, secondChild, secondLabel)
+function Translator:appendNode(ast, sequence, label, firstChild, firstLabel, secondChild, secondLabel, thirdChild, thirdLabel)
   local nodeName = self:nodeName(ast)
   self.file = self.file ..
   nodeName .. " [\n" ..
@@ -84,6 +84,11 @@ function Translator:appendNode(ast, sequence, label, firstChild, firstLabel, sec
     local label = (secondLabel and ('[ label = "' .. secondLabel  .. '" ];') or ';')
     self.file = self.file .. nodeName .. parentPortSecond ..  ' -> ' .. self:nodeName(secondChild) .. childPortSecond .. label .. '\n'
   end
+  
+  if thirdChild then
+    local label = (thirdLabel and ('[ label = "' .. thirdLabel  .. '" ];') or ';')
+    self.file = self.file .. nodeName ..  ' -> ' .. self:nodeName(thirdChild) .. label .. '\n'
+  end  
 end
 
 function Translator:nodeStatement(ast, depth)
@@ -121,9 +126,12 @@ function Translator:nodeStatement(ast, depth)
     self:appendNode(ast, false, '=', tempIdentifierTable, nil, ast.assignment)
     self:appendNode(tempIdentifierTable, false, ast.identifier)
   elseif ast.tag == 'if' then
-    self:appendNode(ast, false, 'if', ast.expression, nil, ast.block, nil)
+    self:appendNode(ast, false, 'If', ast.expression, nil, ast.block, nil, ast.elseBlock, 'Else')
     self:nodeExpression(ast.expression)
     self:nodeStatement(ast.block, depth + 1)
+    if ast.elseBlock then
+      self:nodeStatement(ast.elseBlock, depth + 1)
+    end
   elseif ast.tag == 'print' then
     self:nodeExpression(ast.toPrint)
     self:appendNode(ast, false, 'Print', ast.toPrint)

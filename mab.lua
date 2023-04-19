@@ -47,7 +47,7 @@ local nodeAssignment = node('assignment', 'identifier', 'assignment')
 local nodePrint = node('print', 'toPrint')
 local nodeReturn = node('return', 'sentence')
 local nodeNumeral = node('number', 'value')
-local nodeIf = node('if', 'expression', 'block')
+local nodeIf = node('if', 'expression', 'block', 'elseBlock')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -110,7 +110,7 @@ statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             identifier * op.assign * comparisonExpr / nodeAssignment +
             -- If
-            KW'if' * comparisonExpr * blockStatement / nodeIf +
+            KW'if' * comparisonExpr * blockStatement * (KW'else' * blockStatement)^-1 / nodeIf +
             -- Return
             KW'return' * comparisonExpr / nodeReturn +
             -- Print
