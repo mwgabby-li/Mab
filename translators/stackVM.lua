@@ -93,7 +93,7 @@ function Translator:codeStatement(ast)
       -- Finally, set the 'skip else' jump to here, after the 'else' block
       self:fixupJump(skipElseFixup)
     else
-      self:fixupJump(jumpFixup)
+      self:fixupJump(skipIfFixup)
     end
   elseif ast.tag == 'print' then
     self:codeExpression(ast.toPrint)

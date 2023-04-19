@@ -107,7 +107,7 @@ statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatemen
 
 blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock,
 
-elses = (KW'elseif' * comparisonExpr * blockStatement) * elses^-1 / nodeIf + (KW'else' * blockStatement),
+elses = (KW'elseif' * comparisonExpr * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
