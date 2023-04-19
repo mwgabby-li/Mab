@@ -772,4 +772,154 @@ return c;
     lu.assertEquals(module.interpreter.run(code),12)
 end
 
+function module.testIfElseElseIf()
+  local ifOnlyYes = [[
+a = 20;
+b = 10;
+if b < a {
+  b = 1
+};
+return b;
+]]
+
+  local ast = module.parse(ifOnlyYes)
+  local code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 1)
+
+    local ifOnlyNo = [[
+  a = 20;
+  b = 100;
+  if b < a {
+    b = 1
+  };
+  return b;
+  ]]
+
+  ast = module.parse(ifOnlyNo)
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 100)
+
+  local ifElseYes = [[
+a = 20;
+b = 10;
+if b < a {
+  b = 1
+} else {
+  b = 2
+};
+return b;
+]]
+
+  ast = module.parse(ifElseYes)
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 1)
+
+    local ifElseNo = [[
+  a = 20;
+  b = 100;
+  if b < a {
+    b = 1
+  } else {
+    b = 2
+  };
+  return b;
+  ]]
+
+  ast = module.parse(ifElseNo)
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 2)
+
+  local ifElseIfYes = [[
+a = 20;
+b = 10;
+if b < a {
+  b = 1
+} elseif b > a {
+  b = 2
+};
+return b;
+]]
+
+  ast = module.parse(ifElseIfYes)
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 1)
+
+    local ifElseIfNo = [[
+  a = 20;
+  b = 100;
+  if b < a {
+    b = 1
+  } elseif b > a {
+    b = 2
+  };
+  return b;
+  ]]
+
+  ast = module.parse(ifElseIfNo)
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 2)
+
+  local ifElseIfNeither = [[
+a = 20;
+b = a;
+if b < a {
+  b = 1
+} elseif b > a {
+  b = 2
+};
+return b;
+]]
+
+  ast = module.parse(ifElseIfNeither)
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 20)
+  local firstClause = [[
+a = 20;
+b = 10;
+if b < a {
+  b = 1
+} elseif b > a {
+  b = 2
+} else {
+  b = 3
+};
+return b;
+]]
+  ast = module.parse(firstClause);
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 1)
+
+  local secondClause = [[
+a = 20;
+b = 100;
+if b < a {
+  b = 1
+} elseif b > a {
+  b = 2
+} else {
+  b = 3
+};
+return b;
+]]
+  ast = module.parse(secondClause);
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 2)
+  local thirdClause = [[
+a = 20;
+b = a;
+if b < a {
+b = 1
+} elseif b > a {
+b = 2
+} else {
+b = 3
+};
+return b;
+  ]]
+
+  ast = module.parse(thirdClause);
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 3)
+end
+
 return module
