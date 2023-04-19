@@ -6,6 +6,7 @@ local Translator = {
   nextID = 1,
   IDs = {},
   statementNodeNames = {},
+  ifNodeNames = {},
   file = "",
 }
 
@@ -17,17 +18,24 @@ function Translator:getID(ast)
   return self.IDs[ast]
 end
 
-function Translator:finalize()
+function Translator:makeRankString(nodes)
   local rank = ''
-  for index, nodeNames in ipairs(self.statementNodeNames) do
-    rank = rank .. '{rank=same '
-    for _, nodeName in pairs(nodeNames) do
-      rank = rank .. ' ' .. nodeName
+  for index, nodeNames in ipairs(nodes) do
+    if #nodeNames > 0 then
+      rank = rank .. '{rank=same'
+      for _, nodeName in pairs(nodeNames) do
+        rank = rank .. ' ' .. nodeName
+      end
+      rank = rank .. '} '
     end
-    rank = rank .. '} '
   end
+  return rank
+end
+
+function Translator:finalize()
+  local rank = self:makeRankString(self.statementNodeNames) .. self:makeRankString(self.ifNodeNames)
   
-  return 'digraph { \nsplines=false\n' .. self.file .. '\n\n'.. rank .. '\n}\n'
+  return 'digraph { \nsplines=true\n' .. self.file .. '\n\n'.. rank .. '\n}\n'
 end
 
 function Translator:nodeExpression(ast)
@@ -69,10 +77,10 @@ function Translator:appendNode(ast, sequence, label, firstChild, firstLabel, sec
     childPortFirst = ':n '
   else
     parentPortFirst = ':sw '
-    childPortFirst = ':ne '
+    childPortFirst = ':n '
     
     parentPortSecond = ':se '
-    childPortSecond = ':nw '
+    childPortSecond = ':n '
   end
   
   if firstChild then
@@ -91,25 +99,41 @@ function Translator:appendNode(ast, sequence, label, firstChild, firstLabel, sec
   end  
 end
 
-function Translator:nodeStatement(ast, depth)
-  -- Depth is only for nested statements (blocks)
-  depth = depth and depth or 1
-  -- Create a new table for statements at this depth
+function Translator:addNodes(depth)
+    -- Create a new table for statements at this depth
   if self.statementNodeNames[depth] == nil then
     self.statementNodeNames[depth] = {}
   end
+  
+  if self.ifNodeNames[depth] == nil then
+    self.ifNodeNames[depth] = {}
+  end
+end
+
+function Translator:addNodeName(ast, nodeNames, depth)
+      -- Save off statement nodes so that they can be rendered at the same rank on this depth
+  nodeNames[depth][#nodeNames[depth] + 1] = self:nodeName(ast)
+    -- Place the final child of the last statement node at the same rank as well.
+    -- Subjectively looks better.
+  if ast.secondChild and ast.secondChild.tag ~= ast.tag then
+    nodeNames[depth][#nodeNames[depth] + 1] = self:nodeName(ast.secondChild)
+  end
+  if ast.elseBlock and ast.elseBlock.tag ~= ast.tag then
+    nodeNames[depth][#nodeNames[depth] + 1] = self:nodeName(ast.elseBlock)
+  end
+end
+
+function Translator:nodeStatement(ast, depth, fromIf)
+  -- Depth is only for nested statements (blocks)
+  depth = depth and depth or 1
+
+  self:addNodes(depth)
 
   if ast.tag == 'emptyStatement' then
     self:appendNode(ast, false, "Empty")
     return
   elseif ast.tag == 'statementSequence' then
-    -- Save off statement nodes so that they can be rendered at the same rank on this depth
-    self.statementNodeNames[depth][#self.statementNodeNames[depth] + 1] = self:nodeName(ast)
-    -- Place the final child of the last statement node at the same rank as well.
-    -- Subjectively looks better.
-    if ast.secondChild and ast.secondChild.tag ~= 'statementSequence' then
-      self.statementNodeNames[depth][#self.statementNodeNames[depth] + 1] = self:nodeName(ast.secondChild)
-    end
+    self:addNodeName(ast, self.statementNodeNames, depth)
 
     self:appendNode(ast, true, 'Statement', ast.firstChild, nil, ast.secondChild, nil)
     self:nodeStatement(ast.firstChild, depth)
@@ -126,11 +150,15 @@ function Translator:nodeStatement(ast, depth)
     self:appendNode(ast, false, '=', tempIdentifierTable, nil, ast.assignment)
     self:appendNode(tempIdentifierTable, false, ast.identifier)
   elseif ast.tag == 'if' then
-    self:appendNode(ast, false, 'If', ast.expression, nil, ast.block, nil, ast.elseBlock, 'Else')
+    self:addNodeName(ast, self.ifNodeNames, depth)
+    
+    local tag = fromIf and 'Else If' or 'If'
+    
+    self:appendNode(ast, false, tag, ast.expression, nil, ast.block, nil, ast.elseBlock, nil)
     self:nodeExpression(ast.expression)
     self:nodeStatement(ast.block, depth + 1)
     if ast.elseBlock then
-      self:nodeStatement(ast.elseBlock, depth + 1)
+      self:nodeStatement(ast.elseBlock, depth, true)
     end
   elseif ast.tag == 'print' then
     self:nodeExpression(ast.toPrint)

@@ -94,6 +94,7 @@ local primary, exponentExpr, termExpr = V'primary', V'exponentExpr', V'termExpr'
 local sumExpr, comparisonExpr, unaryExpr = V'sumExpr', V'comparisonExpr', V'unaryExpr'
 local notExpr = V'notExpr'
 local statement, statementList = V'statement', V'statementList'
+local elses = V'elses'
 local blockStatement = V'blockStatement'
 
 local Ct = lpeg.Ct
@@ -106,11 +107,13 @@ statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatemen
 
 blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock,
 
+elses = (KW'elseif' * comparisonExpr * blockStatement) * elses^-1 / nodeIf + (KW'else' * blockStatement),
+
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             identifier * op.assign * comparisonExpr / nodeAssignment +
             -- If
-            KW'if' * comparisonExpr * blockStatement * (KW'else' * blockStatement)^-1 / nodeIf +
+            KW'if' * comparisonExpr * blockStatement * elses / nodeIf +
             -- Return
             KW'return' * comparisonExpr / nodeReturn +
             -- Print
