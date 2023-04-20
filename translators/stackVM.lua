@@ -12,11 +12,21 @@ function Translator:currentInstructionIndex()
   return #self.code
 end
 
-function Translator:addJump(opcode)
+function Translator:addJump(opcode, target)
   self:addCode(opcode)
-  self:addCode(0)
-  -- Will return the location of the 'zero' placeholder we just inserted.
-  return self:currentInstructionIndex()
+  -- No target? Add placeholder.
+  if target == nil then
+    self:addCode(0)
+    -- Will return the location of the 'zero' placeholder we just inserted.
+    return self:currentInstructionIndex()
+  else
+    -- Jump start address is the location of the jump opcode,
+    -- which is the current instruction after we add it.
+    local jumpCodeToTarget = target - self:currentInstructionIndex()
+    -- We need to end up at the instruction /before/ the target,
+    -- because PC is incremented by one after jumps.
+    self:addCode(jumpCodeToTarget - 1)
+  end
 end
 
 function Translator:fixupJump(location)
@@ -95,6 +105,13 @@ function Translator:codeStatement(ast)
     else
       self:fixupJump(skipIfFixup)
     end
+  elseif ast.tag == 'while' then
+    local whileStart = self:currentInstructionIndex()
+    self:codeExpression(ast.expression)
+    local skipWhileFixup = self:addJump 'jumpIfZero'
+    self:codeStatement(ast.block)
+    self:addJump('jump', whileStart)
+    self:fixupJump(skipWhileFixup)
   elseif ast.tag == 'print' then
     self:codeExpression(ast.toPrint)
     self:addCode('print')

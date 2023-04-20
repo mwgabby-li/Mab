@@ -48,6 +48,7 @@ local nodePrint = node('print', 'toPrint')
 local nodeReturn = node('return', 'sentence')
 local nodeNumeral = node('number', 'value')
 local nodeIf = node('if', 'expression', 'block', 'elseBlock')
+local nodeWhile = node('while', 'expression', 'block')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -116,6 +117,8 @@ statement = blockStatement +
             KW'if' * comparisonExpr * blockStatement * elses / nodeIf +
             -- Return
             KW'return' * comparisonExpr / nodeReturn +
+            -- While
+            KW'while' * comparisonExpr * blockStatement / nodeWhile +
             -- Print
             op.print * comparisonExpr / nodePrint,
 

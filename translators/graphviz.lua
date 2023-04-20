@@ -160,6 +160,10 @@ function Translator:nodeStatement(ast, depth, fromIf)
     if ast.elseBlock then
       self:nodeStatement(ast.elseBlock, depth, true)
     end
+  elseif ast.tag == 'while' then
+    self:appendNode(ast, false, 'While', ast.expression, nil, ast.block, nil)
+    self:nodeExpression(ast.expression)
+    self:nodeStatement(ast.block, depth + 1)    
   elseif ast.tag == 'print' then
     self:nodeExpression(ast.toPrint)
     self:appendNode(ast, false, 'Print', ast.toPrint)
