@@ -271,7 +271,7 @@ if not ast then
 end
 
 if show.graphviz then
-  local prefix = input_file and input_file or 'temp'
+  local prefix = input_file or 'temp'
   local dotFileName = prefix .. '.dot'
   local dotFile = io.open(dotFileName, 'wb')
   dotFile:write(graphviz.translate(ast))

@@ -125,7 +125,7 @@ end
 
 function Translator:nodeStatement(ast, depth, fromIf)
   -- Depth is only for nested statements (blocks)
-  depth = depth and depth or 1
+  depth = depth or 1
 
   self:addNodes(depth)
 
