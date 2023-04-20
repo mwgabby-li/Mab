@@ -920,6 +920,20 @@ return b;
   ast = module.parse(thirdClause);
   code = module.toStackVM.translate(ast)
   lu.assertEquals(module.interpreter.run(code), 3)
+
+  local empty = [[
+a = 20;
+b = a;
+if b < a {
+} elseif b > a {
+} else {
+};
+return b;
+  ]]
+
+  ast = module.parse(empty);
+  code = module.toStackVM.translate(ast)
+  lu.assertEquals(module.interpreter.run(code), 20)
 end
 
 return module
