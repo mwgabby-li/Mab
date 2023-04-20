@@ -92,11 +92,12 @@ end
 ---- Grammar -----------------------------------------------------------------------------------------------------------
 local V = lpeg.V
 local primary, exponentExpr, termExpr = V'primary', V'exponentExpr', V'termExpr'
-local sumExpr, comparisonExpr, unaryExpr = V'sumExpr', V'comparisonExpr', V'unaryExpr'
+local sumExpr, comparisonExpr, unaryExpr, logicExpr = V'sumExpr', V'comparisonExpr', V'unaryExpr', V'logicExpr'
 local notExpr = V'notExpr'
 local statement, statementList = V'statement', V'statementList'
 local elses = V'elses'
 local blockStatement = V'blockStatement'
+local expression = V'expression'
 
 local Ct = lpeg.Ct
 local grammar =
@@ -108,24 +109,24 @@ statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatemen
 
 blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock,
 
-elses = (KW'elseif' * comparisonExpr * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
+elses = (KW'elseif' * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
-            identifier * op.assign * comparisonExpr / nodeAssignment +
+            identifier * op.assign * expression / nodeAssignment +
             -- If
-            KW'if' * comparisonExpr * blockStatement * elses / nodeIf +
+            KW'if' * expression * blockStatement * elses / nodeIf +
             -- Return
-            KW'return' * comparisonExpr / nodeReturn +
+            KW'return' * expression / nodeReturn +
             -- While
-            KW'while' * comparisonExpr * blockStatement / nodeWhile +
+            KW'while' * expression * blockStatement / nodeWhile +
             -- Print
-            op.print * comparisonExpr / nodePrint,
+            op.print * expression / nodePrint,
 
               -- Identifiers and numbers
 primary = numeral / nodeNumeral + identifier / nodeVariable +
               -- Sentences in the language enclosed in parentheses
-              delim.openFactor * comparisonExpr * delim.closeFactor,
+              delim.openFactor * expression * delim.closeFactor,
 
 -- From highest to lowest precedence
 exponentExpr = primary * (op.exponent * exponentExpr)^-1 / addExponentOp,
@@ -134,6 +135,8 @@ termExpr = Ct(unaryExpr * (op.term * unaryExpr)^0) / foldBinaryOps,
 sumExpr = Ct(termExpr * (op.sum * termExpr)^0) / foldBinaryOps,
 notExpr = op.unaryNot * notExpr / addUnaryOp + sumExpr,
 comparisonExpr = Ct(notExpr * (op.comparison * notExpr)^0) / foldBinaryOps,
+logicExpr = Ct(comparisonExpr * (op.logical * comparisonExpr)^0) / foldBinaryOps,
+expression = logicExpr,
 
 endToken = common.endTokenPattern,
 }

@@ -19,6 +19,8 @@ module.op.print = '@'
 module.op.positive = '+'
 module.op.negate = '-'
 module.op.unaryNot = '!'
+module.op.and_ = '&'
+module.op.or_ = '|'
 
 --  Comments
 module.comments.startLine = '#'

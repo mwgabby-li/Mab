@@ -37,5 +37,6 @@ module.op.comparison = T((C(l.op.greaterOrEqual) + C(l.op.greater) +
 module.op.unarySign = T(C(P(l.op.positive) + l.op.negate))
 module.op.unaryNot = T(C(l.op.unaryNot))
 module.op.print = T(l.op.print)
+module.op.logical = T(C(l.op.and_) + C(l.op.or_))
 
 return module

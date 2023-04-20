@@ -114,6 +114,22 @@ function module.run(code, trace)
       traceTwoCodes(trace, code, pc)
       pc = pc + 1
       pc = pc + code[pc]
+    elseif code[pc] == 'jumpIfZeroJumpNoPop' then
+      traceTwoCodes(trace, code, pc)
+      pc = pc + 1
+      if stack[top] == 0 then
+        pc = pc + code[pc]
+      else
+        top = top - 1
+      end
+    elseif code[pc] == 'jumpIfNonzeroJumpNoPop' then
+      traceTwoCodes(trace, code, pc)
+      pc = pc + 1
+      if stack[top] ~= 0 then
+        pc = pc + code[pc]
+      else
+        top = top - 1
+      end
     elseif code[pc] == 'print' then
       traceUnaryOp(trace, code[pc], stack[top])
       print(stack[top])

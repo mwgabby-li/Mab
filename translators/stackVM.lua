@@ -58,9 +58,21 @@ function Translator:codeExpression(ast)
     self:addCode('load')
     self:addCode(self:variableToNumber(ast.value))
   elseif ast.tag == 'binaryOp' then
-    self:codeExpression(ast.firstChild)
-    self:codeExpression(ast.secondChild)
-    self:addCode(op.toName[ast.op])
+    if ast.op == literals.op.and_ then
+      self:codeExpression(ast.firstChild)
+      local fixupSSAnd = self:addJump('jumpIfZeroJumpNoPop')
+      self:codeExpression(ast.secondChild)
+      self:fixupJump(fixupSSAnd)
+    elseif ast.op == literals.op.or_ then
+      self:codeExpression(ast.firstChild)
+      local fixupSSOr = self:addJump('jumpIfNonzeroJumpNoPop')
+      self:codeExpression(ast.secondChild)
+      self:fixupJump(fixupSSOr)
+    else    
+      self:codeExpression(ast.firstChild)
+      self:codeExpression(ast.secondChild)
+      self:addCode(op.toName[ast.op])
+    end
   elseif ast.tag == 'unaryOp' then
     self:codeExpression(ast.child)
     if ast.op ~= '+' then
