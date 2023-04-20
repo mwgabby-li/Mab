@@ -2,13 +2,20 @@ local module = {}
 local literals = require 'literals'
 local op = literals.op
 
-local Translator = {
-  nextID = 1,
-  IDs = {},
-  statementNodeNames = {},
-  ifNodeNames = {},
-  file = "",
-}
+local Translator = {}
+
+function Translator:new(o)
+  o = o or {
+    nextID = 1,
+    IDs = {},
+    statementNodeNames = {},
+    ifNodeNames = {},
+    file = "",
+  }
+  self.__index = self
+  setmetatable(o, self)
+  return o
+end
 
 function Translator:getID(ast)
   if not self.IDs[ast] then
@@ -172,11 +179,9 @@ function Translator:nodeStatement(ast, depth, fromIf)
 end
 
 function module.translate(ast)
-  Translator.nextID = 1
-  Translator.IDs = {}
-  Translator.file = ""
-  Translator:nodeStatement(ast)
-  return Translator:finalize()
+  local translator = Translator:new()
+  translator:nodeStatement(ast)
+  return translator:finalize()
 end
 
 return module

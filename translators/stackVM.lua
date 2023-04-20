@@ -2,11 +2,18 @@ local module = {}
 local literals = require 'literals'
 local op = literals.op
 
-local Translator = {
-  code = {},
-  variables = {},
-  numVariables = 0,
-}
+local Translator = {}
+
+function Translator:new(o)
+  o = o or {
+    code = {},
+    variables = {},
+    numVariables = 0,
+  }
+  self.__index = self
+  setmetatable(o, self)
+  return o
+end
 
 function Translator:currentInstructionIndex()
   return #self.code
@@ -132,14 +139,12 @@ function Translator:codeStatement(ast)
 end
 
 function module.translate(ast)
-  Translator.code = {}
-  Translator.variables = {}
-  Translator.numVariables = 0
-  Translator:codeStatement(ast)
-  Translator:addCode('push')
-  Translator:addCode(0)
-  Translator:addCode('return')
-  return Translator.code
+  local translator = Translator:new()
+  translator:codeStatement(ast)
+  translator:addCode('push')
+  translator:addCode(0)
+  translator:addCode('return')
+  return translator.code
 end
 
 return module
