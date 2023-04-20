@@ -228,7 +228,9 @@ if not ast then
   -- Show the failure on the previous line, and one character back so that the caret is after the last character
   -- on that line.
   io.write '\nFailed to generate AST from input. Unable to continue '
-  if input:sub(furthestMatch - 1, furthestMatch - 1) == '\n' then
+  
+  local backedUp = false
+  while input:sub(furthestMatch - 1, furthestMatch - 1) == '\n' do
     errorLine = errorLine - 1
     furthestMatch = furthestMatch - 1
     -- On \r\n systems, we need to backtrack twice since there are two characters in a line ending,
@@ -236,6 +238,10 @@ if not ast then
     if input:sub(furthestMatch - 1, furthestMatch - 1) == '\r' then
       furthestMatch = furthestMatch - 1
     end
+    backedUp = true
+  end
+  
+  if backedUp then
     print('after line ' .. errorLine .. ':')
   else
     print('at line ' .. errorLine .. ':')
