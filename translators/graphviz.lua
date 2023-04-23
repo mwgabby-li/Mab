@@ -48,6 +48,8 @@ end
 function Translator:nodeExpression(ast)
   if ast.tag == 'number' then
     self:appendNode(ast, false, tostring(ast.value))
+  elseif ast.tag == 'boolean' then
+    self:appendNode(ast, false, tostring(ast.value))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.value)
   elseif ast.tag == 'binaryOp' then
