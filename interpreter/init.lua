@@ -103,6 +103,45 @@ function module.run(code, trace)
       pc = pc + 1
       memory[code[pc] ] = stack[top]
       top = top - 1
+    elseif code[pc] == 'newArray' then
+      -- The size of the new array is on the top of the stack
+      local size = stack[top]
+      -- We replace the top of the stack with the new array
+      stack[top] = { size = size }
+      for i = 1,10 do
+        stack[top][i] = 0
+      end
+    elseif code[pc] == 'setArray' then
+      -- Which array we're getting is two elements below
+      local array = stack[top - 2]
+      -- The index in the array is one element below
+      local index = stack[top - 1]
+      -- Finally, the value we're setting to the array is at the top.
+      local value = stack[top - 0]
+      
+      if index > array.size or index < 1 then
+        error('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
+      end
+      
+      -- Set the array to this value
+      array[index] = value
+      -- Pop the three things
+      top = top - 3
+    elseif code[pc] == 'getArray' then
+      -- The array we are getting is one element below 
+      local array = stack[top - 1]
+      -- The index we're getting from the array is at the top
+      local index = stack[top - 0]
+      -- We have consumed two things, but we're about to add one:
+      -- so just decrement by one to simulate popping two and pushing one.
+      top = top - 1
+      
+      if index > array.size or index < 1 then
+        error('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
+      end
+      
+      -- Set the top of the stack to the value of this index of the array.
+      stack[top] = array[index]
     elseif code[pc] == 'jumpIfZero' then
       traceTwoCodes(trace, code, pc)
       pc = pc + 1

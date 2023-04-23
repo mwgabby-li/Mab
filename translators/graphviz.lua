@@ -52,6 +52,24 @@ function Translator:nodeExpression(ast)
     self:appendNode(ast, false, tostring(ast.value))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.value)
+  elseif ast.tag == 'newArray' then
+    if ast.size.tag == 'variable' then
+      self:appendNode(ast, false, 'new[' ..ast.size.value .. ']')
+    elseif ast.size.tag == 'number' then
+      self:appendNode(ast, false, 'new[' ..ast.size.value .. ']')
+    else
+      self:appendNode(ast, false, 'new', ast.size, '[...]')
+      self:nodeExpression(ast.size)
+    end
+  elseif ast.tag == 'arrayElement' then
+    if ast.index.tag == 'variable' then
+      self:appendNode(ast, false, ast.array.value .. '[' ..ast.index.value .. ']')
+    elseif ast.index.tag == 'number' then
+      self:appendNode(ast, false, ast.array.value .. '[' ..ast.index.value .. ']')
+    else
+    self:appendNode(ast, false, ast.array, ast.index, '[...]')
+    self:nodeExpression(ast.index)
+    end
   elseif ast.tag == 'binaryOp' then
     self:appendNode(ast, false, ast.op, ast.firstChild, nil, ast.secondChild, nil)
     self:nodeExpression(ast.firstChild)
@@ -152,12 +170,8 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:nodeExpression(ast.sentence)
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment)
-    -- Identifier is not a table, so make a temporary one representing it.
-    -- That way, the AST node will refer to this table,
-    -- and we can use this table to create the identifier's node.
-    local tempIdentifierTable = {}
-    self:appendNode(ast, false, '=', tempIdentifierTable, nil, ast.assignment)
-    self:appendNode(tempIdentifierTable, false, ast.identifier)
+    self:appendNode(ast, false, '=', ast.writeTarget, nil, ast.assignment)
+    self:nodeExpression(ast.writeTarget)
   elseif ast.tag == 'if' then
     self:addNodeName(ast, self.ifNodeNames, depth)
     

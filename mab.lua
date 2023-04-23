@@ -44,13 +44,15 @@ end
 --end
 
 local nodeVariable = node('variable', 'value')
-local nodeAssignment = node('assignment', 'identifier', 'assignment')
+local nodeAssignment = node('assignment', 'writeTarget', 'assignment')
 local nodePrint = node('print', 'toPrint')
 local nodeReturn = node('return', 'sentence')
 local nodeNumeral = node('number', 'value')
 local nodeIf = node('if', 'expression', 'block', 'elseBlock')
 local nodeWhile = node('while', 'expression', 'block')
 local nodeBoolean = node('boolean', 'value')
+local nodeArrayElement = node('arrayElement', 'array', 'index')
+local nodeNewArray = node('newArray', 'size')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -101,6 +103,9 @@ local elses = V'elses'
 local blockStatement = V'blockStatement'
 local expression = V'expression'
 local boolean = V'boolean'
+local variable = V'variable'
+-- Something that can be written to, i.e. assigned to. AKA 'left-hand side'
+local writeTarget = V'writeTarget'
 
 local Ct, Cc = lpeg.Ct, lpeg.Cc
 local grammar =
@@ -114,9 +119,12 @@ blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.clos
 
 elses = (KW'elseif' * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
+variable = identifier / nodeVariable,
+writeTarget = variable * delim.openArray * expression * delim.closeArray / nodeArrayElement + variable,
+
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
-            identifier * op.assign * expression / nodeAssignment +
+            writeTarget * op.assign * expression / nodeAssignment +
             -- If
             KW'if' * expression * blockStatement * elses / nodeIf +
             -- Return
@@ -129,8 +137,9 @@ statement = blockStatement +
 boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
 
           -- Identifiers and numbers
-primary = numeral / nodeNumeral +
-          identifier / nodeVariable +
+primary = KW'new' * delim.openArray * expression * delim.closeArray / nodeNewArray +
+          writeTarget +
+          numeral / nodeNumeral +
           -- Literal booleans
           boolean +
           -- Sentences in the language enclosed in parentheses

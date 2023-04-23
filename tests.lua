@@ -15,7 +15,7 @@ function module:testAssignmentAndParentheses()
   local ast = module.parse(input)
   local expected = {
     tag = 'assignment',
-    identifier = 'i',
+    writeTarget = {tag="variable", value="i"},
     assignment = {
       tag = 'binaryOp',
       firstChild = {
@@ -68,7 +68,7 @@ function module:testAssignmentAndReturn()
             tag = 'statementSequence',
             firstChild = {
             tag = 'assignment',
-            identifier = 'i',
+            writeTarget = {tag="variable", value="i"},
             assignment = {
                 tag = 'binaryOp',
                 firstChild = {
@@ -134,7 +134,7 @@ function module.testStackedUnaryOperators()
     local ast = module.parse(input)
     local expected = {
         tag = 'assignment',
-        identifier = 'i',
+        writeTarget = {tag="variable", value="i"},
         assignment = {
             tag = 'binaryOp',
             firstChild = {
@@ -172,7 +172,7 @@ function module.testUnaryOperators()
     local ast = module.parse(input)
     local expected = {
         tag = 'assignment',
-        identifier = 'i',
+        writeTarget = {tag="variable", value="i"},
         assignment = {
             tag = 'binaryOp',
             firstChild = {
@@ -198,7 +198,7 @@ function module.testEmptyStatementsLeadingTrailing()
     local ast = module.parse(input)
     local expected = {
                 tag = 'assignment',
-                identifier = 'i',
+                writeTarget = {tag="variable", value="i"},
                 assignment = {
                     tag = 'binaryOp',
                     firstChild = {
@@ -222,7 +222,7 @@ function module.testEmptyStatementsInterspersed()
             tag = 'statementSequence',
             firstChild = {
                 tag = 'assignment',
-                identifier = 'i',
+                writeTarget = {tag="variable", value="i"},
                 assignment = {
                     tag = 'binaryOp',
                     firstChild = {
@@ -283,7 +283,7 @@ function module.testExponentPrecedence()
     local ast = module.parse(input)
     local expected = {
         tag = 'assignment',
-        identifier = 'i',
+        writeTarget = {tag="variable", value="i"},
         assignment = {
             tag = 'binaryOp',
             firstChild = {
@@ -339,7 +339,7 @@ return c;
         tag = 'statementSequence',
         firstChild = {
             tag = 'assignment',
-            identifier = 'a',
+            writeTarget = {tag="variable", value="a"},
             assignment = {
                 tag = 'binaryOp',
                 firstChild = {
@@ -357,7 +357,7 @@ return c;
             tag = 'statementSequence',
             firstChild = {
                 tag = 'assignment',
-                identifier = 'b',
+                writeTarget = {tag="variable", value="b"},
                 assignment = {
                     tag = 'binaryOp',
                     firstChild = {
@@ -383,7 +383,7 @@ return c;
                 tag = 'statementSequence',
                 firstChild = {
                     tag = 'assignment',
-                    identifier = 'c',
+                    writeTarget = {tag="variable", value="c"},
                     assignment = {
                         tag = 'binaryOp',
                         firstChild = {
@@ -430,7 +430,7 @@ function module.testKeywordExcludeRules()
       tag = 'statementSequence',
       firstChild = {
         tag = 'assignment',
-        identifier = 'delta x',
+        writeTarget = {tag="variable", value='delta x'},
         assignment = {
           tag = 'number',
           value = 1
@@ -450,7 +450,7 @@ function module.testKeywordExcludeRules()
       tag = 'statementSequence',
       firstChild = {
         tag = 'assignment',
-        identifier = 'return of the variable',
+        writeTarget = {tag="variable", value="return of the variable"},
         assignment = {
           tag = 'number',
           value = 1
@@ -490,7 +490,7 @@ function module.testLessonFourCornerCases()
   lu.assertEquals(module.parse 'returned = 10',
     {
       tag = 'assignment',
-      identifier = 'returned',
+      writeTarget = {tag="variable", value="returned"},
       assignment = {
         tag = 'number',
         value = 10
@@ -531,7 +531,7 @@ function module.testLessonFourCornerCases()
       tag = 'statementSequence',
       firstChild = {
         tag = 'assignment',
-        identifier = 'x',
+        writeTarget = {tag="variable", value="x"},
         assignment = {
           tag = 'number',
           value = 1
@@ -555,7 +555,7 @@ function module.testLessonFourCornerCases()
       tag = 'statementSequence',
       firstChild = {
         tag = 'assignment',
-        identifier = 'x',
+        writeTarget = {tag="variable", value="x"},
         assignment = {
           tag = 'number',
           value = 10
@@ -576,7 +576,7 @@ function module.testLessonFourCornerCases()
         #}
         ]]),{
         tag = 'assignment',
-        identifier = 'x',
+        writeTarget = {tag="variable", value="x"},
         assignment = {
           tag = 'number',
           value = 10
@@ -660,7 +660,7 @@ return c;
           tag = 'statementSequence';
           firstChild =   {
             tag = 'assignment';
-            identifier = 'a';
+            writeTarget = {tag="variable", value="a"};
             assignment =     {
               tag = 'binaryOp';
               firstChild =       {
@@ -678,7 +678,7 @@ return c;
             tag = 'statementSequence';
             firstChild =     {
               tag = 'assignment';
-              identifier = 'b';
+              writeTarget = {tag="variable", value="b"};
               assignment =       {
                 tag = 'binaryOp';
                 firstChild =         {
@@ -708,7 +708,7 @@ return c;
               tag = 'statementSequence';
               firstChild =       {
                 tag = 'assignment';
-                identifier = 'c';
+                writeTarget = {tag="variable", value="c"},
                 assignment =         {
                   tag = 'binaryOp';
                   firstChild =           {
@@ -742,7 +742,7 @@ return c;
                     tag = 'statementSequence';
                     firstChild =             {
                       tag = 'assignment';
-                      identifier = 'this is a long name';
+                      writeTarget = {tag="variable", value="this is a long name"};
                       assignment =               {
                         tag = 'number';
                         value = 24;
@@ -750,7 +750,7 @@ return c;
                       };
                     secondChild =             {
                       tag = 'assignment';
-                      identifier = 'c';
+                      writeTarget = {tag="variable", value="c"};
                       assignment =               {
                         tag = 'number';
                         value = 12;

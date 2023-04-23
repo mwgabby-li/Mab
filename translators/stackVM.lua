@@ -86,6 +86,13 @@ function Translator:codeExpression(ast)
     end
     self:addCode('load')
     self:addCode(self:variableToNumber(ast.value))
+  elseif ast.tag == 'arrayElement' then
+    self:codeExpression(ast.array)
+    self:codeExpression(ast.index)
+    self:addCode('getArray')
+  elseif ast.tag == 'newArray' then
+    self:codeExpression(ast.size)
+    self:addCode('newArray')
   elseif ast.tag == 'binaryOp' then
     if ast.op == l_op.and_ then
       self:codeExpression(ast.firstChild)
@@ -111,6 +118,21 @@ function Translator:codeExpression(ast)
   end
 end
 
+function Translator:codeAssignment(ast)
+  local writeTarget = ast.writeTarget
+  if writeTarget.tag == 'variable' then
+    self:codeExpression(ast.assignment)
+    self:addCode('store')
+    self:addCode(self:variableToNumber(ast.writeTarget.value))
+  elseif writeTarget.tag == 'arrayElement' then
+    self:codeExpression(ast.writeTarget.array)
+    self:codeExpression(ast.writeTarget.index)
+    self:codeExpression(ast.assignment)
+    self:addCode('setArray')
+  else error 'Unknown assignment write target!'
+  end
+end
+
 function Translator:codeStatement(ast)
   if ast.tag == 'emptyStatement' then
     return
@@ -121,9 +143,7 @@ function Translator:codeStatement(ast)
     self:codeExpression(ast.sentence)
     self:addCode('return')
   elseif ast.tag == 'assignment' then
-    self:codeExpression(ast.assignment)
-    self:addCode('store')
-    self:addCode(self:variableToNumber(ast.identifier))
+    self:codeAssignment(ast)
   elseif ast.tag == 'if' then
     -- Expression and jump
     self:codeExpression(ast.expression)

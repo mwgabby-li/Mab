@@ -32,6 +32,8 @@ module.comments.openBlock = '#{'
 module.comments.closeBlock = '#}'
 
 --  Delimiters
+module.delim.openArray = '['
+module.delim.closeArray = ']'
 module.delim.openFactor = '('
 module.delim.closeFactor = ')'
 module.delim.openBlock = '{'

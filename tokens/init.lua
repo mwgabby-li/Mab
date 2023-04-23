@@ -19,6 +19,8 @@ function module.KW(keyword)
 end
 
 -- Delimiters
+module.delim.openArray = T(l.delim.openArray)
+module.delim.closeArray = T(l.delim.closeArray)
 module.delim.openFactor = T(l.delim.openFactor)
 module.delim.closeFactor = T(l.delim.closeFactor)
 module.delim.openBlock = T(l.delim.openBlock)
