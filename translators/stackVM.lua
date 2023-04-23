@@ -1,8 +1,30 @@
 local module = {}
-local literals = require 'literals'
-local op = literals.op
+local l_op = require('literals').op
 
 local Translator = {}
+
+local toName = {
+  [l_op.add] = 'add',
+  [l_op.subtract] = 'subtract',
+  [l_op.multiply] = 'multiply',
+  [l_op.divide] = 'divide',
+  [l_op.modulus] = 'modulus',
+  [l_op.exponent] = 'exponent',
+  [l_op.less] = 'less',
+  [l_op.greater] = 'greater',
+  [l_op.lessOrEqual] = 'lessOrEqual',
+  [l_op.greaterOrEqual] = 'greaterOrEqual',
+  [l_op.equal] = 'equal',
+  [l_op.notEqual] = 'notEqual',
+  [l_op.not_] = 'not',
+  [l_op.and_] = 'and',
+  [l_op.or_] = 'or',
+}
+
+local unaryToName = {
+  [l_op.negate] = 'negate',
+  [l_op.not_] = 'not',
+}
 
 function Translator:new(o)
   o = o or {
@@ -65,12 +87,12 @@ function Translator:codeExpression(ast)
     self:addCode('load')
     self:addCode(self:variableToNumber(ast.value))
   elseif ast.tag == 'binaryOp' then
-    if ast.op == literals.op.and_ then
+    if ast.op == l_op.and_ then
       self:codeExpression(ast.firstChild)
       local fixupSSAnd = self:addJump('jumpIfZeroJumpNoPop')
       self:codeExpression(ast.secondChild)
       self:fixupJump(fixupSSAnd)
-    elseif ast.op == literals.op.or_ then
+    elseif ast.op == l_op.or_ then
       self:codeExpression(ast.firstChild)
       local fixupSSOr = self:addJump('jumpIfNonzeroJumpNoPop')
       self:codeExpression(ast.secondChild)
@@ -78,12 +100,12 @@ function Translator:codeExpression(ast)
     else    
       self:codeExpression(ast.firstChild)
       self:codeExpression(ast.secondChild)
-      self:addCode(op.toName[ast.op])
+      self:addCode(toName[ast.op])
     end
   elseif ast.tag == 'unaryOp' then
     self:codeExpression(ast.child)
     if ast.op ~= '+' then
-      self:addCode(op.unaryToName[ast.op])
+      self:addCode(unaryToName[ast.op])
     end
   else error 'invalid tree'
   end

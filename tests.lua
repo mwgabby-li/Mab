@@ -2,8 +2,9 @@
 local lu = require 'External.luaunit'
 local module = {}
 
-function module:init(parse, toStackVM, interpreter)
+function module:init(parse, typeChecker, toStackVM, interpreter)
     module.parse = parse
+    module.typeChecker = typeChecker
     module.toStackVM = toStackVM
     module.interpreter = interpreter
     return module

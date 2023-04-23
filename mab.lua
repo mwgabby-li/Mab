@@ -1,8 +1,9 @@
 #!/usr/bin/env lua
 
-local interpreter = require 'interpreter'
+local typeChecker = require 'typechecker'
 local toStackVM = require 'translators.stackVM'
 local graphviz = require 'translators.graphviz'
+local interpreter = require 'interpreter'
 
 local lpeg = require 'lpeg'
 local pt = require 'External.pt'
@@ -49,6 +50,7 @@ local nodeReturn = node('return', 'sentence')
 local nodeNumeral = node('number', 'value')
 local nodeIf = node('if', 'expression', 'block', 'elseBlock')
 local nodeWhile = node('while', 'expression', 'block')
+local nodeBoolean = node('boolean', 'value')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -98,8 +100,9 @@ local statement, statementList = V'statement', V'statementList'
 local elses = V'elses'
 local blockStatement = V'blockStatement'
 local expression = V'expression'
+local boolean = V'boolean'
 
-local Ct = lpeg.Ct
+local Ct, Cc = lpeg.Ct, lpeg.Cc
 local grammar =
 {
 'program',
@@ -123,17 +126,22 @@ statement = blockStatement +
             -- Print
             op.print * expression / nodePrint,
 
-              -- Identifiers and numbers
-primary = numeral / nodeNumeral + identifier / nodeVariable +
-              -- Sentences in the language enclosed in parentheses
-              delim.openFactor * expression * delim.closeFactor,
+boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
+
+          -- Identifiers and numbers
+primary = numeral / nodeNumeral +
+          identifier / nodeVariable +
+          -- Literal booleans
+          boolean +
+          -- Sentences in the language enclosed in parentheses
+          delim.openFactor * expression * delim.closeFactor,
 
 -- From highest to lowest precedence
 exponentExpr = primary * (op.exponent * exponentExpr)^-1 / addExponentOp,
 unaryExpr = op.unarySign * unaryExpr / addUnaryOp + exponentExpr,
 termExpr = Ct(unaryExpr * (op.term * unaryExpr)^0) / foldBinaryOps,
 sumExpr = Ct(termExpr * (op.sum * termExpr)^0) / foldBinaryOps,
-notExpr = op.unaryNot * notExpr / addUnaryOp + sumExpr,
+notExpr = op.not_ * notExpr / addUnaryOp + sumExpr,
 comparisonExpr = Ct(notExpr * (op.comparison * notExpr)^0) / foldBinaryOps,
 logicExpr = Ct(comparisonExpr * (op.logical * comparisonExpr)^0) / foldBinaryOps,
 expression = logicExpr,
@@ -212,7 +220,7 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   common.poem(true)
   arg[1] = nil
   local lu = require 'External.luaunit'
-  testFrontend = require 'tests':init(parse, toStackVM, interpreter)
+  testFrontend = require 'tests':init(parse, typeChecker, toStackVM, interpreter)
   testNumerals = require 'numeral.tests'
   testIdentifiers = require 'identifier.tests'
 
@@ -303,6 +311,20 @@ if show.AST then
   print(pt.pt(ast, {'tag', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild'}))
 end
 
+io.write '\nType checking...'
+start = os.clock()
+local errors = typeChecker.check(ast)
+print(string.format('   %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+if #errors > 0 then
+  print('\nType checking failed:')
+  local sortedErrors = {}
+  for _, errorTable in ipairs(errors) do
+    print(errorTable.message)
+  end
+  
+  return 1
+end
+
 io.write '\nTranslating...'
 start = os.clock()
 local code = toStackVM.translate(ast)
@@ -313,7 +335,7 @@ if code == nil then
   print(input)
   print '\nAST:'
   print(pt.pt(ast, {'tag', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild'}))
-  return 1;
+  return 1
 end
 
 if show.code then
