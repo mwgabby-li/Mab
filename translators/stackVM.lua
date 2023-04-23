@@ -163,9 +163,12 @@ end
 function module.translate(ast)
   local translator = Translator:new()
   translator:codeStatement(ast)
-  translator:addCode('push')
-  translator:addCode(0)
-  translator:addCode('return')
+  
+  if translator.code[#translator.code] ~= 'return' then
+    translator:addCode('push')
+    translator:addCode(0)
+    translator:addCode('return')
+  end
   return translator.code
 end
 
