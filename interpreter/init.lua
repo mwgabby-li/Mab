@@ -182,7 +182,15 @@ function module.run(code, trace)
       end
     elseif code[pc] == 'print' then
       traceUnaryOp(trace, code[pc], stack[top])
-      print(stack[top])
+      if type(stack[top]) == 'table' then
+        io.write '['
+        for i = 1, stack[top].size - 1 do
+          io.write(stack[top][i] .. ', ')
+        end
+        io.write(stack[top][stack[top].size] .. ']')
+      else
+        print(stack[top])
+      end
       top = popStack(stack, top, 1)
     elseif code[pc] == 'return' then
       traceUnaryOp(trace, code[pc], stack[top])
