@@ -144,7 +144,7 @@ end
 function TypeChecker:typeMatches(typeTable, nameOrTypeTable)
   if typeTable.name == nameOrTypeTable then
     return true
-  elseif type(nameOrTypeTable) == type({}) then
+  elseif type(nameOrTypeTable) == 'table' then
     return (typeTable.name == nameOrTypeTable.name) and
            (typeTable.dimension == nameOrTypeTable.dimension)
   else

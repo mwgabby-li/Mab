@@ -14,7 +14,7 @@ end
 
 -- Output the code at the given pc and the next num instructions.
 local function traceTwoCodes(trace, code, pc)
-  if type(trace) == type({}) then
+  if type(trace) == 'table' then
     trace[#trace + 1] = code[pc] .. ' ' .. code[pc + 1]
   end
 end
