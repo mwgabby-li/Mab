@@ -131,7 +131,7 @@ writeTarget = Ct(variable * (delim.openArray * expression * delim.closeArray)^0)
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
-            writeTarget * op.assign * expression / nodeAssignment +
+            writeTarget * op.assign * expression * -delim.openBlock / nodeAssignment +
             -- If
             KW'if' * expression * blockStatement * elses / nodeIf +
             -- Return
