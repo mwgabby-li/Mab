@@ -15,7 +15,7 @@ end
 
 local function traceTwoCodes(trace, code, pc)
   if type(trace) == 'table' then
-    trace[#trace + 1] = code[pc] .. ' ' .. code[pc + 1]
+    trace[#trace + 1] = code[pc] .. ' ' .. tostring(code[pc + 1])
   end
 end
 
@@ -58,7 +58,7 @@ local function printValue(array, depth, pad, last)
   end
   
   if type(array) ~= 'table' then
-    io.write(array)
+    io.write(tostring(array))
     return
   end
 
@@ -126,27 +126,27 @@ function module.run(code, trace)
       top = popStack(stack, top, 1)
     elseif code[pc] == 'greater' then
       traceBinaryOp(trace, code[pc], stack, top)
-      stack[top - 1] = stack[top - 1] > stack[top] and 1 or 0
+      stack[top - 1] = stack[top - 1] > stack[top]
       top = popStack(stack, top, 1)
     elseif code[pc] == 'less' then
       traceBinaryOp(trace, code[pc], stack, top)
-      stack[top - 1] = stack[top - 1] < stack[top] and 1 or 0
+      stack[top - 1] = stack[top - 1] < stack[top]
       top = popStack(stack, top, 1)
     elseif code[pc] == 'greaterOrEqual' then
       traceBinaryOp(trace, code[pc], stack, top)
-      stack[top - 1] = stack[top - 1] >= stack[top] and 1 or 0
+      stack[top - 1] = stack[top - 1] >= stack[top]
       top = popStack(stack, top, 1)
     elseif code[pc] == 'lessOrEqual' then
       traceBinaryOp(trace, code[pc], stack, top)
-      stack[top - 1] = stack[top - 1] <= stack[top] and 1 or 0
+      stack[top - 1] = stack[top - 1] <= stack[top]
       top = popStack(stack, top, 1)
     elseif code[pc] == 'equal' then
       traceBinaryOp(trace, code[pc], stack, top)
-      stack[top - 1] = stack[top - 1] == stack[top] and 1 or 0
+      stack[top - 1] = stack[top - 1] == stack[top]
       top = popStack(stack, top, 1)
     elseif code[pc] == 'notEqual' then
       traceBinaryOp(trace, code[pc], stack, top)
-      stack[top - 1] = stack[top - 1] ~= stack[top] and 1 or 0
+      stack[top - 1] = stack[top - 1] ~= stack[top]
       top = popStack(stack, top, 1)
     elseif code[pc] == 'negate' then
       traceUnaryOp(trace, code[pc], stack[top])
@@ -189,7 +189,7 @@ function module.run(code, trace)
       -- Finally, the value we're setting to the array is at the top.
       local value = stack[top - 0]
       
-      traceCustom(trace, code[pc] .. ' ' .. '[' .. index .. '] = ' .. ((type(value) == 'table') and '{}' or value))
+      traceCustom(trace, code[pc] .. ' ' .. '[' .. index .. '] = ' .. tostring(value))
 
       if index > array.size or index < 1 then
         error('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
