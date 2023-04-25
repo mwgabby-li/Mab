@@ -53,25 +53,17 @@ function Translator:nodeExpression(ast)
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.value)
   elseif ast.tag == 'newArray' then
-    if ast.size.tag == 'variable' then
-      self:appendNode(ast, false, 'new[' ..ast.size.value .. ']')
-    elseif ast.size.tag == 'number' then
-      self:appendNode(ast, false, 'new[' ..ast.size.value .. ']')
-    else
-      self:appendNode(ast, false, 'new', ast.size, '[...]')
-      self:nodeExpression(ast.size)
+    self:appendNode(ast, false, 'new ' .. #ast.sizes .. 'D\narray', table.unpack(ast.sizes))
+    for index, sizeExpression in ipairs(ast.sizes) do
+      self:nodeExpression(sizeExpression)
     end
   elseif ast.tag == 'arrayElement' then
-    if ast.index.tag == 'variable' then
-      self:appendNode(ast, false, ast.array.value .. '[' ..ast.index.value .. ']')
-    elseif ast.index.tag == 'number' then
-      self:appendNode(ast, false, ast.array.value .. '[' ..ast.index.value .. ']')
-    else
-    self:appendNode(ast, false, ast.array, ast.index, '[...]')
-    self:nodeExpression(ast.index)
-    end
+      self:appendNode(ast, false, '[...]', ast.array, ast.index, nil, '...')
+      self:nodeExpression(ast.array)
+      self:nodeExpression(ast.index)
+    --end
   elseif ast.tag == 'binaryOp' then
-    self:appendNode(ast, false, ast.op, ast.firstChild, nil, ast.secondChild, nil)
+    self:appendNode(ast, false, ast.op, ast.firstChild, ast.secondChild)
     self:nodeExpression(ast.firstChild)
     self:nodeExpression(ast.secondChild)
   elseif ast.tag == 'unaryOp' then
@@ -85,13 +77,17 @@ function Translator:nodeName(ast)
   return 'node_' .. self:getID(ast)
 end
 
-function Translator:appendNode(ast, sequence, label, firstChild, firstLabel, secondChild, secondLabel, thirdChild, thirdLabel)
+function Translator:appendNode(ast, sequence, label, ...)
   local nodeName = self:nodeName(ast)
   self.file = self.file ..
   nodeName .. " [\n" ..
   'label = "' .. label .. '"'..
   '\n]\n'
   
+  local arguments = table.pack(...)
+  local firstChild = arguments[1]
+  local secondChild = arguments[2]
+
   local parentPortFirst = ''
   local childPortFirst = ''
   local parentPortSecond = ''
@@ -110,6 +106,20 @@ function Translator:appendNode(ast, sequence, label, firstChild, firstLabel, sec
     childPortSecond = ':n '
   end
   
+  local labelsStart = nil
+  for i = 1, arguments.n do
+    if type(arguments[i]) ~= 'table' then
+      labelsStart = i
+      break
+    end
+  end
+  
+  local firstLabel, secondLabel
+  if labelsStart then
+    firstLabel = arguments[labelsStart]
+    secondLabel = arguments[labelsStart + 1]
+  end
+
   if firstChild then
     local label = (firstLabel and ('[ label = "' .. firstLabel  .. '" ];') or ';')
     self.file = self.file .. nodeName .. parentPortFirst .. ' -> ' .. (self:nodeName(firstChild)) .. childPortFirst .. label  .. '\n'
@@ -120,10 +130,17 @@ function Translator:appendNode(ast, sequence, label, firstChild, firstLabel, sec
     self.file = self.file .. nodeName .. parentPortSecond ..  ' -> ' .. self:nodeName(secondChild) .. childPortSecond .. label .. '\n'
   end
   
-  if thirdChild then
-    local label = (thirdLabel and ('[ label = "' .. thirdLabel  .. '" ];') or ';')
-    self.file = self.file .. nodeName ..  ' -> ' .. self:nodeName(thirdChild) .. label .. '\n'
-  end  
+  for i = 3, arguments.n do
+    if type(arguments[i]) == 'table' then
+      local label = ';'
+      if labelsStart then
+        local ourLabelIndex = labelsStart + 2 + (i - 3)
+        label = (arguments[ourLabelIndex] and ('[ label = "' .. arguments[ourLabelIndex]  .. '" ];') or ';')
+      end
+
+      self.file = self.file .. nodeName ..  ' -> ' .. self:nodeName(arguments[i]) .. label .. '\n'
+    end
+  end
 end
 
 function Translator:addNodes(depth)
@@ -162,29 +179,29 @@ function Translator:nodeStatement(ast, depth, fromIf)
   elseif ast.tag == 'statementSequence' then
     self:addNodeName(ast, self.statementNodeNames, depth)
 
-    self:appendNode(ast, true, 'Statement', ast.firstChild, nil, ast.secondChild, nil)
+    self:appendNode(ast, true, 'Statement', ast.firstChild, ast.secondChild)
     self:nodeStatement(ast.firstChild, depth)
     self:nodeStatement(ast.secondChild, depth)
   elseif ast.tag == 'return' then
-    self:appendNode(ast, false, 'Return', ast.sentence)    
+    self:appendNode(ast, false, 'Return', ast.sentence)
     self:nodeExpression(ast.sentence)
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment)
-    self:appendNode(ast, false, '=', ast.writeTarget, nil, ast.assignment)
+    self:appendNode(ast, false, '=', ast.writeTarget, ast.assignment)
     self:nodeExpression(ast.writeTarget)
   elseif ast.tag == 'if' then
     self:addNodeName(ast, self.ifNodeNames, depth)
     
     local tag = fromIf and 'Else If' or 'If'
     
-    self:appendNode(ast, false, tag, ast.expression, nil, ast.block, nil, ast.elseBlock, nil)
+    self:appendNode(ast, false, tag, ast.expression, ast.block, ast.elseBlock)
     self:nodeExpression(ast.expression)
     self:nodeStatement(ast.block, depth + 1)
     if ast.elseBlock then
       self:nodeStatement(ast.elseBlock, depth, true)
     end
   elseif ast.tag == 'while' then
-    self:appendNode(ast, false, 'While', ast.expression, nil, ast.block, nil)
+    self:appendNode(ast, false, 'While', ast.expression, ast.block)
     self:nodeExpression(ast.expression)
     self:nodeStatement(ast.block, depth + 1)    
   elseif ast.tag == 'print' then

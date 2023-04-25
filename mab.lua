@@ -51,8 +51,7 @@ local nodeNumeral = node('number', 'value')
 local nodeIf = node('if', 'expression', 'block', 'elseBlock')
 local nodeWhile = node('while', 'expression', 'block')
 local nodeBoolean = node('boolean', 'value')
-local nodeArrayElement = node('arrayElement', 'array', 'index')
-local nodeNewArray = node('newArray', 'size')
+local nodeNewArray = node('newArray', 'sizes')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -93,6 +92,14 @@ local function foldBinaryOps(list)
   return tree
 end
 
+local function foldArrayElement(list)
+  local tree = list[1]
+  for i = 2, #list do
+    tree = { tag = 'arrayElement', array = tree, index = list[i] }
+  end
+  return tree
+end
+
 ---- Grammar -----------------------------------------------------------------------------------------------------------
 local V = lpeg.V
 local primary, exponentExpr, termExpr = V'primary', V'exponentExpr', V'termExpr'
@@ -120,7 +127,7 @@ blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.clos
 elses = (KW'elseif' * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
 variable = identifier / nodeVariable,
-writeTarget = variable * delim.openArray * expression * delim.closeArray / nodeArrayElement + variable,
+writeTarget = Ct(variable * (delim.openArray * expression * delim.closeArray)^0) / foldArrayElement,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
@@ -137,7 +144,7 @@ statement = blockStatement +
 boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
 
           -- Identifiers and numbers
-primary = KW'new' * delim.openArray * expression * delim.closeArray / nodeNewArray +
+primary = Ct(KW'new' * (delim.openArray * expression * delim.closeArray)^1) / nodeNewArray +
           writeTarget +
           numeral / nodeNumeral +
           -- Literal booleans
@@ -312,7 +319,7 @@ if show.graphviz then
   dotFile:close()
   local svgFileName = prefix .. '.svg'
   os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
-  os.execute('firefox "'.. svgFileName .. '"')
+  os.execute('firefox "'.. svgFileName .. '" &')
 end
 
 if show.AST then

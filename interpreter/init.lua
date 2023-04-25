@@ -1,6 +1,7 @@
 local module = {}
 
 local function traceUnaryOp(trace, operator, value)
+  value = type(value) == 'table' and '{}' or value
   if trace then
     trace[#trace + 1] = operator .. ' ' .. value
   end
@@ -12,10 +13,15 @@ local function traceBinaryOp(trace, operator, stack, top)
   end
 end
 
--- Output the code at the given pc and the next num instructions.
 local function traceTwoCodes(trace, code, pc)
   if type(trace) == 'table' then
     trace[#trace + 1] = code[pc] .. ' ' .. code[pc + 1]
+  end
+end
+
+local function traceCustom(trace, string)
+  if type(trace) == 'table' then
+    trace[#trace + 1] = string
   end
 end
 
@@ -25,6 +31,57 @@ local function popStack(stack, top, amount)
     top = top - 1
   end
   return top
+end
+
+local function createArray(stack, index, remaining)
+  if remaining == 0 then
+    return 0
+  end
+  
+  local array = {size = stack[index]}
+  for i = 1,stack[index] do
+    array[i] = createArray(stack, index + 1, remaining - 1)
+  end
+  
+  return array
+end
+
+local function calculatePad(array)
+  return 0
+end
+
+local function printValue(array, depth, pad, last)
+  if pad == nil then
+    pad = calculatePad(array)
+    printValue(array, depth, pad, last)
+    return
+  end
+  
+  if type(array) ~= 'table' then
+    io.write(array)
+    return
+  end
+
+  depth = depth or 0
+  if depth > 0 then
+    io.write '\n'
+  end
+  io.write( (' '):rep(depth) .. '[' )
+  
+  for i = 1,#array - 1 do
+    printValue(array[i], depth + 1, pad)
+    io.write ','
+    if type(array[i]) ~= 'table' then
+      io.write ' '
+    end
+  end
+  printValue(array[#array], depth + 1, pad, true)
+
+  io.write ']'
+  
+  if last then
+    io.write('\n' .. (' '):rep(depth - 1))
+  end
 end
 
 function module.run(code, trace)
@@ -112,13 +169,18 @@ function module.run(code, trace)
       memory[code[pc] ] = stack[top]
       top = popStack(stack, top, 1)
     elseif code[pc] == 'newArray' then
-      -- The size of the new array is on the top of the stack
-      local size = stack[top]
-      -- We replace the top of the stack with the new array
-      stack[top] = { size = size }
-      for i = 1,10 do
-        stack[top][i] = 0
-      end
+      traceTwoCodes(trace, code, pc)
+      -- The dimensions of the new array is our next instruction
+      -- This dimensions value tells us how many values are on the stack,
+      -- one for the size each dimension.
+      pc = pc + 1
+      local dimensions = code[pc]
+      
+      local firstDimensionIndex = top - dimensions + 1
+      stack[firstDimensionIndex] = createArray(stack, firstDimensionIndex, dimensions)
+      
+      -- We consumed 'dimensions' number of stack elements, and pushed one (for the new array.)
+      top = popStack(stack, top, dimensions - 1)
     elseif code[pc] == 'setArray' then
       -- Which array we're getting is two elements below
       local array = stack[top - 2]
@@ -127,6 +189,8 @@ function module.run(code, trace)
       -- Finally, the value we're setting to the array is at the top.
       local value = stack[top - 0]
       
+      traceCustom(trace, code[pc] .. ' ' .. '[' .. index .. '] = ' .. ((type(value) == 'table') and '{}' or value))
+
       if index > array.size or index < 1 then
         error('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
       end
@@ -141,6 +205,9 @@ function module.run(code, trace)
       local array = stack[top - 1]
       -- The index we're getting from the array is at the top
       local index = stack[top - 0]
+
+      traceCustom(trace, code[pc] .. ' ' .. '[' .. index .. ']')
+      
       -- We have consumed two things, but we're about to add one:
       -- so just decrement by one to simulate popping two and pushing one.
       top = popStack(stack, top, 1)
@@ -182,15 +249,8 @@ function module.run(code, trace)
       end
     elseif code[pc] == 'print' then
       traceUnaryOp(trace, code[pc], stack[top])
-      if type(stack[top]) == 'table' then
-        io.write '['
-        for i = 1, stack[top].size - 1 do
-          io.write(stack[top][i] .. ', ')
-        end
-        io.write(stack[top][stack[top].size] .. ']')
-      else
-        print(stack[top])
-      end
+      printValue(stack[top])
+      io.write '\n'
       top = popStack(stack, top, 1)
     elseif code[pc] == 'return' then
       traceUnaryOp(trace, code[pc], stack[top])

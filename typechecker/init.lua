@@ -141,6 +141,13 @@ function TypeChecker:createType(name, dimension)
   return {name=name, dimension=dimension}
 end
 
+function TypeChecker:duplicateType(variable)
+  local current = self.variableTypes[variable]
+  if current then
+    return self:createType(self.variableTypes[variable].name, self.variableTypes[variable].dimension)
+  end
+end
+
 function TypeChecker:typeMatches(typeTable, nameOrTypeTable)
   if typeTable.name == nameOrTypeTable then
     return true
@@ -158,9 +165,9 @@ function TypeChecker:toResultType(op, binary, typeTable)
   end
   
   if binary then
-    return self.resultTypeBinaryOps[typeTable.name][op]
+    return self:createType(self.resultTypeBinaryOps[typeTable.name][op])
   else
-    return self.resultTypeUnaryOps[typeTable.name][op]
+    return self:createType(self.resultTypeUnaryOps[typeTable.name][op])
   end
 end
 
@@ -180,7 +187,8 @@ function TypeChecker:toReadable(typeTable)
   if typeTable.dimension == 0 then
     return typeTable.name
   else
-    return typeTable.name .. ('[]'):rep(typeTable.dimension)
+    local dimensionString = typeTable.dimension == 1 and '' or typeTable.dimension .. 'D '
+    return dimensionString .. 'array of '.. typeTable.name ..'s'
   end
 end
 
@@ -193,15 +201,22 @@ function TypeChecker:checkExpression(ast)
   if ast.tag == 'number' or ast.tag == 'boolean' then
     return self:createType(ast.tag)
   elseif ast.tag == 'variable' then
-    return self.variableTypes[ast.value]
+    return self:duplicateType(ast.value), ast.value
   elseif ast.tag == 'newArray' then
-    local sizeType = self:checkExpression(ast.size)
-    if not self:typeMatches(sizeType, 'number') then
-      sizeType = sizeType or 'nil'
-      self:addError('Creating a new array with a size of type "' ..
-                    self:toReadable(sizeType) .. '", only "number" is allowed. Sorry!', ast)
+    local sizeTypes = ''
+    local invalidType = false
+    for index, sizeExpression in ipairs(ast.sizes) do
+      local sizeType = self:checkExpression(sizeExpression)
+      sizeTypes = sizeTypes .. '[' .. (sizeType ~= nil and self:toReadable(sizeType) or 'nil') .. ']'
+      if not self:typeMatches(sizeType, self:createType('number')) then
+        invalidType = true
+      end
     end
-    return self:createType('unknown', 1)
+    if invalidType then
+      self:addError('Creating a new array with types "' ..
+                    sizeTypes .. '", only "number" is allowed. Sorry!', ast)
+    end
+    return self:createType('unknown', #ast.sizes)
   elseif ast.tag == 'arrayElement' then
     local indexType = self:checkExpression(ast.index)
     if not self:typeMatches(indexType, 'number') then
@@ -209,8 +224,11 @@ function TypeChecker:checkExpression(ast)
       self:addError('Indexing into "'.. ast.array ..' with type "' ..
                     self:toReadable(indexType) .. '", only "number" is allowed. Sorry!', ast)
     end
-    -- To-Do: This needs to change for multi-dimensional arrays.
-    return self:createType(self.variableTypes[ast.array.value].name)
+
+    local arrayType, variableName = self:checkExpression(ast.array)
+    
+    arrayType.dimension = arrayType.dimension - 1
+    return arrayType, variableName
   elseif ast.tag == 'binaryOp' then
     -- If type checking fails on one of the subexpressions,
     -- don't bother reporting another error here, it will be nonsense.
@@ -262,50 +280,35 @@ function TypeChecker:checkStatement(ast)
     self:checkStatement(ast.firstChild)
     self:checkStatement(ast.secondChild)
   elseif ast.tag == 'return' then
-    self:checkExpression(ast.sentence)
+    local returnType = self:checkExpression(ast.sentence)
+    if returnType.dimension > 0 then
+      self:addError('Trying to return an array type "'.. self:toReadable(returnType) .. '." Disallowed, sorry!', ast)
+    end
   elseif ast.tag == 'assignment' then
-    -- Three cases.
-    -- 1. We are assigning a value to a variable, such as a number of boolean.
-    -- 2. We are assigning a value to an array element.
-    -- 3. We are assigning an array to a variable.
+    -- Get the type of the thing we're writing to, and its root name
+    -- (e.g. given a single-dimension array of numbers 'a,'
+    --  'a[12]' is the target, the type is {name='number', dimension=0},
+    --  and the root name is 'a.')
+    local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget)
     
-    local arrayElement = ast.writeTarget.array ~= nil
-    local variableName = arrayElement and ast.writeTarget.array.value or ast.writeTarget.value
-    -- To-Do: This needs to change for multi-dimensional arrays.
-    local variableType = nil
-    local arrayType = nil
-    if arrayElement then
-      arrayType = self.variableTypes[variableName]
-      variableType = self:createType(arrayType.name, 0)
-    elseif self.variableTypes[variableName] then
-      variableType = self.variableTypes[variableName]
-      arrayType = variableType.dimension > 0 and variableType or nil
-    end
-
+    -- Get the type of the source of the assignment
     local expressionType = self:checkExpression(ast.assignment)
-    if variableType ~= nil and self:typeMatches(variableType, 'unknown') then
-      -- currently, only arrays can have an unknown type
-      assert(arrayElement)
-      variableType = self:createType(expressionType.name)
-      self.variableTypes[variableName] = self:createType(expressionType.name, self.variableTypes[variableName].dimension)
-    end
-
-    -- No changing variable types for now
-    if variableType ~= nil and not self:typeMatches(variableType, expressionType) then
-      local deducedType = expressionType
-      -- If this is an array element whose array already had a type
-      if arrayElement then
-        -- Notify of deduced type change (including array)
-        deducedType = self:createType(deducedType.name, arrayType.dimension)
-      end
-      -- Otherwise, this is a normal type change
-      
-      self:addError('Attempted to change type of variable "'.. variableName ..'" from "' ..
-                    self:toReadable(self.variableTypes[variableName]) .. '" to "' ..
-                    self:toReadable(deducedType) .. '." Disallowed, sorry!', ast)
-    -- This variable doesn't yet exist
-    elseif variableType == nil then
-      self:addVariable(variableName, expressionType)
+  
+    -- If the thing we're writing to has a type and that type is 'unknown,' with a matching dimension,
+    -- this assignment is allowed to set its type.
+    if writeTargetType == nil then
+      -- This variable doesn't yet exist
+      self:addVariable(writeTargetRootName, expressionType)
+    -- Variable exists, and its type is 'unknown?'
+    elseif self:typeMatches(writeTargetType, 'unknown') and
+           writeTargetType.dimension == expressionType.dimension then
+        writeTargetType = expressionType
+        self.variableTypes[writeTargetRootName].name = writeTargetType.name
+    -- However, if the write target exists already and its type does not match
+    elseif not self:typeMatches(writeTargetType, expressionType) then
+      self:addError('Attempted to change type from "' ..
+                    self:toReadable(writeTargetType) .. '" to "' ..
+                    self:toReadable(expressionType) .. '." Disallowed, sorry!', ast)
     end
   elseif ast.tag == 'if' then
     local expressionType = self:checkExpression(ast.expression)
