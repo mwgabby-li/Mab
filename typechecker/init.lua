@@ -149,6 +149,10 @@ function TypeChecker:duplicateType(variable)
 end
 
 function TypeChecker:typeMatches(typeTable, nameOrTypeTable)
+  if typeTable == nil then
+    return false
+  end
+  
   if typeTable.name == nameOrTypeTable then
     return true
   elseif type(nameOrTypeTable) == 'table' then
@@ -197,11 +201,17 @@ function TypeChecker:addVariable(identifier, typeOfIdentifier)
   self.variableTypes[identifier] = typeOfIdentifier
 end
 
-function TypeChecker:checkExpression(ast)
+function TypeChecker:checkExpression(ast, undefinedVariableOK)
   if ast.tag == 'number' or ast.tag == 'boolean' then
     return self:createType(ast.tag)
   elseif ast.tag == 'variable' then
-    return self:duplicateType(ast.value), ast.value
+    local variableType = self:duplicateType(ast.value)
+    
+    if variableType == nil and not undefinedVariableOK then
+      self:addError('Attempting to use undefined variable "'..ast.value..'."', ast)
+    end
+
+    return variableType, ast.value
   elseif ast.tag == 'newArray' then
     local sizeTypes = ''
     local invalidType = false
@@ -296,7 +306,8 @@ function TypeChecker:checkStatement(ast)
     -- (e.g. given a single-dimension array of numbers 'a,'
     --  'a[12]' is the target, the type is {name='number', dimension=0},
     --  and the root name is 'a.')
-    local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget)
+    -- undefined variable OK: true, assignments are the only case where this is allowed.
+    local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget, true)
     
     -- Get the type of the source of the assignment
     local expressionType = self:checkExpression(ast.assignment)
