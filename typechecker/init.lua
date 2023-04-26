@@ -213,32 +213,19 @@ function TypeChecker:checkExpression(ast, undefinedVariableOK)
 
     return variableType, ast.value
   elseif ast.tag == 'newArray' then
-    local sizeTypes = ''
-    local invalidType = false
-    for index, sizeExpression in ipairs(ast.sizes) do
-      local sizeType = self:checkExpression(sizeExpression)
-      sizeTypes = sizeTypes .. '[' .. (sizeType ~= nil and self:toReadable(sizeType) or 'nil') .. ']'
-      if not self:typeMatches(sizeType, self:createType('number')) then
-        invalidType = true
-      end
-    end
-    if invalidType then
-      self:addError('Creating a new array with types "' ..
-                    sizeTypes .. '", only "number" is allowed. Sorry!', ast)
+    local sizeType = self:checkExpression(ast.size)
+    if not self:typeMatches(sizeType, self:createType('number')) then
+      self:addError('Creating a new array indexed with "' ..
+                    sizeType.name .. '", only "number" is allowed. Sorry!', ast)
     end
 
-    -- If it's an array type, we need to expand our dimension,
-    -- because adding an array with an existing dimension as a leaf
-    -- increases the dimension of /this/ array.
-    local initType = self:checkExpression(ast.initialValueExpression)
-    -- If the thing we're setting to is /not/ an array, dimension will be zero.
-    -- Init type, since it comes from the root, will be some basic type.
-    return self:createType(initType.name, #ast.sizes + initType.dimension)
+    local initType = self:checkExpression(ast.initialValue)
+    return self:createType(initType.name, initType.dimension + 1)
   elseif ast.tag == 'arrayElement' then
     local indexType = self:checkExpression(ast.index)
     if not self:typeMatches(indexType, 'number') then
       indexType = indexType or 'nil'
-      self:addError('Indexing into "'.. ast.array ..' with type "' ..
+      self:addError('Array indexing with type "' ..
                     self:toReadable(indexType) .. '", only "number" is allowed. Sorry!', ast)
     end
 

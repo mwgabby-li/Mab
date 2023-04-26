@@ -53,19 +53,9 @@ function Translator:nodeExpression(ast)
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.value)
   elseif ast.tag == 'newArray' then
-    local copy = {}
-    for k, v in ipairs(ast.sizes) do
-      copy[k] = v
-    end
-    copy[#copy + 1] = ast.initialValueExpression
-    copy.n = 2 * #ast.sizes + 2
-    copy[copy.n] = 'init'
-    
-    self:appendNode(ast, false, 'new ' .. #ast.sizes .. 'D\narray', table.unpack(copy, 1, copy.n))
-    for index, sizeExpression in ipairs(ast.sizes) do
-      self:nodeExpression(sizeExpression)
-    end
-    self:nodeExpression(ast.initialValueExpression)
+    self:appendNode(ast, false, 'new[...]', ast.size, ast.initialValue )
+    self:nodeExpression(ast.size)
+    self:nodeExpression(ast.initialValue)
   elseif ast.tag == 'arrayElement' then
     self:appendNode(ast, false, '[...]', ast.array, ast.index, nil, '...')
     self:nodeExpression(ast.array)

@@ -91,11 +91,9 @@ function Translator:codeExpression(ast)
     self:codeExpression(ast.index)
     self:addCode('getArray')
   elseif ast.tag == 'newArray' then
-    self:codeExpression(ast.initialValueExpression)
-    for i = #ast.sizes,1,-1 do
-      self:codeExpression(ast.sizes[i])
-      self:addCode('newArray')
-    end
+    self:codeExpression(ast.initialValue)
+    self:codeExpression(ast.size)
+    self:addCode('newArray')
   elseif ast.tag == 'binaryOp' then
     if ast.op == l_op.and_ then
       self:codeExpression(ast.firstChild)
