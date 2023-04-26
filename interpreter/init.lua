@@ -1,9 +1,8 @@
 local module = {}
 
 local function traceUnaryOp(trace, operator, value)
-  value = type(value) == 'table' and '{}' or value
   if trace then
-    trace[#trace + 1] = operator .. ' ' .. value
+    trace[#trace + 1] = operator .. ' ' .. tostring(value)
   end
 end
 
@@ -14,13 +13,13 @@ local function traceBinaryOp(trace, operator, stack, top)
 end
 
 local function traceTwoCodes(trace, code, pc)
-  if type(trace) == 'table' then
+  if trace then
     trace[#trace + 1] = code[pc] .. ' ' .. tostring(code[pc + 1])
   end
 end
 
 local function traceCustom(trace, string)
-  if type(trace) == 'table' then
+  if trace then
     trace[#trace + 1] = string
   end
 end
