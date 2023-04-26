@@ -366,7 +366,7 @@ if not show.trace then
   trace = nil
 end
 local result = interpreter.run(code, trace)
-print(string.format('         Execution %s: %0.2f milliseconds.', result and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+print(string.format('         Execution %s: %0.2f milliseconds.', result ~= nil and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 if show.trace then
   print '\nExecution trace:'
