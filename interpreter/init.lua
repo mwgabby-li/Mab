@@ -33,14 +33,14 @@ local function popStack(stack, top, amount)
   return top
 end
 
-local function createArray(stack, index, remaining)
+local function createArray(stack, index, remaining, defaultValue)
   if remaining == 0 then
-    return 0
+    return copyObjectNoSelfReferences(defaultValue)
   end
   
   local array = {size = stack[index]}
   for i = 1,stack[index] do
-    array[i] = createArray(stack, index + 1, remaining - 1)
+    array[i] = createArray(stack, index + 1, remaining - 1, defaultValue)
   end
   
   return array
@@ -48,6 +48,13 @@ end
 
 local function calculatePad(array)
   return 0
+end
+
+function copyObjectNoSelfReferences(object)
+    if type(object) ~= 'table' then return object end
+    local result = {}
+    for k, v in pairs(object) do result[copyObjectNoSelfReferences(k)] = copyObjectNoSelfReferences(v) end
+    return result
 end
 
 local function printValue(array, depth, pad, last)
@@ -176,11 +183,14 @@ function module.run(code, trace)
       pc = pc + 1
       local dimensions = code[pc]
       
-      local firstDimensionIndex = top - dimensions + 1
-      stack[firstDimensionIndex] = createArray(stack, firstDimensionIndex, dimensions)
+      local defaultValue = stack[top]
       
-      -- We consumed 'dimensions' number of stack elements, and pushed one (for the new array.)
-      top = popStack(stack, top, dimensions - 1)
+      local firstDimensionIndex = top - dimensions
+      stack[firstDimensionIndex] = createArray(stack, firstDimensionIndex, dimensions, defaultValue)
+      
+      -- We consumed 'dimensions' number of stack elements, an extra one for the default value, and pushed one (for the new array.)
+      -- So the total popped is just 'dimensions.'
+      top = popStack(stack, top, dimensions)
     elseif code[pc] == 'setArray' then
       -- Which array we're getting is two elements below
       local array = stack[top - 2]

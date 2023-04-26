@@ -94,6 +94,7 @@ function Translator:codeExpression(ast)
     for _, sizeExpression in ipairs(ast.sizes) do
       self:codeExpression(sizeExpression)
     end
+    self:codeExpression(ast.initialValueExpression)
     self:addCode('newArray')
     self:addCode(#ast.sizes)
   elseif ast.tag == 'binaryOp' then

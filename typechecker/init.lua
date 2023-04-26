@@ -216,7 +216,14 @@ function TypeChecker:checkExpression(ast)
       self:addError('Creating a new array with types "' ..
                     sizeTypes .. '", only "number" is allowed. Sorry!', ast)
     end
-    return self:createType('unknown', #ast.sizes)
+
+    -- If it's an array type, we need to expand our dimension,
+    -- because adding an array with an existing dimension as a leaf
+    -- increases the dimension of /this/ array.
+    local initType = self:checkExpression(ast.initialValueExpression)
+    -- If the thing we're setting to is /not/ an array, dimension will be zero.
+    -- Init type, since it comes from the root, will be some basic type.
+    return self:createType(initType.name, #ast.sizes + initType.dimension)
   elseif ast.tag == 'arrayElement' then
     local indexType = self:checkExpression(ast.index)
     if not self:typeMatches(indexType, 'number') then

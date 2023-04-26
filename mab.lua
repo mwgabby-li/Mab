@@ -51,7 +51,7 @@ local nodeNumeral = node('number', 'value')
 local nodeIf = node('if', 'expression', 'block', 'elseBlock')
 local nodeWhile = node('while', 'expression', 'block')
 local nodeBoolean = node('boolean', 'value')
-local nodeNewArray = node('newArray', 'sizes')
+local nodeNewArray = node('newArray', 'sizes', 'initialValueExpression')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -144,7 +144,7 @@ statement = blockStatement +
 boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
 
           -- Identifiers and numbers
-primary = Ct(KW'new' * (delim.openArray * expression * delim.closeArray)^1) / nodeNewArray +
+primary = Ct(KW'new' * (delim.openArray * expression * delim.closeArray)^1) * primary / nodeNewArray +
           writeTarget +
           numeral / nodeNumeral +
           -- Literal booleans
