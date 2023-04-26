@@ -33,19 +33,6 @@ local function popStack(stack, top, amount)
   return top
 end
 
-local function createArray(stack, index, remaining, defaultValue)
-  if remaining == 0 then
-    return copyObjectNoSelfReferences(defaultValue)
-  end
-  
-  local array = {size = stack[index]}
-  for i = 1,stack[index] do
-    array[i] = createArray(stack, index + 1, remaining - 1, defaultValue)
-  end
-  
-  return array
-end
-
 local function calculatePad(array)
   return 0
 end
@@ -176,21 +163,22 @@ function module.run(code, trace)
       memory[code[pc] ] = stack[top]
       top = popStack(stack, top, 1)
     elseif code[pc] == 'newArray' then
-      traceTwoCodes(trace, code, pc)
-      -- The dimensions of the new array is our next instruction
-      -- This dimensions value tells us how many values are on the stack,
-      -- one for the size each dimension.
-      pc = pc + 1
-      local dimensions = code[pc]
-      
-      local defaultValue = stack[top]
-      
-      local firstDimensionIndex = top - dimensions
-      stack[firstDimensionIndex] = createArray(stack, firstDimensionIndex, dimensions, defaultValue)
-      
-      -- We consumed 'dimensions' number of stack elements, an extra one for the default value, and pushed one (for the new array.)
-      -- So the total popped is just 'dimensions.'
-      top = popStack(stack, top, dimensions)
+      traceCustom(trace, code[pc])
+      -- Our size is on the top of the stack
+      local size = stack[top]
+      -- The default value for all our elements is the next stack element
+      local defaultValue = stack[top - 1]
+
+      local array = {size=size}
+      for i = 1,size do
+        array[i] = copyObjectNoSelfReferences(defaultValue)
+      end
+
+      -- We take two elements, but we are about to add one, so pop one element,
+      top = popStack(stack, top, 1)
+      -- then overwrite the next one!
+      stack[top] = array
+      -- We consumed our default value from the stack, then pushed ourself, so no changes to the stack size.
     elseif code[pc] == 'setArray' then
       -- Which array we're getting is two elements below
       local array = stack[top - 2]
