@@ -104,4 +104,63 @@ As morning breaks, and all is lost.
     end
 end
 
+function common.generateErrorMessage(input, position, backup)
+    local errorMessage = ''
+    
+    -- Count the number of newlines - the number of line breaks plus one is the current line
+    local newlineCount = common.count('\n', input:sub(1, position ))
+    local errorLine = newlineCount + 1
+
+    -- If the previous character was a newline, this means we (sort of) failed at the end of the line.
+    -- Show the failure on the previous line, and one character back so that the caret is after the last character
+    -- on that line.    
+    local backedUp = false
+    if backup then
+      while input:sub(position - 1, position - 1) == '\n' do
+        errorLine = errorLine - 1
+        position = position - 1
+        -- On \r\n systems, we need to backtrack twice since there are two characters in a line ending,
+        -- so we will be at the same place visually as on \n systems.
+        if input:sub(position - 1, position - 1) == '\r' then
+          position = position - 1
+        end
+        backedUp = true
+      end
+    end
+
+    if backedUp then
+      errorMessage = errorMessage .. ('after line ' .. errorLine .. ':\n')
+    else
+      errorMessage = errorMessage .. ('at line ' .. errorLine .. ':\n')
+    end
+
+    local contextAfter = 2
+    local contextBefore = 2
+
+    local lineNumber = 1
+    
+    -- Keep track of the current character in the subject, since we're breaking things into lines
+    local currentCharacter = 0
+    -- Number of digits tells us how much padding we should add to line numbers so they line up
+    local digits = math.ceil(math.log10(errorLine + contextAfter))
+    local includeNewlines = true
+    for line in common.lines(input, includeNewlines) do
+      if lineNumber >= errorLine - contextBefore and lineNumber <= errorLine + contextAfter then
+        local lineNumberPrefixed = string.format('%'..(digits)..'d',lineNumber) 
+        if lineNumber == errorLine then
+          local failureCharacter = position - currentCharacter
+          errorMessage = errorMessage .. ('>' .. lineNumberPrefixed .. ' ' .. line)
+          errorMessage = errorMessage .. (' ' .. string.rep(' ', #lineNumberPrefixed) .. string.rep(' ', failureCharacter) .. '^\n') 
+        else
+          errorMessage = errorMessage .. (' ' .. lineNumberPrefixed .. ' ' .. line)
+        end
+      end
+      
+      lineNumber = lineNumber + 1
+      currentCharacter = currentCharacter + #line
+    end
+    
+    return errorMessage
+end
+
 return common
