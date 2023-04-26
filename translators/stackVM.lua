@@ -100,12 +100,12 @@ function Translator:codeExpression(ast)
   elseif ast.tag == 'binaryOp' then
     if ast.op == l_op.and_ then
       self:codeExpression(ast.firstChild)
-      local fixupSSAnd = self:addJump('jumpIfZeroJumpNoPop')
+      local fixupSSAnd = self:addJump('jumpIfFalseJumpNoPop')
       self:codeExpression(ast.secondChild)
       self:fixupJump(fixupSSAnd)
     elseif ast.op == l_op.or_ then
       self:codeExpression(ast.firstChild)
-      local fixupSSOr = self:addJump('jumpIfNonzeroJumpNoPop')
+      local fixupSSOr = self:addJump('jumpIfTrueJumpNoPop')
       self:codeExpression(ast.secondChild)
       self:fixupJump(fixupSSOr)
     else    
@@ -151,7 +151,7 @@ function Translator:codeStatement(ast)
   elseif ast.tag == 'if' then
     -- Expression and jump
     self:codeExpression(ast.expression)
-    local skipIfFixup = self:addJump('jumpIfZero')
+    local skipIfFixup = self:addJump('jumpIfFalse')
     -- Inside of if
     self:codeStatement(ast.block)
     if ast.elseBlock then
@@ -173,7 +173,7 @@ function Translator:codeStatement(ast)
   elseif ast.tag == 'while' then
     local whileStart = self:currentInstructionIndex()
     self:codeExpression(ast.expression)
-    local skipWhileFixup = self:addJump 'jumpIfZero'
+    local skipWhileFixup = self:addJump 'jumpIfFalse'
     self:codeStatement(ast.block)
     self:addJump('jump', whileStart)
     self:fixupJump(skipWhileFixup)
