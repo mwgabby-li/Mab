@@ -230,6 +230,10 @@ function module.run(code, trace)
       -- This is also now the index of where the array we loaded from was located,
       -- so it has the benefit of removing the reference to that array from the stack.
       stack[top] = array[index]
+    elseif code[pc] == 'jump' then
+      traceTwoCodes(trace, code, pc)
+      pc = pc + 1
+      pc = pc + code[pc]
     elseif code[pc] == 'jumpIfFalse' then
       traceTwoCodes(trace, code, pc)
       pc = pc + 1
@@ -237,10 +241,6 @@ function module.run(code, trace)
         pc = pc + code[pc]
       end
       top = popStack(stack, top, 1)
-    elseif code[pc] == 'jump' then
-      traceTwoCodes(trace, code, pc)
-      pc = pc + 1
-      pc = pc + code[pc]
     elseif code[pc] == 'jumpIfFalseJumpNoPop' then
       traceTwoCodes(trace, code, pc)
       pc = pc + 1
