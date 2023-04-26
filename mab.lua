@@ -44,12 +44,12 @@ end
 --end
 
 local nodeVariable = node('variable', 'value')
-local nodeAssignment = node('assignment', 'writeTarget', 'assignment')
-local nodePrint = node('print', 'toPrint')
-local nodeReturn = node('return', 'sentence')
+local nodeAssignment = node('assignment', 'writeTarget', 'position', 'assignment')
+local nodePrint = node('print', 'position', 'toPrint')
+local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'value')
-local nodeIf = node('if', 'expression', 'block', 'elseBlock')
-local nodeWhile = node('while', 'expression', 'block')
+local nodeIf = node('if', 'position', 'expression', 'block', 'elseBlock')
+local nodeWhile = node('while', 'position', 'expression', 'block')
 local nodeBoolean = node('boolean', 'value')
 local nodeNewArray = node('newArray', 'sizes', 'initialValueExpression')
 
@@ -71,13 +71,13 @@ local function nodeStatementSequence(first, rest)
   end
 end
 
-local function addUnaryOp(operator, expression)
-  return { tag = 'unaryOp', op = operator, child = expression }
+local function addUnaryOp(operator, position, expression)
+  return { tag = 'unaryOp', op = operator, position=position, child = expression }
 end
 
-local function addExponentOp(expression1, op, expression2)
+local function addExponentOp(expression1, position, op, expression2)
   if op then
-    return { tag = 'binaryOp', firstChild = expression1, op = op, secondChild = expression2 }
+    return { tag = 'binaryOp', firstChild = expression1, position = position, op = op, secondChild = expression2 }
   else
     return expression1
   end
@@ -86,16 +86,16 @@ end
 
 local function foldBinaryOps(list)
   local tree = list[1]
-  for i = 2, #list, 2 do
-    tree = { tag = 'binaryOp', firstChild = tree, op = list[i], secondChild = list[i + 1] }
+  for i = 2, #list, 3 do
+    tree = { tag = 'binaryOp', firstChild = tree, position = list[i], op = list[i + 1], secondChild = list[i + 2] }
   end
   return tree
 end
 
 local function foldArrayElement(list)
   local tree = list[1]
-  for i = 2, #list do
-    tree = { tag = 'arrayElement', array = tree, index = list[i] }
+  for i = 2, #list, 2 do
+    tree = { tag = 'arrayElement', array = tree, position = list[i], index = list[i + 1] }
   end
   return tree
 end
@@ -114,7 +114,7 @@ local variable = V'variable'
 -- Something that can be written to, i.e. assigned to. AKA 'left-hand side'
 local writeTarget = V'writeTarget'
 
-local Ct, Cc = lpeg.Ct, lpeg.Cc
+local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
 'program',
@@ -124,22 +124,22 @@ statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatemen
 
 blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock,
 
-elses = (KW'elseif' * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
+elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
 variable = identifier / nodeVariable,
-writeTarget = Ct(variable * (delim.openArray * expression * delim.closeArray)^0) / foldArrayElement,
+writeTarget = Ct(variable * (delim.openArray * Cp() * expression * delim.closeArray)^0) / foldArrayElement,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
-            writeTarget * op.assign * expression * -delim.openBlock / nodeAssignment +
+            writeTarget * op.assign * Cp() * expression * -delim.openBlock / nodeAssignment +
             -- If
-            KW'if' * expression * blockStatement * elses / nodeIf +
+            KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
-            KW'return' * expression / nodeReturn +
+            KW'return' * Cp() * expression / nodeReturn +
             -- While
-            KW'while' * expression * blockStatement / nodeWhile +
+            KW'while' * Cp() * expression * blockStatement / nodeWhile +
             -- Print
-            op.print * expression / nodePrint,
+            op.print * Cp() * expression / nodePrint,
 
 boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
 
@@ -153,13 +153,13 @@ primary = Ct(KW'new' * (delim.openArray * expression * delim.closeArray)^1) * pr
           delim.openFactor * expression * delim.closeFactor,
 
 -- From highest to lowest precedence
-exponentExpr = primary * (op.exponent * exponentExpr)^-1 / addExponentOp,
-unaryExpr = op.unarySign * unaryExpr / addUnaryOp + exponentExpr,
-termExpr = Ct(unaryExpr * (op.term * unaryExpr)^0) / foldBinaryOps,
-sumExpr = Ct(termExpr * (op.sum * termExpr)^0) / foldBinaryOps,
-notExpr = op.not_ * notExpr / addUnaryOp + sumExpr,
-comparisonExpr = Ct(notExpr * (op.comparison * notExpr)^0) / foldBinaryOps,
-logicExpr = Ct(comparisonExpr * (op.logical * comparisonExpr)^0) / foldBinaryOps,
+exponentExpr = primary * (Cp() * op.exponent * exponentExpr)^-1 / addExponentOp,
+unaryExpr = op.unarySign * Cp() * unaryExpr / addUnaryOp + exponentExpr,
+termExpr = Ct(unaryExpr * (Cp() * op.term * unaryExpr)^0) / foldBinaryOps,
+sumExpr = Ct(termExpr * (Cp() * op.sum * termExpr)^0) / foldBinaryOps,
+notExpr = op.not_ * Cp() * notExpr / addUnaryOp + sumExpr,
+comparisonExpr = Ct(notExpr * (Cp() * op.comparison * notExpr)^0) / foldBinaryOps,
+logicExpr = Ct(comparisonExpr * (Cp() * op.logical * comparisonExpr)^0) / foldBinaryOps,
 expression = logicExpr,
 
 endToken = common.endTokenPattern,
