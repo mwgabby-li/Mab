@@ -183,7 +183,7 @@ local function parse(input)
     return ast
   else    
     -- backup = true (if the error is at the beginning of a line, back up to the previous line)
-    return ast, common.generateErrorMessage(input, common.getFurthestMatch(), true)
+    return ast, common.generateErrorMessage(input, common.getFurthestMatch(), true, 'at line ', 'after line ')
   end
 end
 
@@ -262,7 +262,8 @@ local ast, errorMessage = parse(input)
 print(string.format('         %s: %0.2f milliseconds.', ast and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 if errorMessage then
-  io.stderr:write('Failed to generate AST from input. Unable to continue ' .. errorMessage)
+  io.stderr:write('Unable to continue ' .. errorMessage)
+  io.stderr:write('Failed to generate AST from input.\n')
   return 1
 end
 
@@ -291,11 +292,11 @@ if #errors > 0 then
   local sortedErrors = {}
   for _, errorTable in ipairs(errors) do
     -- backup = false (positions for type errors are precise)
-    io.write(errorTable.message .. ' ')
     if errorTable.position then
-      io.write(common.generateErrorMessage(input, errorTable.position, false))
+      io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
     end
-    io.write'\n'
+    io.write(errorTable.message)
+    io.write'\n\n'
   end
   
   return 1

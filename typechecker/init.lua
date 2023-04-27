@@ -249,14 +249,14 @@ function TypeChecker:checkExpression(ast, undefinedVariableOK)
     if not self:typeMatches(firstChildType, secondChildType) then
       self:addError('Mismatched types with operator "' .. ast.op ..
                     '"! (' .. self:toReadable(firstChildType) .. ' ' .. ast.op ..
-                    ' ' .. self:toReadable(secondChildType) .. ')', ast)
+                    ' ' .. self:toReadable(secondChildType) .. ').', ast)
       return nil
     end
     local expressionType = firstChildType
     -- is binary op? - true
     if not self:isCompatible(ast.op, true, expressionType) then
       self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
-                    self:toReadable(expressionType) .. '"!', ast)
+                    self:toReadable(expressionType) .. '."', ast)
       return nil
     else
       -- is binary op? - true
@@ -267,7 +267,7 @@ function TypeChecker:checkExpression(ast, undefinedVariableOK)
     -- is binary op? - false (unary op)
     if not isCompatible(ast.op, false, childType) then
       self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
-                    self:toReadable(firstChildType) .. '"!', ast)
+                    self:toReadable(firstChildType) .. '."', ast)
       return nil
     else
       -- is binary op? - false (unary op)

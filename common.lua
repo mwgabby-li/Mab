@@ -104,7 +104,9 @@ As morning breaks, and all is lost.
     end
 end
 
-function common.generateErrorMessage(input, position, backup)
+-- defaultPrefix: Used when backup does not occur.
+-- backedUpPrefix: Used when backup occurs.
+function common.generateErrorMessage(input, position, backup, defaultPrefix, backedUpPrefix)
     local errorMessage = ''
     
     -- Count the number of newlines - the number of line breaks plus one is the current line
@@ -115,6 +117,7 @@ function common.generateErrorMessage(input, position, backup)
     -- Show the failure on the previous line, and one character back so that the caret is after the last character
     -- on that line.    
     local backedUp = false
+    local prefix = defaultPrefix or ''
     if backup then
       while input:sub(position - 1, position - 1) == '\n' do
         errorLine = errorLine - 1
@@ -125,14 +128,11 @@ function common.generateErrorMessage(input, position, backup)
           position = position - 1
         end
         backedUp = true
+        prefix = backedUpPrefix or (prefix or '')
       end
     end
 
-    if backedUp then
-      errorMessage = errorMessage .. ('after line ' .. errorLine .. ':\n')
-    else
-      errorMessage = errorMessage .. ('at line ' .. errorLine .. ':\n')
-    end
+    errorMessage = errorMessage .. (prefix .. errorLine .. ':\n')
 
     local contextAfter = 2
     local contextBefore = 2
