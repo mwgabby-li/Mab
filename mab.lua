@@ -101,8 +101,11 @@ end
 
 local function foldNewArray(list, initialValue)
   local tree = initialValue
-  for i = 1, #list, 2 do
-    tree = { tag = 'newArray', initialValue = tree, position = list[i], size = list[i + 1] }
+  -- Reverse order, so that the leaf nodes are first in the AST.
+  -- This means that `new [base][leaf] true` will write code for initialValue, newArray leaf, then newArray root,
+  -- with each getting the subsequent one as a default value for all elements.
+  for i = #list,1 , -2 do
+    tree = { tag = 'newArray', initialValue = tree, position = list[i - 1], size = list[i] }
   end
   return tree
 end
