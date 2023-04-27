@@ -210,6 +210,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
 end
 
 function module.translate(ast)
+  assert(ast.version == 1)
   local translator = Translator:new()
   translator:nodeStatement(ast)
   return translator:finalize()

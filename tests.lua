@@ -1,5 +1,7 @@
 -- Mab Frontend Test Suite (AST generation)
 local lu = require 'External.luaunit'
+-- Most recent supported version
+local astVersion = 1
 local module = {}
 
 function module:init(parse, typeChecker, toStackVM, interpreter)
@@ -14,6 +16,7 @@ function module:testAssignmentAndParentheses()
   local input = 'i = (1 + 2) * 3'
   local ast = module.parse(input)
   local expected = {
+    version = astVersion,
     tag="assignment",
     writeTarget={tag="variable", position=1, value="i"},
     position=5,
@@ -38,6 +41,7 @@ function module:testReturn()
   local input = 'return 1 + 2'
   local ast = module.parse(input)
   local expected = {
+    version = astVersion,
     position=8,
     sentence={
         firstChild={tag="number", position=8, value=1},
@@ -55,6 +59,7 @@ function module:testAssignmentAndReturn()
     local input = 'i = 4 * 3; @ i * 64; return i;'
     local ast = module.parse(input)
     local expected = {
+      version = astVersion,
       firstChild={
           assignment={
               firstChild={tag="number", position=5, value=4},
@@ -91,6 +96,7 @@ function module.testEmptyStatements()
     local input = ';;;;'
     local ast = module.parse(input)
     local expected = {
+        version = astVersion,
         tag = 'emptyStatement'
     }
     lu.assertEquals(ast, expected)
@@ -100,6 +106,7 @@ function module.testEmptyInput()
     local input = ''
     local ast = module.parse(input)
     local expected = {
+        version = astVersion,
         tag = 'emptyStatement'
     }
     lu.assertEquals(ast, expected)
@@ -109,6 +116,7 @@ function module.testStackedUnaryOperators()
     local input = 'i = - - - - 4 * 3'
     local ast = module.parse(input)
     local expected = {
+    version = astVersion,
     assignment={
         firstChild={
             child={
@@ -134,7 +142,7 @@ function module.testStackedUnaryOperators()
     position=5,
     tag="assignment",
     writeTarget={tag="variable", position=1, value="i"}
-}
+    }
     lu.assertEquals(ast, expected)
 end
 
@@ -142,6 +150,7 @@ function module.testUnaryOperators()
     local input = 'i = -4 * 3'
     local ast = module.parse(input)
     local expected = {
+      version = astVersion,
       assignment={
           firstChild={child={tag="number", position=6, value=4}, op="-", position=6, tag="unaryOp"},
           op="*",
@@ -160,6 +169,7 @@ function module.testEmptyStatementsLeadingTrailing()
     local input = ';;;;i = 4 * 3;;;;'
     local ast = module.parse(input)
     local expected = {
+      version = astVersion,
       assignment={
           firstChild={tag="number", position=9, value=4},
           op="*",
@@ -178,6 +188,7 @@ function module.testEmptyStatementsInterspersed()
     local input = ';;;;i = 4 * 3;;;;@ i * 64;;;;return i;;;;'
     local ast = module.parse(input)
     local expected = {
+      version = astVersion,
       firstChild={
           assignment={
               firstChild={tag="number", position=9, value=4},
@@ -227,6 +238,7 @@ function module.testExponentPrecedence()
     local input = 'i = 2 ^ 3 ^ 4'
     local ast = module.parse(input)
     local expected = {
+      version = astVersion,
       assignment={
           firstChild={tag="number", position=5, value=2},
           op="^",
@@ -275,6 +287,7 @@ return c;
 ]]
     local ast = module.parse(input)
     local expected = {
+      version = astVersion,
       firstChild={
           assignment={
               firstChild={tag="number", position=22, value=10},
@@ -340,6 +353,7 @@ function module.testKeywordExcludeRules()
   lu.assertEquals(module.parse('return return'), nil)
   lu.assertEquals(module.parse('delta x = 1; return delta x'),
     {
+      version = astVersion,
       firstChild={
         assignment={tag="number", position=11, value=1},
         position=11,
@@ -355,6 +369,7 @@ function module.testKeywordExcludeRules()
   )
   lu.assertEquals(module.parse('return of the variable = 1; return return of the variable'),
     {
+      version = astVersion,
       firstChild={
           assignment={tag="number", position=26, value=1},
           position=26,
@@ -393,6 +408,7 @@ end
 function module.testLessonFourEdgeCases()
   lu.assertEquals(module.parse 'returned = 10',
     {
+      version = astVersion,
       assignment={tag="number", position=12, value=10},
       position=12,
       tag="assignment",
@@ -413,16 +429,16 @@ function module.testLessonFourEdgeCases()
       bla bla
     ]]), nil)
   
-  lu.assertEquals(module.parse '#{##}', {tag = 'emptyStatement'})
+  lu.assertEquals(module.parse '#{##}', {version = astVersion, tag = 'emptyStatement'})
   
-  lu.assertEquals(module.parse '#{#{#}', {tag = 'emptyStatement'})
+  lu.assertEquals(module.parse '#{#{#}', {version = astVersion, tag = 'emptyStatement'})
   
   lu.assertEquals(module.parse(
     [[
       #{
       x=1
       #}
-    ]]), {tag = 'emptyStatement'})
+    ]]), {version = astVersion, tag = 'emptyStatement'})
     
   lu.assertEquals(module.parse(
     [[
@@ -430,6 +446,7 @@ function module.testLessonFourEdgeCases()
       return x
     ]]),
     {
+      version = astVersion,
       firstChild={
           assignment={tag="number", position=13, value=1},
           position=13,
@@ -446,6 +463,7 @@ function module.testLessonFourEdgeCases()
       return x
     ]]),
     {
+      version = astVersion,
       firstChild={
           assignment={tag="number", position=14, value=10},
           position=14,
@@ -461,6 +479,7 @@ function module.testLessonFourEdgeCases()
         x=10
         #}
         ]]),{
+        version = astVersion,
         assignment={tag="number", position=23, value=10},
         position=23,
         tag="assignment",
@@ -471,6 +490,7 @@ end
 function module.testNot()
     local ast = module.parse('return ! 1.5')
     lu.assertEquals(ast, {
+      version = astVersion,
       position=8,
       sentence={child={tag="number", position=10, value=1.5}, op="!", position=10, tag="unaryOp"},
       tag="return"
@@ -480,6 +500,7 @@ function module.testNot()
   
     local ast = module.parse('return ! ! 167')
     lu.assertEquals(ast, {
+      version = astVersion,
       position=8,
       sentence={
           child={child={tag="number", position=12, value=167}, op="!", position=12, tag="unaryOp"},
@@ -494,6 +515,7 @@ function module.testNot()
     
     local ast = module.parse('return!!!12412.435')
     lu.assertEquals(ast, {
+      version = astVersion,
       position=7,
       sentence={
           child={
@@ -526,6 +548,7 @@ return c;
   local ast = module.parse(code)
   lu.assertEquals(ast,
     {
+      version = astVersion,
       firstChild={
           assignment={
               firstChild={tag="number", position=5, value=10},

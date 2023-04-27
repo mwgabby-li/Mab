@@ -183,6 +183,9 @@ end
 
 function module.translate(ast)
   local translator = Translator:new()
+  -- Most recent supported AST version
+  assert(ast.version == 1)
+  translator.code.version = 1
   translator:codeStatement(ast)
   
   if translator.code[#translator.code] ~= 'return' then

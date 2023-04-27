@@ -180,6 +180,7 @@ local function parse(input)
   local ast = grammar:match(input)
   
   if ast then
+    ast.version = 1
     return ast
   else    
     -- backup = true (if the error is at the beginning of a line, back up to the previous line)

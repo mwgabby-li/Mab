@@ -78,6 +78,7 @@ local function printValue(array, depth, pad, last)
 end
 
 function module.run(code, trace)
+  assert(code.version == 1)
   local stack = {}
   local memory = {}
   local pc = 1
