@@ -797,4 +797,50 @@ return b;
   lu.assertEquals(module.interpreter.run(code), 20)
 end
 
+function module.testShortCircuit()
+  local shortCircuit = [[
+a = 20;
+b = 10;
+if b > a & 1/2 = 0.5 {
+  b = 100
+};
+return b
+]]
+
+  local ast = module.parse(shortCircuit)
+  local code = module.toStackVM.translate(ast)
+  local trace = {}
+  local result = module.interpreter.run(code, trace)
+  local divide = false
+  for i, v in ipairs(trace) do
+    if v:gmatch('divide')() then
+      divide = true
+    end
+  end
+  lu.assertEquals(divide, false)
+  lu.assertEquals(result, 10)
+
+  local shortCircuit2 = [[
+a = 20;
+b = 10;
+if b < a | 1/2 = 0.5 {
+  b = 100
+};
+return b
+]]
+
+  ast = module.parse(shortCircuit2)
+  code = module.toStackVM.translate(ast)
+  trace = {}
+  result = module.interpreter.run(code, trace)
+  divide = false
+  for i, v in ipairs(trace) do
+    if v:gmatch('divide')() then
+      divide = true
+    end
+  end
+  lu.assertEquals(divide, false)
+  lu.assertEquals(result, 100)
+end
+
 return module
