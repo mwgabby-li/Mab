@@ -14,28 +14,22 @@ function module:testAssignmentAndParentheses()
   local input = 'i = (1 + 2) * 3'
   local ast = module.parse(input)
   local expected = {
-    tag = 'assignment',
-    writeTarget = {tag="variable", value="i"},
-    assignment = {
-      tag = 'binaryOp',
-      firstChild = {
-        tag = 'binaryOp',
-        firstChild = {
-          tag = 'number',
-          value = 1
+    tag="assignment",
+    writeTarget={tag="variable", position=1, value="i"},
+    position=5,
+    assignment={
+        tag="binaryOp",
+        firstChild={
+            tag="binaryOp",
+            firstChild={tag="number", position=6, value=1},
+            position=8,
+            op="+",
+            secondChild={tag="number", position=10, value=2},
         },
-        op = '+',
-        secondChild = {
-          tag = 'number',
-          value = 2
-        }
-      },
-      op = '*',
-      secondChild = {
-        tag = 'number',
-        value = 3
-      }
-    }
+        position=13,
+        op="*",
+        secondChild={tag="number", position=15, value=3},
+    },
   }
   lu.assertEquals(ast, expected)
 end
@@ -44,19 +38,15 @@ function module:testReturn()
   local input = 'return 1 + 2'
   local ast = module.parse(input)
   local expected = {
-    tag = 'return',
-    sentence = {
-      tag = 'binaryOp',
-      firstChild = {
-        tag = 'number',
-        value = 1
-      },
-      op = '+',
-      secondChild = {
-        tag = 'number',
-        value = 2
-      }
-    }
+    position=8,
+    sentence={
+        firstChild={tag="number", position=8, value=1},
+        op="+",
+        position=10,
+        secondChild={tag="number", position=12, value=2},
+        tag="binaryOp"
+    },
+    tag="return"
   }
   lu.assertEquals(ast, expected)
 end
@@ -65,48 +55,34 @@ function module:testAssignmentAndReturn()
     local input = 'i = 4 * 3; @ i * 64; return i;'
     local ast = module.parse(input)
     local expected = {
-            tag = 'statementSequence',
-            firstChild = {
-            tag = 'assignment',
-            writeTarget = {tag="variable", value="i"},
-            assignment = {
-                tag = 'binaryOp',
-                firstChild = {
-                tag = 'number',
-                value = 4
-                },
-                op = '*',
-                secondChild = {
-                tag = 'number',
-                value = 3
-                }
-            }
-        },
-        secondChild = {
-            tag = 'statementSequence',
-            firstChild = {
-                    tag = 'print',
-                    toPrint = {
-                    tag = 'binaryOp',
-                    firstChild = {
-                        tag = 'variable',
-                        value = 'i'
-                    },
-                    op = '*',
-                    secondChild = {
-                        tag = 'number',
-                        value = 64
-                    }
-                }
-            },
-            secondChild = {
-                tag = 'return',
-                sentence = {
-                tag = 'variable',
-                value = 'i'
-                }
-            }
-        }
+      firstChild={
+          assignment={
+              firstChild={tag="number", position=5, value=4},
+              op="*",
+              position=7,
+              secondChild={tag="number", position=9, value=3},
+              tag="binaryOp"
+          },
+          position=5,
+          tag="assignment",
+          writeTarget={tag="variable", position=1, value="i"}
+      },
+      secondChild={
+          firstChild={
+              position=14,
+              tag="print",
+              toPrint={
+                  firstChild={tag="variable", position=14, value="i"},
+                  op="*",
+                  position=16,
+                  secondChild={tag="number", position=18, value=64},
+                  tag="binaryOp"
+              }
+          },
+          secondChild={position=29, sentence={tag="variable", position=29, value="i"}, tag="return"},
+          tag="statementSequence"
+      },
+      tag="statementSequence"
     }
     lu.assertEquals(ast, expected)
 end
@@ -133,37 +109,32 @@ function module.testStackedUnaryOperators()
     local input = 'i = - - - - 4 * 3'
     local ast = module.parse(input)
     local expected = {
-        tag = 'assignment',
-        writeTarget = {tag="variable", value="i"},
-        assignment = {
-            tag = 'binaryOp',
-            firstChild = {
-                tag = 'unaryOp',
-                op = '-',
-                child = {
-                    tag = 'unaryOp',
-                    op = '-',
-                    child = {
-                        tag = 'unaryOp',
-                        op = '-',
-                        child = {
-                            tag = 'unaryOp',
-                            op = '-',
-                            child = {
-                                tag = 'number',
-                                value = 4
-                            }
-                        },
-                    },
+    assignment={
+        firstChild={
+            child={
+                child={
+                    child={child={tag="number", position=13, value=4}, op="-", position=13, tag="unaryOp"},
+                    op="-",
+                    position=11,
+                    tag="unaryOp"
                 },
+                op="-",
+                position=9,
+                tag="unaryOp"
             },
-            op = '*',
-            secondChild = {
-                tag = 'number',
-                value = 3
-            }
-        }
-    }
+            op="-",
+            position=7,
+            tag="unaryOp"
+        },
+        op="*",
+        position=15,
+        secondChild={tag="number", position=17, value=3},
+        tag="binaryOp"
+    },
+    position=5,
+    tag="assignment",
+    writeTarget={tag="variable", position=1, value="i"}
+}
     lu.assertEquals(ast, expected)
 end
 
@@ -171,24 +142,16 @@ function module.testUnaryOperators()
     local input = 'i = -4 * 3'
     local ast = module.parse(input)
     local expected = {
-        tag = 'assignment',
-        writeTarget = {tag="variable", value="i"},
-        assignment = {
-            tag = 'binaryOp',
-            firstChild = {
-                tag = 'unaryOp',
-                op = '-',
-                child = {
-                    tag = 'number',
-                    value = 4
-                }
-            },
-            op = '*',
-            secondChild = {
-                tag = 'number',
-                value = 3
-            }
-        }
+      assignment={
+          firstChild={child={tag="number", position=6, value=4}, op="-", position=6, tag="unaryOp"},
+          op="*",
+          position=8,
+          secondChild={tag="number", position=10, value=3},
+          tag="binaryOp"
+      },
+      position=5,
+      tag="assignment",
+      writeTarget={tag="variable", position=1, value="i"}
     }
     lu.assertEquals(ast, expected)
 end
@@ -197,21 +160,17 @@ function module.testEmptyStatementsLeadingTrailing()
     local input = ';;;;i = 4 * 3;;;;'
     local ast = module.parse(input)
     local expected = {
-                tag = 'assignment',
-                writeTarget = {tag="variable", value="i"},
-                assignment = {
-                    tag = 'binaryOp',
-                    firstChild = {
-                        tag = 'number',
-                        value = 4
-                    },
-                    op = '*',
-                    secondChild = {
-                        tag = 'number',
-                        value = 3
-                    }
-                }
-        }
+      assignment={
+          firstChild={tag="number", position=9, value=4},
+          op="*",
+          position=11,
+          secondChild={tag="number", position=13, value=3},
+          tag="binaryOp"
+      },
+      position=9,
+      tag="assignment",
+      writeTarget={tag="variable", position=5, value="i"}
+    }
     lu.assertEquals(ast, expected)
 end
 
@@ -219,49 +178,35 @@ function module.testEmptyStatementsInterspersed()
     local input = ';;;;i = 4 * 3;;;;@ i * 64;;;;return i;;;;'
     local ast = module.parse(input)
     local expected = {
-            tag = 'statementSequence',
-            firstChild = {
-                tag = 'assignment',
-                writeTarget = {tag="variable", value="i"},
-                assignment = {
-                    tag = 'binaryOp',
-                    firstChild = {
-                        tag = 'number',
-                        value = 4
-                    },
-                    op = '*',
-                    secondChild = {
-                        tag = 'number',
-                        value = 3
-                    }
-                }
-            },
-            secondChild = {
-                tag = 'statementSequence',
-                firstChild = {
-                    tag = 'print',
-                    toPrint = {
-                        tag = 'binaryOp',
-                        firstChild = {
-                            tag = 'variable',
-                            value = 'i'
-                        },
-                        op = '*',
-                        secondChild = {
-                            tag = 'number',
-                            value = 64
-                        }
-                    }
-                },
-                secondChild = {
-                    tag = 'return',
-                    sentence = {
-                        tag = 'variable',
-                        value = 'i'
-                    }
-                }
-            }
-        }
+      firstChild={
+          assignment={
+              firstChild={tag="number", position=9, value=4},
+              op="*",
+              position=11,
+              secondChild={tag="number", position=13, value=3},
+              tag="binaryOp"
+          },
+          position=9,
+          tag="assignment",
+          writeTarget={tag="variable", position=5, value="i"}
+      },
+      secondChild={
+          firstChild={
+              position=20,
+              tag="print",
+              toPrint={
+                  firstChild={tag="variable", position=20, value="i"},
+                  op="*",
+                  position=22,
+                  secondChild={tag="number", position=24, value=64},
+                  tag="binaryOp"
+              }
+          },
+          secondChild={position=37, sentence={tag="variable", position=37, value="i"}, tag="return"},
+          tag="statementSequence"
+      },
+      tag="statementSequence"
+    }
     lu.assertEquals(ast, expected)
 end
 
@@ -282,28 +227,22 @@ function module.testExponentPrecedence()
     local input = 'i = 2 ^ 3 ^ 4'
     local ast = module.parse(input)
     local expected = {
-        tag = 'assignment',
-        writeTarget = {tag="variable", value="i"},
-        assignment = {
-            tag = 'binaryOp',
-            firstChild = {
-                tag = 'number',
-                value = 2
-            },
-            op = '^',
-            secondChild = {
-                tag = 'binaryOp',
-                firstChild = {
-                    tag = 'number',
-                    value = 3
-                },
-                op = '^',
-                secondChild = {
-                    tag = 'number',
-                    value = 4
-                }
-            }
-        }
+      assignment={
+          firstChild={tag="number", position=5, value=2},
+          op="^",
+          position=7,
+          secondChild={
+              firstChild={tag="number", position=9, value=3},
+              op="^",
+              position=11,
+              secondChild={tag="number", position=13, value=4},
+              tag="binaryOp"
+          },
+          tag="binaryOp"
+      },
+      position=5,
+      tag="assignment",
+      writeTarget={tag="variable", position=1, value="i"}
     }
     lu.assertEquals(ast, expected)
 end
@@ -336,86 +275,60 @@ return c;
 ]]
     local ast = module.parse(input)
     local expected = {
-        tag = 'statementSequence',
-        firstChild = {
-            tag = 'assignment',
-            writeTarget = {tag="variable", value="a"},
-            assignment = {
-                tag = 'binaryOp',
-                firstChild = {
-                    tag = 'number',
-                    value = 10
-                },
-                op = '+',
-                secondChild = {
-                    tag = 'number',
-                    value = 4
-                }
-            }
-        },
-        secondChild = {
-            tag = 'statementSequence',
-            firstChild = {
-                tag = 'assignment',
-                writeTarget = {tag="variable", value="b"},
-                assignment = {
-                    tag = 'binaryOp',
-                    firstChild = {
-                        tag = 'binaryOp',
-                        firstChild = {
-                            tag = 'variable',
-                            value = 'a'
-                        },
-                        op = '*',
-                        secondChild = {
-                            tag = 'variable',
-                            value = 'a'
-                        }
-                    },
-                    op = '-',
-                    secondChild = {
-                        tag = 'number',
-                        value = 10
-                    }
-                }
-            },
-            secondChild = {
-                tag = 'statementSequence',
-                firstChild = {
-                    tag = 'assignment',
-                    writeTarget = {tag="variable", value="c"},
-                    assignment = {
-                        tag = 'binaryOp',
-                        firstChild = {
-                            tag = 'variable',
-                            value = 'a'
-                        },
-                        op = '/',
-                        secondChild = {
-                            tag = 'variable',
-                            value = 'b'
-                        }
-                    }
-                },
-                secondChild = {
-                    tag = 'statementSequence',
-                    firstChild = {
-                        tag = 'print',
-                        toPrint = {
-                            tag = 'variable',
-                            value = 'c'
-                        }
-                    },
-                    secondChild = {
-                        tag = 'return',
-                        sentence = {
-                            tag = 'variable',
-                            value = 'c'
-                        }
-                    }
-                }
-            }
-        }
+      firstChild={
+          assignment={
+              firstChild={tag="number", position=22, value=10},
+              op="+",
+              position=25,
+              secondChild={tag="number", position=27, value=4},
+              tag="binaryOp"
+          },
+          position=22,
+          tag="assignment",
+          writeTarget={tag="variable", position=18, value="a"}
+      },
+      secondChild={
+          firstChild={
+              assignment={
+                  firstChild={
+                      firstChild={tag="variable", position=244, value="a"},
+                      op="*",
+                      position=246,
+                      secondChild={tag="variable", position=248, value="a"},
+                      tag="binaryOp"
+                  },
+                  op="-",
+                  position=250,
+                  secondChild={tag="number", position=252, value=10},
+                  tag="binaryOp"
+              },
+              position=244,
+              tag="assignment",
+              writeTarget={tag="variable",  position=240, value="b"}
+          },
+          secondChild={
+              firstChild={
+                  assignment={
+                      firstChild={tag="variable", position=260, value="a"},
+                      op="/",
+                      position=261,
+                      secondChild={tag="variable", position=262, value="b"},
+                      tag="binaryOp"
+                  },
+                  position=260,
+                  tag="assignment",
+                  writeTarget={tag="variable", position=256, value="c"}
+              },
+              secondChild={
+                  firstChild={position=297, tag="print", toPrint={tag="variable", position=297, value="c"}},
+                  secondChild={position=310, sentence={tag="variable", position=310, value="c"}, tag="return"},
+                  tag="statementSequence"
+              },
+              tag="statementSequence"
+          },
+          tag="statementSequence"
+      },
+      tag="statementSequence"
     }
     lu.assertEquals(ast, expected)
 end
@@ -427,42 +340,33 @@ function module.testKeywordExcludeRules()
   lu.assertEquals(module.parse('return return'), nil)
   lu.assertEquals(module.parse('delta x = 1; return delta x'),
     {
-      tag = 'statementSequence',
-      firstChild = {
-        tag = 'assignment',
-        writeTarget = {tag="variable", value='delta x'},
-        assignment = {
-          tag = 'number',
-          value = 1
-        }
+      firstChild={
+        assignment={tag="number", position=11, value=1},
+        position=11,
+        tag="assignment",
+        writeTarget={tag="variable", position=1, value="delta x"}
       },
-      secondChild = {
-        tag = 'return',
-        sentence = {
-          tag = 'variable',
-          value = 'delta x'
-        }
-      }
+      secondChild={
+        position=21,
+          sentence={tag="variable", position=21, value="delta x"},
+        tag="return"},
+      tag="statementSequence"
     }
   )
   lu.assertEquals(module.parse('return of the variable = 1; return return of the variable'),
     {
-      tag = 'statementSequence',
-      firstChild = {
-        tag = 'assignment',
-        writeTarget = {tag="variable", value="return of the variable"},
-        assignment = {
-          tag = 'number',
-          value = 1
-        }
+      firstChild={
+          assignment={tag="number", position=26, value=1},
+          position=26,
+          tag="assignment",
+          writeTarget={tag="variable", position=1, value="return of the variable"}
       },
-      secondChild = {
-        tag = 'return',
-        sentence = {
-          tag = 'variable',
-          value = 'return of the variable'
-        }
-      }
+      secondChild={
+          position=36,
+          sentence={tag="variable", position=36, value="return of the variable"},
+          tag="return"
+      },
+      tag="statementSequence"
     }
   )
 end
@@ -486,15 +390,13 @@ return c;
   lu.assertEquals(result, 14)
 end
 
-function module.testLessonFourCornerCases()
+function module.testLessonFourEdgeCases()
   lu.assertEquals(module.parse 'returned = 10',
     {
-      tag = 'assignment',
-      writeTarget = {tag="variable", value="returned"},
-      assignment = {
-        tag = 'number',
-        value = 10
-      }
+      assignment={tag="number", position=12, value=10},
+      position=12,
+      tag="assignment",
+      writeTarget={tag="variable", position=1, value="returned"}
     }
   )
   lu.assertEquals(module.parse 'x=10y=20', nil)
@@ -528,22 +430,14 @@ function module.testLessonFourCornerCases()
       return x
     ]]),
     {
-      tag = 'statementSequence',
-      firstChild = {
-        tag = 'assignment',
-        writeTarget = {tag="variable", value="x"},
-        assignment = {
-          tag = 'number',
-          value = 1
-        }
+      firstChild={
+          assignment={tag="number", position=13, value=1},
+          position=13,
+          tag="assignment",
+          writeTarget={tag="variable", position=11, value="x"}
       },
-      secondChild = {
-        tag = 'return',
-        sentence = {
-          tag = 'variable',
-          value = 'x'
-        }
-      }
+      secondChild={position=29, sentence={tag="variable", position=29, value="x"}, tag="return"},
+      tag="statementSequence"
     })
   
   lu.assertEquals(module.parse(
@@ -552,22 +446,14 @@ function module.testLessonFourCornerCases()
       return x
     ]]),
     {
-      tag = 'statementSequence',
-      firstChild = {
-        tag = 'assignment',
-        writeTarget = {tag="variable", value="x"},
-        assignment = {
-          tag = 'number',
-          value = 10
-        }
+      firstChild={
+          assignment={tag="number", position=14, value=10},
+          position=14,
+          tag="assignment",
+          writeTarget={tag="variable", position=12, value="x"}
       },
-      secondChild = {
-        tag = 'return',
-        sentence = {
-          tag = 'variable',
-          value = 'x'
-        }
-      }
+      secondChild={position=36, sentence={tag="variable", position=36, value="x"}, tag="return"},
+      tag="statementSequence"
     })
     lu.assertEquals(module.parse(
         [[
@@ -575,69 +461,52 @@ function module.testLessonFourCornerCases()
         x=10
         #}
         ]]),{
-        tag = 'assignment',
-        writeTarget = {tag="variable", value="x"},
-        assignment = {
-          tag = 'number',
-          value = 10
-        }
-      })
+        assignment={tag="number", position=23, value=10},
+        position=23,
+        tag="assignment",
+        writeTarget={tag="variable", position=21, value="x"}
+    })
 end
 
 function module.testNot()
     local ast = module.parse('return ! 1.5')
     lu.assertEquals(ast, {
-        tag = 'return',
-        sentence = {
-        tag = 'unaryOp',
-        op = '!',
-        child = {
-        tag = 'number',
-        value = 1.5
-      }
-      }
+      position=8,
+      sentence={child={tag="number", position=10, value=1.5}, op="!", position=10, tag="unaryOp"},
+      tag="return"
     })
     local code = module.toStackVM.translate(ast)
     lu.assertEquals(module.interpreter.run(code),0)
   
     local ast = module.parse('return ! ! 167')
     lu.assertEquals(ast, {
-        tag = 'return',
-        sentence = {
-        tag = 'unaryOp',
-        op = '!',
-        child = {
-        tag = 'unaryOp',
-        op = '!',
-        child = {
-            tag = 'number',
-            value = 167
-        }
-      }
-      }
+      position=8,
+      sentence={
+          child={child={tag="number", position=12, value=167}, op="!", position=12, tag="unaryOp"},
+          op="!",
+          position=10,
+          tag="unaryOp"
+      },
+      tag="return"
     })
     local code = module.toStackVM.translate(ast)
     lu.assertEquals(module.interpreter.run(code),1)
     
     local ast = module.parse('return!!!12412.435')
     lu.assertEquals(ast, {
-        tag = 'return',
-        sentence = {
-        tag = 'unaryOp',
-        op = '!',
-        child = {
-        tag = 'unaryOp',
-        op = '!',
-        child = {
-            tag = 'unaryOp',
-            op = '!',
-            child = {
-            tag = 'number',
-            value = 12412.435
-            }
-        }
-      }
-      }
+      position=7,
+      sentence={
+          child={
+              child={child={tag="number", position=10, value=12412.435}, op="!", position=10, tag="unaryOp"},
+              op="!",
+              position=9,
+              tag="unaryOp"
+          },
+          op="!",
+          position=8,
+          tag="unaryOp"
+      },
+      tag="return"
     })
     local code = module.toStackVM.translate(ast)
     lu.assertEquals(module.interpreter.run(code),0)
@@ -656,119 +525,87 @@ return c;
 ]]
   local ast = module.parse(code)
   lu.assertEquals(ast,
-          {
-          tag = 'statementSequence';
-          firstChild =   {
-            tag = 'assignment';
-            writeTarget = {tag="variable", value="a"};
-            assignment =     {
-              tag = 'binaryOp';
-              firstChild =       {
-                tag = 'number';
-                value = 10;
-                };
-              op = '+';
-              secondChild =       {
-                tag = 'number';
-                value = 4;
-                };
-              };
-            };
-          secondChild =   {
-            tag = 'statementSequence';
-            firstChild =     {
-              tag = 'assignment';
-              writeTarget = {tag="variable", value="b"};
-              assignment =       {
-                tag = 'binaryOp';
-                firstChild =         {
-                  tag = 'binaryOp';
-                  firstChild =           {
-                    tag = 'variable';
-                    value = 'a';
-                    };
-                  op = '*';
-                  secondChild =           {
-                    tag = 'variable';
-                    value = 'a';
-                    };
-                  };
-                op = '-';
-                secondChild =         {
-                  tag = 'unaryOp';
-                  op = '-';
-                  child =           {
-                    tag = 'number';
-                    value = 10;
-                    };
-                  };
-                };
-              };
-            secondChild =     {
-              tag = 'statementSequence';
-              firstChild =       {
-                tag = 'assignment';
-                writeTarget = {tag="variable", value="c"},
-                assignment =         {
-                  tag = 'binaryOp';
-                  firstChild =           {
-                    tag = 'variable';
-                    value = 'a';
-                    };
-                  op = '/';
-                  secondChild =           {
-                    tag = 'variable';
-                    value = 'b';
-                    };
-                  };
-                };
-              secondChild =       {
-                tag = 'statementSequence';
-                firstChild =         {
-                  tag = 'if';
-                  expression =           {
-                    tag = 'binaryOp';
-                    firstChild =             {
-                      tag = 'variable';
-                      value = 'c';
-                      };
-                    op = '<';
-                    secondChild =             {
-                      tag = 'variable';
-                      value = 'a';
-                      };
-                    };
-                  block =           {
-                    tag = 'statementSequence';
-                    firstChild =             {
-                      tag = 'assignment';
-                      writeTarget = {tag="variable", value="this is a long name"};
-                      assignment =               {
-                        tag = 'number';
-                        value = 24;
-                        };
-                      };
-                    secondChild =             {
-                      tag = 'assignment';
-                      writeTarget = {tag="variable", value="c"};
-                      assignment =               {
-                        tag = 'number';
-                        value = 12;
-                        };
-                      };
-                    };
-                  };
-                secondChild =         {
-                  tag = 'return';
-                  sentence =           {
-                    tag = 'variable';
-                    value = 'c';
-                    };
-                  };
-                };
-              };
-            };
-          })
+    {
+      firstChild={
+          assignment={
+              firstChild={tag="number", position=5, value=10},
+              op="+",
+              position=8,
+              secondChild={tag="number", position=10, value=4},
+              tag="binaryOp"
+          },
+          position=5,
+          tag="assignment",
+          writeTarget={tag="variable", position=1, value="a"}
+      },
+      secondChild={
+          firstChild={
+              assignment={
+                  firstChild={
+                      firstChild={tag="variable", position=17, value="a"},
+                      op="*",
+                      position=19,
+                      secondChild={tag="variable", position=21, value="a"},
+                      tag="binaryOp"
+                  },
+                  op="-",
+                  position=23,
+                  secondChild={child={tag="number", position=26, value=10}, op="-", position=26, tag="unaryOp"},
+                  tag="binaryOp"
+              },
+              position=17,
+              tag="assignment",
+              writeTarget={tag="variable", position=13, value="b"}
+          },
+          secondChild={
+              firstChild={
+                  assignment={
+                      firstChild={tag="variable", position=34, value="a"},
+                      op="/",
+                      position=35,
+                      secondChild={tag="variable", position=36, value="b"},
+                      tag="binaryOp"
+                  },
+                  position=34,
+                  tag="assignment",
+                  writeTarget={tag="variable", position=30, value="c"}
+              },
+              secondChild={
+                  firstChild={
+                      block={
+                          firstChild={
+                              assignment={tag="number", position=74, value=24},
+                              position=74,
+                              tag="assignment",
+                              writeTarget={tag="variable", position=52, value="this is a long name"}
+                          },
+                          secondChild={
+                              assignment={tag="number", position=84, value=12},
+                              position=84,
+                              tag="assignment",
+                              writeTarget={tag="variable", position=80, value="c"}
+                          },
+                          tag="statementSequence"
+                      },
+                      expression={
+                          firstChild={tag="variable", position=42, value="c"},
+                          op="<",
+                          position=44,
+                          secondChild={tag="variable", position=46, value="a"},
+                          tag="binaryOp"
+                      },
+                      position=42,
+                      tag="if"
+                  },
+                  secondChild={position=98, sentence={tag="variable", position=98, value="c"}, tag="return"},
+                  tag="statementSequence"
+              },
+              tag="statementSequence"
+          },
+          tag="statementSequence"
+      },
+      tag="statementSequence"
+    })
     local code = module.toStackVM.translate(ast)
     lu.assertEquals(module.interpreter.run(code),12)
 end
