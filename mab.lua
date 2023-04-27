@@ -43,11 +43,11 @@ end
 --  end
 --end
 
-local nodeVariable = node('variable', 'value')
+local nodeVariable = node('variable', 'position', 'value')
 local nodeAssignment = node('assignment', 'writeTarget', 'position', 'assignment')
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
-local nodeNumeral = node('number', 'value')
+local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'block', 'elseBlock')
 local nodeWhile = node('while', 'position', 'expression', 'block')
 local nodeBoolean = node('boolean', 'value')
@@ -133,7 +133,7 @@ blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.clos
 
 elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
-variable = identifier / nodeVariable,
+variable = Cp() * identifier / nodeVariable,
 writeTarget = Ct(variable * (delim.openArray * Cp() * expression * delim.closeArray)^0) / foldArrayElement,
 
 statement = blockStatement +
@@ -153,7 +153,7 @@ boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +
           writeTarget +
-          numeral / nodeNumeral +
+          Cp() * numeral / nodeNumeral +
           -- Literal booleans
           boolean +
           -- Sentences in the language enclosed in parentheses
