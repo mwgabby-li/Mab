@@ -38,8 +38,12 @@ module.delim.openFactor = '('
 module.delim.closeFactor = ')'
 module.delim.openBlock = '{'
 module.delim.closeBlock = '}'
+module.delim.openFunctionParameterList = '('
+module.delim.closeFunctionParameterList = ')'
 
 --  Separators
 module.sep.statement = ';'
+
+module.entryPointName = 'entry point'
 
 return module

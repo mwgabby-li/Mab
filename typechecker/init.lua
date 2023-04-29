@@ -339,9 +339,15 @@ function TypeChecker:checkStatement(ast)
   end
 end
 
+function TypeChecker:checkFunction(ast)
+  self:checkStatement(ast.block)
+end
+
 function module.check(ast)
   local typeChecker = TypeChecker:new()
-  typeChecker:checkStatement(ast)
+  for i = 1, #ast do
+    typeChecker:checkFunction(ast[i])
+  end
   if #typeChecker.errors then
     return typeChecker.errors
   else

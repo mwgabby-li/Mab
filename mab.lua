@@ -10,7 +10,7 @@ local pt = require 'External.pt'
 local common = require 'common'
 local endToken = common.endToken
 local numeral = require 'numeral'
-local identifier = require 'identifier'
+local identifierPattern = require 'identifier'
 
 local tokens = require 'tokens'
 local op = tokens.op
@@ -51,6 +51,7 @@ local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'block', 'elseBlock')
 local nodeWhile = node('while', 'position', 'expression', 'block')
 local nodeBoolean = node('boolean', 'value')
+local nodeFunction = node('function', 'name', 'block')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -121,6 +122,8 @@ local blockStatement = V'blockStatement'
 local expression = V'expression'
 local boolean = V'boolean'
 local variable = V'variable'
+local identifier = V'identifier'
+local functionDeclaration = V'functionDeclaration'
 -- Something that can be written to, i.e. assigned to. AKA 'left-hand side'
 local writeTarget = V'writeTarget'
 
@@ -128,7 +131,9 @@ local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
 'program',
-program = endToken * statementList * -1,
+program = endToken * Ct(functionDeclaration^1) * -1,
+
+functionDeclaration = KW'function' * identifier * delim.openFunctionParameterList * delim.closeFunctionParameterList * blockStatement / nodeFunction,
 
 statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
 
@@ -172,7 +177,9 @@ comparisonExpr = Ct(notExpr * (Cp() * op.comparison * notExpr)^0) / foldBinaryOp
 logicExpr = Ct(comparisonExpr * (Cp() * op.logical * comparisonExpr)^0) / foldBinaryOps,
 expression = logicExpr,
 
+-- Avoid duplication of complicated patterns that are used more than once by defining them here
 endToken = common.endTokenPattern,
+identifier = identifierPattern,
 }
 
 local function parse(input)
@@ -202,7 +209,7 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   os.exit(lu.LuaUnit.run())
 end
 
-local show = {}
+local parameters = { show = {}, typechecker = true }
 local input_file
 local awaiting_filename = false
 for index, argument in ipairs(arg) do
@@ -220,19 +227,21 @@ for index, argument in ipairs(arg) do
     print('-tests must be the first argument if it is being sent in.')
     os.exit(1)
   elseif argument:lower() == '--ast' or argument:lower() == '-a' then
-    show.AST = true
+    parameters.show.AST = true
   elseif argument:lower() == '--code' or argument:lower() == '-c' then
-    show.code = true
+    parameters.show.code = true
   elseif argument:lower() == '--trace' or argument:lower() == '-t' then
-    show.trace = true
+    parameters.show.trace = true
   elseif argument:lower() == '--result' or argument:lower() == '-r' then
-    show.result = true
+    parameters.show.result = true
   elseif argument:lower() == '--echo-input' or argument:lower() == '-e' then
-    show.input = true
+    parameters.show.input = true
   elseif argument:lower() == '--graphviz' or argument:lower() == '-g' then
-    show.graphviz = true
+    parameters.show.graphviz = true
   elseif argument:lower() == '--pegdebug' or argument:lower() == '-p' then
-    show.pegdebug = true
+    parameters.pegdebug = true
+  elseif argument:lower() == '--type-checker-off' or argument:lower() == '-y' then
+    parameters.typechecker = false
   else
     print('Unknown argument ' .. argument .. '.')
     os.exit(1)
@@ -247,13 +256,13 @@ end
 common.poem() print ''
 
 -- Need to keep the grammar open up to here so that PegDebug can annotate it if that setting's on.
-if show.pegdebug then
+if parameters.pegdebug then
   grammar = require('External.pegdebug').trace(grammar)
 end
 grammar = lpeg.P(grammar)
 
 local input = io.read 'a'
-if show.input then
+if parameters.show.input then
   print 'Input:'
   print(input)
 end
@@ -268,7 +277,12 @@ if errorMessage then
   return 1
 end
 
-if show.graphviz then
+if parameters.show.AST then
+  print '\nAST:'
+  print(pt.pt(ast, {'version', 'tag', 'name', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild', 'block', 'sentence', 'position'}))
+end
+
+if parameters.show.graphviz then
   local prefix = input_file or 'temp'
   local dotFileName = prefix .. '.dot'
   local dotFile = io.open(dotFileName, 'wb')
@@ -279,18 +293,35 @@ if show.graphviz then
   os.execute('firefox "'.. svgFileName .. '" &')
 end
 
-if show.AST then
-  print '\nAST:'
-  print(pt.pt(ast, {'tag', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild'}))
+if parameters.typechecker then
+  io.write '\nType checking...'
+  start = os.clock()
+  local errors = typeChecker.check(ast)
+  print(string.format('   %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  if #errors > 0 then
+    print('\nType checking failed:')
+    for _, errorTable in ipairs(errors) do
+      -- backup = false (positions for type errors are precise)
+      if errorTable.position then
+        io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
+      end
+      io.write(errorTable.message)
+      io.write'\n\n'
+    end
+
+    return 1
+  end
+else
+  print '\nType checking...     WARNING, SKIPPED! DEBUGGING PURPOSES ONLY.'
 end
 
-io.write '\nType checking...'
+io.write '\nTranslating...'
 start = os.clock()
-local errors = typeChecker.check(ast)
-print(string.format('   %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-if #errors > 0 then
-  print('\nType checking failed:')
-  local sortedErrors = {}
+local code, errors = toStackVM.translate(ast)
+print(string.format('     %s: %0.2f milliseconds.', (code and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+
+if not code or #errors > 0 then
+  print '\nFailed generate code:'
   for _, errorTable in ipairs(errors) do
     -- backup = false (positions for type errors are precise)
     if errorTable.position then
@@ -299,44 +330,35 @@ if #errors > 0 then
     io.write(errorTable.message)
     io.write'\n\n'
   end
-  
-  return 1
-end
-
-io.write '\nTranslating...'
-start = os.clock()
-local code = toStackVM.translate(ast)
-print(string.format('     %s: %0.2f milliseconds.', code and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-
-if code == nil then
-  print '\nFailed generate code from input:'
+  print 'Input:'
   print(input)
   print '\nAST:'
   print(pt.pt(ast, {'tag', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild'}))
+
   return 1
 end
 
-if show.code then
+if parameters.show.code then
   print '\nGenerated code:'
   print(pt.pt(code))
 end
 
 print '\nExecuting...'
 start = os.clock()
-local trace = {}
-if not show.trace then
-  trace = nil
+local trace = nil
+if parameters.show.trace then
+  trace = {}
 end
 local result = interpreter.run(code, trace)
 print(string.format('         Execution %s: %0.2f milliseconds.', result ~= nil and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
-if show.trace then
+if parameters.show.trace then
   print '\nExecution trace:'
   for k, v in ipairs(trace) do
     print(k, v)
   end
 end
-if show.result then
+if parameters.show.result then
   print '\nResult:'
   print(result)
 end

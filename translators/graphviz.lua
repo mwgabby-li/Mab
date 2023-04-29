@@ -209,11 +209,29 @@ function Translator:nodeStatement(ast, depth, fromIf)
   end
 end
 
-function module.translate(ast)
+function Translator:nodeFunction(ast)
+  local label = 'Function\n\\"' .. ast.name ..'\\"'
+  if ast.name == literals.entryPointName then
+    label = 'Entry Point'
+  end
+
+  self:appendNode(ast, false, label, ast.block)
+  self:nodeStatement(ast.block)
+end
+
+
+function Translator:translate(ast)
+  -- Most recent supported AST version
   assert(ast.version == 1)
+  for i = 1,#ast do
+    self:nodeFunction(ast[i])
+  end
+  self:finalize()
+end
+
+function module.translate(ast)
   local translator = Translator:new()
-  translator:nodeStatement(ast)
-  return translator:finalize()
+  return translator:translate(ast)
 end
 
 return module

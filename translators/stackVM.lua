@@ -1,5 +1,6 @@
 local module = {}
-local l_op = require('literals').op
+local literals = require 'literals'
+local l_op = literals.op
 
 local Translator = {}
 
@@ -28,7 +29,9 @@ local unaryToName = {
 
 function Translator:new(o)
   o = o or {
-    code = {},
+    errors = {},
+    currentCode = {},
+    functions = {},
     variables = {},
     numVariables = 0,
   }
@@ -37,8 +40,16 @@ function Translator:new(o)
   return o
 end
 
+function Translator:addError(message, ast)
+  ast = ast or {}
+  self.errors[#self.errors + 1] = {
+    message = message,
+    position = ast.position,
+  }
+end
+
 function Translator:currentInstructionIndex()
-  return #self.code
+  return #self.currentCode
 end
 
 function Translator:addJump(opcode, target)
@@ -59,11 +70,11 @@ function Translator:addJump(opcode, target)
 end
 
 function Translator:fixupJump(location)
-  self.code[location] = self:currentInstructionIndex() - location
+  self.currentCode[location] = self:currentInstructionIndex() - location
 end
 
 function Translator:addCode(opcode)
-  self.code[#self.code + 1] = opcode
+  self.currentCode[#self.currentCode + 1] = opcode
 end
 
 function Translator:variableToNumber(variable)
@@ -81,8 +92,12 @@ function Translator:codeExpression(ast)
     self:addCode('push')
     self:addCode(ast.value)
   elseif ast.tag == 'variable' then
+    if self.functions[ast.value] then
+      self:addError('Reading from variable "'..ast.value..'" with the same name as a function.', ast) 
+    end
+
     if self.variables[ast.value] == nil then
-      error('Trying to load from undefined variable "' .. ast.value .. '."')
+      self:addError('Trying to load from undefined variable "' .. ast.value .. '."', ast) 
     end
     self:addCode('load')
     self:addCode(self:variableToNumber(ast.value))
@@ -115,13 +130,17 @@ function Translator:codeExpression(ast)
     if ast.op ~= '+' then
       self:addCode(unaryToName[ast.op])
     end
-  else error 'invalid tree'
+  else
+    self:addError('Invalid tree, found expression node with unknown tag "'..tostring(ast.tag)..'."')
   end
 end
 
 function Translator:codeAssignment(ast)
   local writeTarget = ast.writeTarget
   if writeTarget.tag == 'variable' then
+    if self.functions[ast.writeTarget.value] then
+      self:addError('Assigning to variable "'..ast.writeTarget.value..'" with the same name as a function.', ast.writeTarget) 
+    end
     self:codeExpression(ast.assignment)
     self:addCode('store')
     self:addCode(self:variableToNumber(ast.writeTarget.value))
@@ -130,7 +149,8 @@ function Translator:codeAssignment(ast)
     self:codeExpression(ast.writeTarget.index)
     self:codeExpression(ast.assignment)
     self:addCode('setArray')
-  else error 'Unknown assignment write target!'
+  else
+    self:addError('Unknown write target type, tag was "'..tostring(ast.tag)..'."')
   end
 end
 
@@ -177,23 +197,48 @@ function Translator:codeStatement(ast)
   elseif ast.tag == 'print' then
     self:codeExpression(ast.toPrint)
     self:addCode('print')
-  else error 'invalid tree'
+  else
+    self:addError('Invalid tree, found statement node with unknown tag "'..tostring(ast.tag)..'."')
+  end
+end
+
+function Translator:codeFunction(ast)
+  local functionCode = {}
+  self.currentCode = functionCode
+  self:codeStatement(ast.block)
+  if functionCode[#functionCode] ~= 'return' then
+    self:addCode('push')
+    self:addCode(0)
+    self:addCode('return')
+  end
+  self.currentCode = nil
+  self.functions[ast.name] = { code = functionCode }
+end
+
+function Translator:translate(ast)
+  for i = 1,#ast do
+    self.functions[ast[i].name] = true
+  end
+  
+  -- Most recent supported AST version
+  assert(ast.version == 1)
+  for i = 1,#ast do
+    self:codeFunction(ast[i])
+  end
+  
+  local entryPoint = self.functions[literals.entryPointName]
+  if not entryPoint then
+    self:addError('No entry point found. (Program must contain a function named "entry point.")')
+    return nil, self.errors
+  else
+    entryPoint.code.version = 1
+    return entryPoint.code, self.errors
   end
 end
 
 function module.translate(ast)
   local translator = Translator:new()
-  -- Most recent supported AST version
-  assert(ast.version == 1)
-  translator.code.version = 1
-  translator:codeStatement(ast)
-  
-  if translator.code[#translator.code] ~= 'return' then
-    translator:addCode('push')
-    translator:addCode(0)
-    translator:addCode('return')
-  end
-  return translator.code
+  return translator:translate(ast)
 end
 
 return module
