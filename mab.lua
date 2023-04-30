@@ -321,7 +321,6 @@ local code, errors = toStackVM.translate(ast)
 print(string.format('     %s: %0.2f milliseconds.', (code and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 if not code or #errors > 0 then
-  print '\nFailed generate code:'
   for _, errorTable in ipairs(errors) do
     -- backup = false (positions for type errors are precise)
     if errorTable.position then
@@ -330,11 +329,6 @@ if not code or #errors > 0 then
     io.write(errorTable.message)
     io.write'\n\n'
   end
-  print 'Input:'
-  print(input)
-  print '\nAST:'
-  print(pt.pt(ast, {'tag', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild'}))
-
   return 1
 end
 
