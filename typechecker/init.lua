@@ -265,13 +265,13 @@ function TypeChecker:checkExpression(ast, undefinedVariableOK)
   elseif ast.tag == 'unaryOp' then
     local childType = self:checkExpression(ast.child)
     -- is binary op? - false (unary op)
-    if not isCompatible(ast.op, false, childType) then
+    if not self:isCompatible(ast.op, false, childType) then
       self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
-                    self:toReadable(firstChildType) .. '."', ast)
+                    self:toReadable(childType) .. '."', ast)
       return nil
     else
       -- is binary op? - false (unary op)
-      return self:toResultType(ast.op, false, expressionType)
+      return self:toResultType(ast.op, false, childType)
     end
   else error 'invalid tree'
   end
