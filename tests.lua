@@ -410,4 +410,46 @@ return b
   lu.assertEquals(result, 100)
 end
 
+function module:testWhile()
+  local input =
+[[function entry point() {
+  a = 1;
+  b = 10;
+  while a < b {
+    a = a + 1
+  };
+  
+  return a
+}
+]]
+  lu.assertEquals(self:fullTest(input), 10)
+end
+
+function module:testArrays()
+  local input =
+[[function entry point() {
+  array = new[2][2] true;
+  array[1][1] = false;
+
+  test = true;
+  test = test & array[1][2];
+  test = test & array[2][1];
+  test = test & array[2][2];
+  
+  return test
+}
+]]
+  lu.assertEquals(self:fullTest(input), true)
+end
+
+function module:testEntryPointNameExclude()
+  local input =
+[[function entry point() {
+  entry point = 12
+}
+]]
+  lu.assertEquals(self:fullTest(input), 'Translation failed!')
+end
+
+
 return module
