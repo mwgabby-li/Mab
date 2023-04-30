@@ -348,11 +348,7 @@ function module.check(ast)
   for i = 1, #ast do
     typeChecker:checkFunction(ast[i])
   end
-  if #typeChecker.errors then
-    return typeChecker.errors
-  else
-    return nil
-  end
+  return typeChecker.errors
 end
 
 return module
