@@ -3,6 +3,30 @@ local lu = require 'External.luaunit'
 -- Most recent supported version
 local astVersion = 1
 local module = {}
+local entryPointName = require('literals').entryPointName
+
+local function wrapWithEntrypoint(string)
+  return 'function ' .. entryPointName .. '() {' .. string .. '}'
+end
+
+function module:fullTest(input, addEntryPoint)
+  input = addEntryPoint and wrapWithEntrypoint(input) or input
+  local ast = module.parse(input)
+  if ast == nil then
+    return 'Parsing failed!'
+  end
+  
+  local errors = module.typeChecker.check(ast)
+  if #errors > 0 then
+    return 'Type checking failed!'
+  end
+  
+  local code, errors = module.toStackVM.translate(ast)
+  if code == nil or #errors > 0 then
+    return 'Translation failed!'
+  end
+  return module.interpreter.run(code)
+end
 
 function module:init(parse, typeChecker, toStackVM, interpreter)
     module.parse = parse
@@ -13,254 +37,64 @@ function module:init(parse, typeChecker, toStackVM, interpreter)
 end
 
 function module:testAssignmentAndParentheses()
-  local input = 'i = (1 + 2) * 3'
-  local ast = module.parse(input)
-  local expected = {
-    version = astVersion,
-    tag="assignment",
-    writeTarget={tag="variable", position=1, value="i"},
-    position=5,
-    assignment={
-        tag="binaryOp",
-        firstChild={
-            tag="binaryOp",
-            firstChild={tag="number", position=6, value=1},
-            position=8,
-            op="+",
-            secondChild={tag="number", position=10, value=2},
-        },
-        position=13,
-        op="*",
-        secondChild={tag="number", position=15, value=3},
-    },
-  }
-  lu.assertEquals(ast, expected)
+  lu.assertEquals(self:fullTest('i = (1 + 2) * 3; return i', true), 9)
 end
 
 function module:testReturn()
-  local input = 'return 1 + 2'
-  local ast = module.parse(input)
-  local expected = {
-    version = astVersion,
-    position=8,
-    sentence={
-        firstChild={tag="number", position=8, value=1},
-        op="+",
-        position=10,
-        secondChild={tag="number", position=12, value=2},
-        tag="binaryOp"
-    },
-    tag="return"
-  }
-  lu.assertEquals(ast, expected)
+  lu.assertEquals(self:fullTest('return 1 + 2', true), 3)
 end
 
 function module:testAssignmentAndReturn()
-    local input = 'i = 4 * 3; @ i * 64; return i;'
-    local ast = module.parse(input)
-    local expected = {
-      version = astVersion,
-      firstChild={
-          assignment={
-              firstChild={tag="number", position=5, value=4},
-              op="*",
-              position=7,
-              secondChild={tag="number", position=9, value=3},
-              tag="binaryOp"
-          },
-          position=5,
-          tag="assignment",
-          writeTarget={tag="variable", position=1, value="i"}
-      },
-      secondChild={
-          firstChild={
-              position=14,
-              tag="print",
-              toPrint={
-                  firstChild={tag="variable", position=14, value="i"},
-                  op="*",
-                  position=16,
-                  secondChild={tag="number", position=18, value=64},
-                  tag="binaryOp"
-              }
-          },
-          secondChild={position=29, sentence={tag="variable", position=29, value="i"}, tag="return"},
-          tag="statementSequence"
-      },
-      tag="statementSequence"
-    }
-    lu.assertEquals(ast, expected)
+  local input = 'i = 4 * 3; return i;'
+  lu.assertEquals(self:fullTest(input, true), 12)
 end
 
-function module.testEmptyStatements()
-    local input = ';;;;'
-    local ast = module.parse(input)
-    local expected = {
-        version = astVersion,
-        tag = 'emptyStatement'
-    }
-    lu.assertEquals(ast, expected)
+function module:testEmptyStatements()
+  local input = ';;;;'
+  lu.assertEquals(self:fullTest(input, true), 0)
 end
 
-function module.testEmptyInput()
-    local input = ''
-    local ast = module.parse(input)
-    local expected = {
-        version = astVersion,
-        tag = 'emptyStatement'
-    }
-    lu.assertEquals(ast, expected)
+function module:testEmptyInput()
+  local input = ''
+  lu.assertEquals(self:fullTest(input, true), 0)
 end
 
-function module.testStackedUnaryOperators()
-    local input = 'i = - - - - 4 * 3'
-    local ast = module.parse(input)
-    local expected = {
-    version = astVersion,
-    assignment={
-        firstChild={
-            child={
-                child={
-                    child={child={tag="number", position=13, value=4}, op="-", position=13, tag="unaryOp"},
-                    op="-",
-                    position=11,
-                    tag="unaryOp"
-                },
-                op="-",
-                position=9,
-                tag="unaryOp"
-            },
-            op="-",
-            position=7,
-            tag="unaryOp"
-        },
-        op="*",
-        position=15,
-        secondChild={tag="number", position=17, value=3},
-        tag="binaryOp"
-    },
-    position=5,
-    tag="assignment",
-    writeTarget={tag="variable", position=1, value="i"}
-    }
-    lu.assertEquals(ast, expected)
+function module:testStackedUnaryOperators()
+  local input = 'i = - - - - 4 * 3; return i'
+  lu.assertEquals(self:fullTest(input, true), 12)
 end
 
-function module.testUnaryOperators()
-    local input = 'i = -4 * 3'
-    local ast = module.parse(input)
-    local expected = {
-      version = astVersion,
-      assignment={
-          firstChild={child={tag="number", position=6, value=4}, op="-", position=6, tag="unaryOp"},
-          op="*",
-          position=8,
-          secondChild={tag="number", position=10, value=3},
-          tag="binaryOp"
-      },
-      position=5,
-      tag="assignment",
-      writeTarget={tag="variable", position=1, value="i"}
-    }
-    lu.assertEquals(ast, expected)
+function module:testUnaryOperators()
+  local input = 'i = -4 * 3; return i'
+  lu.assertEquals(self:fullTest(input, true), -12)
 end
 
-function module.testEmptyStatementsLeadingTrailing()
-    local input = ';;;;i = 4 * 3;;;;'
-    local ast = module.parse(input)
-    local expected = {
-      version = astVersion,
-      assignment={
-          firstChild={tag="number", position=9, value=4},
-          op="*",
-          position=11,
-          secondChild={tag="number", position=13, value=3},
-          tag="binaryOp"
-      },
-      position=9,
-      tag="assignment",
-      writeTarget={tag="variable", position=5, value="i"}
-    }
-    lu.assertEquals(ast, expected)
+function module:testEmptyStatementsLeadingTrailing()
+    local input = ';;;;i = 4 * 3; return 12;;;;'
+  lu.assertEquals(self:fullTest(input, true), 12)
 end
 
-function module.testEmptyStatementsInterspersed()
-    local input = ';;;;i = 4 * 3;;;;@ i * 64;;;;return i;;;;'
-    local ast = module.parse(input)
-    local expected = {
-      version = astVersion,
-      firstChild={
-          assignment={
-              firstChild={tag="number", position=9, value=4},
-              op="*",
-              position=11,
-              secondChild={tag="number", position=13, value=3},
-              tag="binaryOp"
-          },
-          position=9,
-          tag="assignment",
-          writeTarget={tag="variable", position=5, value="i"}
-      },
-      secondChild={
-          firstChild={
-              position=20,
-              tag="print",
-              toPrint={
-                  firstChild={tag="variable", position=20, value="i"},
-                  op="*",
-                  position=22,
-                  secondChild={tag="number", position=24, value=64},
-                  tag="binaryOp"
-              }
-          },
-          secondChild={position=37, sentence={tag="variable", position=37, value="i"}, tag="return"},
-          tag="statementSequence"
-      },
-      tag="statementSequence"
-    }
-    lu.assertEquals(ast, expected)
+function module:testEmptyStatementsInterspersed()
+  local input = ';;;;i = 4 * 3;;;;b = 12;;;;return i;;;;'
+  lu.assertEquals(self:fullTest(input, true), 12)
 end
 
-function module.testComplexSequenceResult()
+function module:testComplexSequenceResult()
     local input = 'x value = 12 / 2;'..
                   'y value = 12 * 12 / 2;'..
                   'z value = x value * y value % 12;'..
                   'z value = y value ^ x value + z value;'..
                   'return z value;'
-
-    local ast = module.parse(input)
-    local code = module.toStackVM.translate(ast)
-    local result = module.interpreter.run(code)
-    lu.assertEquals(result, 139314069504)
+  lu.assertEquals(self:fullTest(input, true), 139314069504)
 end
 
-function module.testExponentPrecedence()
-    local input = 'i = 2 ^ 3 ^ 4'
-    local ast = module.parse(input)
-    local expected = {
-      version = astVersion,
-      assignment={
-          firstChild={tag="number", position=5, value=2},
-          op="^",
-          position=7,
-          secondChild={
-              firstChild={tag="number", position=9, value=3},
-              op="^",
-              position=11,
-              secondChild={tag="number", position=13, value=4},
-              tag="binaryOp"
-          },
-          tag="binaryOp"
-      },
-      position=5,
-      tag="assignment",
-      writeTarget={tag="variable", position=1, value="i"}
-    }
-    lu.assertEquals(ast, expected)
+function module:testExponentPrecedence()
+    local input = 'i = 2 ^ 3 ^ 2; return i'
+  lu.assertEquals(self:fullTest(input, true), 512)
 end
 
-function module.testBlockAndLineComments()
-    local input =
+function module:testBlockAndLineComments()
+  local input =
 [[
 # Start comment
 
@@ -274,119 +108,32 @@ a = 10 + 4; # End of line comment
 # Another one
 b = b * 10 # Commented-out line of code
 #}
-b = a * a - 10;
+b = a * a;
 c = a/b;
 
 # Disabled block comment
 
 ##{
-@c;
+a = a * 2;
 #}
-return c;
+return a;
 # Final comment
 ]]
-    local ast = module.parse(input)
-    local expected = {
-      version = astVersion,
-      firstChild={
-          assignment={
-              firstChild={tag="number", position=22, value=10},
-              op="+",
-              position=25,
-              secondChild={tag="number", position=27, value=4},
-              tag="binaryOp"
-          },
-          position=22,
-          tag="assignment",
-          writeTarget={tag="variable", position=18, value="a"}
-      },
-      secondChild={
-          firstChild={
-              assignment={
-                  firstChild={
-                      firstChild={tag="variable", position=244, value="a"},
-                      op="*",
-                      position=246,
-                      secondChild={tag="variable", position=248, value="a"},
-                      tag="binaryOp"
-                  },
-                  op="-",
-                  position=250,
-                  secondChild={tag="number", position=252, value=10},
-                  tag="binaryOp"
-              },
-              position=244,
-              tag="assignment",
-              writeTarget={tag="variable",  position=240, value="b"}
-          },
-          secondChild={
-              firstChild={
-                  assignment={
-                      firstChild={tag="variable", position=260, value="a"},
-                      op="/",
-                      position=261,
-                      secondChild={tag="variable", position=262, value="b"},
-                      tag="binaryOp"
-                  },
-                  position=260,
-                  tag="assignment",
-                  writeTarget={tag="variable", position=256, value="c"}
-              },
-              secondChild={
-                  firstChild={position=297, tag="print", toPrint={tag="variable", position=297, value="c"}},
-                  secondChild={position=310, sentence={tag="variable", position=310, value="c"}, tag="return"},
-                  tag="statementSequence"
-              },
-              tag="statementSequence"
-          },
-          tag="statementSequence"
-      },
-      tag="statementSequence"
-    }
-    lu.assertEquals(ast, expected)
+  lu.assertEquals(self:fullTest(input, true), 28)
 end
 
-function module.testKeywordExcludeRules()
-  lu.assertEquals(module.parse('return1'), nil)
-  lu.assertEquals(module.parse('a = 1; returna'), nil)
-  lu.assertEquals(module.parse('return = 1'), nil)
-  lu.assertEquals(module.parse('return return'), nil)
-  lu.assertEquals(module.parse('delta x = 1; return delta x'),
-    {
-      version = astVersion,
-      firstChild={
-        assignment={tag="number", position=11, value=1},
-        position=11,
-        tag="assignment",
-        writeTarget={tag="variable", position=1, value="delta x"}
-      },
-      secondChild={
-        position=21,
-          sentence={tag="variable", position=21, value="delta x"},
-        tag="return"},
-      tag="statementSequence"
-    }
-  )
-  lu.assertEquals(module.parse('return of the variable = 1; return return of the variable'),
-    {
-      version = astVersion,
-      firstChild={
-          assignment={tag="number", position=26, value=1},
-          position=26,
-          tag="assignment",
-          writeTarget={tag="variable", position=1, value="return of the variable"}
-      },
-      secondChild={
-          position=36,
-          sentence={tag="variable", position=36, value="return of the variable"},
-          tag="return"
-      },
-      tag="statementSequence"
-    }
-  )
+function module:testKeywordExcludeRules()
+  lu.assertEquals(module.parse(wrapWithEntrypoint'return1'), nil)
+  lu.assertEquals(module.parse(wrapWithEntrypoint'a = 1; returna'), nil)
+  lu.assertEquals(module.parse(wrapWithEntrypoint'return = 1'), nil)
+  lu.assertEquals(module.parse(wrapWithEntrypoint'return return'), nil)
+  
+  lu.assertEquals(self:fullTest('delta x = 1; return delta x', true), 1)
+  
+  lu.assertEquals(self:fullTest('return of the variable = 1; return return of the variable', true), 1)
 end
 
-function module.testFullProgram()
+function module:testFullProgram()
   local input =
 [[
 # a is 14
@@ -399,23 +146,14 @@ b = a * a - 10;
 c = (b + 10)/a;
 return c;
 ]]
-  local ast = module.parse(input)
-  local code = module.toStackVM.translate(ast)
-  local result = module.interpreter.run(code)
-  lu.assertEquals(result, 14)
+  lu.assertEquals(self:fullTest(input, true), 14)
 end
 
-function module.testLessonFourEdgeCases()
-  lu.assertEquals(module.parse 'returned = 10',
-    {
-      version = astVersion,
-      assignment={tag="number", position=12, value=10},
-      position=12,
-      tag="assignment",
-      writeTarget={tag="variable", position=1, value="returned"}
-    }
-  )
-  lu.assertEquals(module.parse 'x=10y=20', nil)
+function module:testLessonFourEdgeCases()
+  local ast = module.parse(wrapWithEntrypoint('returned = 10; return returned'))
+  local code = module.toStackVM.translate(ast)
+  local result = module.interpreter.run(code)
+  lu.assertEquals(result, 10)
   
   lu.assertEquals(module.parse(
     [[
@@ -429,113 +167,49 @@ function module.testLessonFourEdgeCases()
       bla bla
     ]]), nil)
   
-  lu.assertEquals(module.parse '#{##}', {version = astVersion, tag = 'emptyStatement'})
+  lu.assertEquals(module.parse(wrapWithEntrypoint'#{##}')[1].block, {tag = 'emptyStatement'})
   
-  lu.assertEquals(module.parse '#{#{#}', {version = astVersion, tag = 'emptyStatement'})
+  lu.assertEquals(module.parse(wrapWithEntrypoint'#{#{#}')[1].block, {tag = 'emptyStatement'})
   
-  lu.assertEquals(module.parse(
+  lu.assertEquals(module.parse(wrapWithEntrypoint
     [[
       #{
       x=1
       #}
-    ]]), {version = astVersion, tag = 'emptyStatement'})
-    
-  lu.assertEquals(module.parse(
+    ]])[1].block, {tag = 'emptyStatement'})
+  
+  lu.assertEquals(self:fullTest(
     [[
       #{#}x=1;
       return x
-    ]]),
-    {
-      version = astVersion,
-      firstChild={
-          assignment={tag="number", position=13, value=1},
-          position=13,
-          tag="assignment",
-          writeTarget={tag="variable", position=11, value="x"}
-      },
-      secondChild={position=29, sentence={tag="variable", position=29, value="x"}, tag="return"},
-      tag="statementSequence"
-    })
-  
-  lu.assertEquals(module.parse(
+    ]], true), 1)
+    
+  lu.assertEquals(self:fullTest(
     [[
       #{#} x=10; #{#}
       return x
-    ]]),
-    {
-      version = astVersion,
-      firstChild={
-          assignment={tag="number", position=14, value=10},
-          position=14,
-          tag="assignment",
-          writeTarget={tag="variable", position=12, value="x"}
-      },
-      secondChild={position=36, sentence={tag="variable", position=36, value="x"}, tag="return"},
-      tag="statementSequence"
-    })
-    lu.assertEquals(module.parse(
+    ]], true), 10)
+  lu.assertEquals(self:fullTest(
         [[
         ##{
         x=10
         #}
-        ]]),{
-        version = astVersion,
-        assignment={tag="number", position=23, value=10},
-        position=23,
-        tag="assignment",
-        writeTarget={tag="variable", position=21, value="x"}
-    })
+        ]], true), 0)
 end
 
-function module.testNot()
-    local ast = module.parse('return ! 1.5')
-    lu.assertEquals(ast, {
-      version = astVersion,
-      position=8,
-      sentence={child={tag="number", position=10, value=1.5}, op="!", position=10, tag="unaryOp"},
-      tag="return"
-    })
-    local code = module.toStackVM.translate(ast)
-    lu.assertEquals(module.interpreter.run(code),0)
+function module:testNot()
+    local input = 'return ! (1.5~=0)'
+    lu.assertEquals(self:fullTest(input, true), false)
   
-    local ast = module.parse('return ! ! 167')
-    lu.assertEquals(ast, {
-      version = astVersion,
-      position=8,
-      sentence={
-          child={child={tag="number", position=12, value=167}, op="!", position=12, tag="unaryOp"},
-          op="!",
-          position=10,
-          tag="unaryOp"
-      },
-      tag="return"
-    })
-    local code = module.toStackVM.translate(ast)
-    lu.assertEquals(module.interpreter.run(code),1)
+    input = 'return ! ! (167~=0)'
+    lu.assertEquals(self:fullTest(input, true), true)
     
-    local ast = module.parse('return!!!12412.435')
-    lu.assertEquals(ast, {
-      version = astVersion,
-      position=7,
-      sentence={
-          child={
-              child={child={tag="number", position=10, value=12412.435}, op="!", position=10, tag="unaryOp"},
-              op="!",
-              position=9,
-              tag="unaryOp"
-          },
-          op="!",
-          position=8,
-          tag="unaryOp"
-      },
-      tag="return"
-    })
-    local code = module.toStackVM.translate(ast)
-    lu.assertEquals(module.interpreter.run(code),0)
+    input = 'return!!!(12412.435~=0)'
+    lu.assertEquals(self:fullTest(input, true), false)
 end
 
-function module.testIf()
-local code = [[
+function module:testIf()
+local input = [[
 a = 10 + 4;
 b = a * a - -10;
 c = a/b;
@@ -545,97 +219,12 @@ if c < a {
 };
 return c;
 ]]
-  local ast = module.parse(code)
-  lu.assertEquals(ast,
-    {
-      version = astVersion,
-      firstChild={
-          assignment={
-              firstChild={tag="number", position=5, value=10},
-              op="+",
-              position=8,
-              secondChild={tag="number", position=10, value=4},
-              tag="binaryOp"
-          },
-          position=5,
-          tag="assignment",
-          writeTarget={tag="variable", position=1, value="a"}
-      },
-      secondChild={
-          firstChild={
-              assignment={
-                  firstChild={
-                      firstChild={tag="variable", position=17, value="a"},
-                      op="*",
-                      position=19,
-                      secondChild={tag="variable", position=21, value="a"},
-                      tag="binaryOp"
-                  },
-                  op="-",
-                  position=23,
-                  secondChild={child={tag="number", position=26, value=10}, op="-", position=26, tag="unaryOp"},
-                  tag="binaryOp"
-              },
-              position=17,
-              tag="assignment",
-              writeTarget={tag="variable", position=13, value="b"}
-          },
-          secondChild={
-              firstChild={
-                  assignment={
-                      firstChild={tag="variable", position=34, value="a"},
-                      op="/",
-                      position=35,
-                      secondChild={tag="variable", position=36, value="b"},
-                      tag="binaryOp"
-                  },
-                  position=34,
-                  tag="assignment",
-                  writeTarget={tag="variable", position=30, value="c"}
-              },
-              secondChild={
-                  firstChild={
-                      block={
-                          firstChild={
-                              assignment={tag="number", position=74, value=24},
-                              position=74,
-                              tag="assignment",
-                              writeTarget={tag="variable", position=52, value="this is a long name"}
-                          },
-                          secondChild={
-                              assignment={tag="number", position=84, value=12},
-                              position=84,
-                              tag="assignment",
-                              writeTarget={tag="variable", position=80, value="c"}
-                          },
-                          tag="statementSequence"
-                      },
-                      expression={
-                          firstChild={tag="variable", position=42, value="c"},
-                          op="<",
-                          position=44,
-                          secondChild={tag="variable", position=46, value="a"},
-                          tag="binaryOp"
-                      },
-                      position=42,
-                      tag="if"
-                  },
-                  secondChild={position=98, sentence={tag="variable", position=98, value="c"}, tag="return"},
-                  tag="statementSequence"
-              },
-              tag="statementSequence"
-          },
-          tag="statementSequence"
-      },
-      tag="statementSequence"
-    })
-    local code = module.toStackVM.translate(ast)
-    lu.assertEquals(module.interpreter.run(code),12)
+    lu.assertEquals(self:fullTest(input, true), 12)
 end
 
-function module.testIfElseElseIf()
-  local ifOnlyYes = [[
-a = 20;
+function module:testIfElseElseIf()
+  local ifOnlyYes =
+[[a = 20;
 b = 10;
 if b < a {
   b = 1
@@ -643,25 +232,21 @@ if b < a {
 return b;
 ]]
 
-  local ast = module.parse(ifOnlyYes)
-  local code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 1)
+  lu.assertEquals(self:fullTest(ifOnlyYes, true), 1)
 
-    local ifOnlyNo = [[
-  a = 20;
-  b = 100;
-  if b < a {
-    b = 1
-  };
-  return b;
-  ]]
+  local ifOnlyNo =
+[[a = 20;
+b = 100;
+if b < a {
+  b = 1
+};
+return b;
+]]
 
-  ast = module.parse(ifOnlyNo)
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 100)
+  lu.assertEquals(self:fullTest(ifOnlyNo, true), 100)
 
-  local ifElseYes = [[
-a = 20;
+  local ifElseYes =
+[[a = 20;
 b = 10;
 if b < a {
   b = 1
@@ -671,27 +256,23 @@ if b < a {
 return b;
 ]]
 
-  ast = module.parse(ifElseYes)
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 1)
+  lu.assertEquals(self:fullTest(ifElseYes, true), 1)
 
-    local ifElseNo = [[
-  a = 20;
-  b = 100;
-  if b < a {
-    b = 1
-  } else {
-    b = 2
-  };
-  return b;
-  ]]
+  local ifElseNo =
+[[a = 20;
+b = 100;
+if b < a {
+  b = 1
+} else {
+  b = 2
+};
+return b;
+]]
 
-  ast = module.parse(ifElseNo)
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 2)
+  lu.assertEquals(self:fullTest(ifElseNo, true), 2)
 
-  local ifElseIfYes = [[
-a = 20;
+  local ifElseIfYes =
+[[a = 20;
 b = 10;
 if b < a {
   b = 1
@@ -701,27 +282,23 @@ if b < a {
 return b;
 ]]
 
-  ast = module.parse(ifElseIfYes)
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 1)
+  lu.assertEquals(self:fullTest(ifElseIfYes, true), 1)
 
-    local ifElseIfNo = [[
-  a = 20;
-  b = 100;
-  if b < a {
-    b = 1
-  } elseif b > a {
-    b = 2
-  };
-  return b;
-  ]]
+    local ifElseIfNo =
+[[a = 20;
+b = 100;
+if b < a {
+  b = 1
+} elseif b > a {
+  b = 2
+};
+return b;
+]]
 
-  ast = module.parse(ifElseIfNo)
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 2)
+  lu.assertEquals(self:fullTest(ifElseIfNo, true), 2)
 
-  local ifElseIfNeither = [[
-a = 20;
+  local ifElseIfNeither =
+[[a = 20;
 b = a;
 if b < a {
   b = 1
@@ -731,11 +308,9 @@ if b < a {
 return b;
 ]]
 
-  ast = module.parse(ifElseIfNeither)
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 20)
-  local firstClause = [[
-a = 20;
+  lu.assertEquals(self:fullTest(ifElseIfNeither, true), 20)
+  local firstClause =
+[[a = 20;
 b = 10;
 if b < a {
   b = 1
@@ -746,12 +321,10 @@ if b < a {
 };
 return b;
 ]]
-  ast = module.parse(firstClause);
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 1)
+  lu.assertEquals(self:fullTest(firstClause, true), 1)
 
-  local secondClause = [[
-a = 20;
+  local secondClause =
+[[a = 20;
 b = 100;
 if b < a {
   b = 1
@@ -762,11 +335,9 @@ if b < a {
 };
 return b;
 ]]
-  ast = module.parse(secondClause);
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 2)
-  local thirdClause = [[
-a = 20;
+  lu.assertEquals(self:fullTest(secondClause, true), 2)
+  local thirdClause =
+[[a = 20;
 b = a;
 if b < a {
 b = 1
@@ -776,28 +347,24 @@ b = 2
 b = 3
 };
 return b;
-  ]]
+]]
 
-  ast = module.parse(thirdClause);
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 3)
+  lu.assertEquals(self:fullTest(thirdClause, true), 3)
 
-  local empty = [[
-a = 20;
+  local empty =
+[[a = 20;
 b = a;
 if b < a {
 } elseif b > a {
 } else {
 };
 return b;
-  ]]
+]]
 
-  ast = module.parse(empty);
-  code = module.toStackVM.translate(ast)
-  lu.assertEquals(module.interpreter.run(code), 20)
+  lu.assertEquals(self:fullTest(empty, true), 20)
 end
 
-function module.testShortCircuit()
+function module:testShortCircuit()
   local shortCircuit = [[
 a = 20;
 b = 10;
@@ -807,7 +374,7 @@ if b > a & 1/2 = 0.5 {
 return b
 ]]
 
-  local ast = module.parse(shortCircuit)
+  local ast = module.parse(wrapWithEntrypoint(shortCircuit))
   local code = module.toStackVM.translate(ast)
   local trace = {}
   local result = module.interpreter.run(code, trace)
@@ -829,7 +396,7 @@ if b < a | 1/2 = 0.5 {
 return b
 ]]
 
-  ast = module.parse(shortCircuit2)
+  ast = module.parse(wrapWithEntrypoint(shortCircuit2))
   code = module.toStackVM.translate(ast)
   trace = {}
   result = module.interpreter.run(code, trace)
