@@ -254,7 +254,7 @@ if awaiting_filename then
   os.exit(1)
 end
 
-common.poem() print ''
+print(common.poem())
 
 -- Need to keep the grammar open up to here so that PegDebug can annotate it if that setting's on.
 if parameters.pegdebug then

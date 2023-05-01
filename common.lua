@@ -81,8 +81,7 @@ In dreams, delight may find its cost,
 As morning breaks, and all is lost.
 ]]
     if all then
-        print(poem)
-        return
+        return poem
     end
     local lines = {}
     for line in common.lines(poem) do
@@ -99,9 +98,12 @@ As morning breaks, and all is lost.
       endSelection = endSelection - 1
     end
 
+    local result = ''
     for i = startSelection, endSelection do
-      print(lines[i])
+      result = result .. lines[i] .. '\n'
     end
+  
+    return result
 end
 
 -- defaultPrefix: Used when backup does not occur.
