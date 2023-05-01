@@ -183,6 +183,7 @@ identifier = identifierPattern,
 }
 
 local function parse(input)
+  grammar = lpeg.P(grammar)
   common.clearFurthestMatch()
   local ast = grammar:match(input)
   
@@ -259,7 +260,6 @@ common.poem() print ''
 if parameters.pegdebug then
   grammar = require('External.pegdebug').trace(grammar)
 end
-grammar = lpeg.P(grammar)
 
 local input = io.read 'a'
 if parameters.show.input then
