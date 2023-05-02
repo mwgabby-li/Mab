@@ -87,6 +87,16 @@ function Translator:variableToNumber(variable)
   return number
 end
 
+function Translator:codeFunctionCall(ast)
+  local function_ = self.functions[ast.name]
+  if not function_ then
+    self:addError('Undefined function "'..ast.name..'()."', ast)
+  else
+    self:addCode('callFunction')
+    self:addCode(function_.code)
+  end
+end
+
 function Translator:codeExpression(ast)
   if ast.tag == 'number' or ast.tag == 'boolean' then
     self:addCode('push')
@@ -101,6 +111,8 @@ function Translator:codeExpression(ast)
     end
     self:addCode('load')
     self:addCode(self:variableToNumber(ast.value))
+  elseif ast.tag == 'functionCall' then
+    self:codeFunctionCall(ast)
   elseif ast.tag == 'arrayElement' then
     self:codeExpression(ast.array)
     self:codeExpression(ast.index)
@@ -131,7 +143,7 @@ function Translator:codeExpression(ast)
       self:addCode(unaryToName[ast.op])
     end
   else
-    self:addError('Invalid tree, found expression node with unknown tag "'..tostring(ast.tag)..'."')
+    self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
   end
 end
 
@@ -198,7 +210,7 @@ function Translator:codeStatement(ast)
     self:codeExpression(ast.toPrint)
     self:addCode('print')
   else
-    self:addError('Invalid tree, found statement node with unknown tag "'..tostring(ast.tag)..'."')
+    self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
   end
 end
 
@@ -216,12 +228,15 @@ function Translator:codeFunction(ast)
 end
 
 function Translator:translate(ast)
+  if ast.version ~= 2 then
+    self:addError("Aborting stack VM translation, AST version doesn't match. Update stack VM translation!", ast)
+    return nil, self.errors
+  end
+  
   for i = 1,#ast do
     self.functions[ast[i].name] = true
   end
   
-  -- Most recent supported AST version
-  assert(ast.version == 1)
   for i = 1,#ast do
     self:codeFunction(ast[i])
   end
@@ -231,7 +246,7 @@ function Translator:translate(ast)
     self:addError('No entry point found. (Program must contain a function named "entry point.")')
     return nil, self.errors
   else
-    entryPoint.code.version = 1
+    entryPoint.code.version = 1 + ast.version
     return entryPoint.code, self.errors
   end
 end

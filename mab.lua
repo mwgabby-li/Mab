@@ -52,6 +52,7 @@ local nodeIf = node('if', 'position', 'expression', 'block', 'elseBlock')
 local nodeWhile = node('while', 'position', 'expression', 'block')
 local nodeBoolean = node('boolean', 'value')
 local nodeFunction = node('function', 'name', 'block')
+local nodeFunctionCall = node('functionCall', 'name')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -120,6 +121,7 @@ local statement, statementList = V'statement', V'statementList'
 local elses = V'elses'
 local blockStatement = V'blockStatement'
 local expression = V'expression'
+local functionCall = V'functionCall'
 local boolean = V'boolean'
 local variable = V'variable'
 local identifier = V'identifier'
@@ -143,10 +145,11 @@ elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW
 
 variable = Cp() * identifier / nodeVariable,
 writeTarget = Ct(variable * (delim.openArray * Cp() * expression * delim.closeArray)^0) / foldArrayElement,
+functionCall = identifier * delim.openFunctionParameterList * delim.closeFunctionParameterList / nodeFunctionCall,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
-            writeTarget * op.assign * Cp() * expression * -delim.openBlock / nodeAssignment +
+            writeTarget * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
@@ -160,6 +163,10 @@ boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +
+          -- Function call must be before writeTarget,
+          -- or the function call's identifier will be read as a writeTarget variable,
+          -- and we'll get a syntax error about the open parenthesis.
+          functionCall +
           writeTarget +
           Cp() * numeral / nodeNumeral +
           -- Literal booleans
@@ -188,7 +195,7 @@ local function parse(input)
   local ast = grammar:match(input)
   
   if ast then
-    ast.version = 1
+    ast.version = 2
     return ast
   else    
     -- backup = true (if the error is at the beginning of a line, back up to the previous line)
@@ -283,14 +290,29 @@ if parameters.show.AST then
 end
 
 if parameters.show.graphviz then
-  local prefix = input_file or 'temp'
-  local dotFileName = prefix .. '.dot'
-  local dotFile = io.open(dotFileName, 'wb')
-  dotFile:write(graphviz.translate(ast))
-  dotFile:close()
-  local svgFileName = prefix .. '.svg'
-  os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
-  os.execute('firefox "'.. svgFileName .. '" &')
+  io.write '\nGraphviz AST...'
+  start = os.clock()
+  local graphviz, errors = graphviz.translate(ast)
+  print(string.format('    %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  if #errors > 0 then
+    for _, errorTable in ipairs(errors) do
+      -- backup = false (positions for type errors are precise)
+      if errorTable.position then
+        io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
+      end
+      io.write(errorTable.message)
+      io.write'\n\n'
+    end
+  else    
+    local prefix = input_file or 'temp'
+    local dotFileName = prefix .. '.dot'
+    local dotFile = io.open(dotFileName, 'wb')
+    dotFile:write(graphviz)
+    dotFile:close()
+    local svgFileName = prefix .. '.svg'
+    os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
+    os.execute('firefox "'.. svgFileName .. '" &')
+  end
 end
 
 if parameters.typechecker then
@@ -299,7 +321,6 @@ if parameters.typechecker then
   local errors = typeChecker.check(ast)
   print(string.format('   %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
   if #errors > 0 then
-    print('\nType checking failed:')
     for _, errorTable in ipairs(errors) do
       -- backup = false (positions for type errors are precise)
       if errorTable.position then
@@ -312,7 +333,7 @@ if parameters.typechecker then
     return 1
   end
 else
-  print '\nType checking...     WARNING, SKIPPED! DEBUGGING PURPOSES ONLY.'
+  print '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.'
 end
 
 io.write '\nTranslating...'
@@ -343,8 +364,16 @@ local trace = nil
 if parameters.show.trace then
   trace = {}
 end
-local result = interpreter.run(code, trace)
-print(string.format('         Execution %s: %0.2f milliseconds.', result ~= nil and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+local result, errors = interpreter.execute(code, trace)
+print(string.format('         Execution %s: %0.2f milliseconds.', (result ~= nil and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+
+if not result or #errors > 0 then
+  for _, errorTable in ipairs(errors) do
+    io.write(errorTable.message)
+    io.write'\n\n'
+  end
+  return 1
+end
 
 if parameters.show.trace then
   print '\nExecution trace:'

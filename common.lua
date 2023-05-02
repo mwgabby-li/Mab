@@ -165,4 +165,11 @@ function common.generateErrorMessage(input, position, backup, defaultPrefix, bac
     return errorMessage
 end
 
+function common.copyObjectNoSelfReferences(object)
+    if type(object) ~= 'table' then return object end
+    local result = {}
+    for k, v in pairs(object) do result[copyObjectNoSelfReferences(k)] = copyObjectNoSelfReferences(v) end
+    return result
+end
+
 return common

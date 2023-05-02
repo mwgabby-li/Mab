@@ -11,10 +11,19 @@ function Translator:new(o)
     statementNodeNames = {},
     ifNodeNames = {},
     file = "",
+    errors = {},
   }
   self.__index = self
   setmetatable(o, self)
   return o
+end
+
+function Translator:addError(message, ast)
+  ast = ast or {}
+  self.errors[#self.errors + 1] = {
+    message = message,
+    position = ast.position,
+  }
 end
 
 function Translator:getID(ast)
@@ -52,6 +61,8 @@ function Translator:nodeExpression(ast)
     self:appendNode(ast, false, tostring(ast.value))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.value)
+  elseif ast.tag == 'functionCall' then
+    self:appendNode(ast, false, ast.name .. '()')
   elseif ast.tag == 'newArray' then
     self:appendNode(ast, false, 'new[...]', ast.size, ast.initialValue )
     self:nodeExpression(ast.size)
@@ -67,7 +78,8 @@ function Translator:nodeExpression(ast)
   elseif ast.tag == 'unaryOp' then
     self:appendNode(ast, false, ast.op, ast.child)
     self:nodeExpression(ast.child)
-  else error 'invalid tree'
+  else
+    self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
   end
 end
 
@@ -205,7 +217,8 @@ function Translator:nodeStatement(ast, depth, fromIf)
   elseif ast.tag == 'print' then
     self:nodeExpression(ast.toPrint)
     self:appendNode(ast, false, 'Print', ast.toPrint)
-  else error 'invalid tree'
+  else
+    self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
   end
 end
 
@@ -219,14 +232,16 @@ function Translator:nodeFunction(ast)
   self:nodeStatement(ast.block)
 end
 
-
 function Translator:translate(ast)
-  -- Most recent supported AST version
-  assert(ast.version == 1)
+  if ast.version ~= 2 then
+    self:addError("Aborting graphviz translation, AST version doesn't match. Update graphviz translation!", ast)
+    return nil, self.errors
+  end
+
   for i = 1,#ast do
     self:nodeFunction(ast[i])
   end
-  self:finalize()
+  return self:finalize(), self.errors
 end
 
 function module.translate(ast)

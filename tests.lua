@@ -451,5 +451,19 @@ function module:testEntryPointNameExclude()
   lu.assertEquals(self:fullTest(input), 'Translation failed!')
 end
 
+function module:testFunctionCall()
+  local input =
+[[
+function another function() {
+  return 12
+}
+
+function entry point() {
+  return 24 + another function();
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 36)
+end
 
 return module

@@ -188,7 +188,9 @@ function TypeChecker:isCompatible(op, binary, typeTable)
 end
 
 function TypeChecker:toReadable(typeTable)
-  if typeTable.dimension == 0 then
+  if typeTable == nil then
+    return 'invalid type'
+  elseif typeTable.dimension == 0 then
     return typeTable.name
   else
     local dimensionString = typeTable.dimension == 1 and '' or typeTable.dimension .. 'D '
@@ -273,7 +275,9 @@ function TypeChecker:checkExpression(ast, undefinedVariableOK)
       -- is binary op? - false (unary op)
       return self:toResultType(ast.op, false, childType)
     end
-  else error 'invalid tree'
+  else
+    self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
+    return self:createType('unknown')
   end
 end
 
@@ -343,11 +347,20 @@ function TypeChecker:checkFunction(ast)
   self:checkStatement(ast.block)
 end
 
+function TypeChecker:check(ast)
+  if ast.version ~= 2 then
+    self:addError("Aborting type check, AST version doesn't match. Update type checker!", ast)
+    return
+  end
+  
+  for i = 1, #ast do
+    self:checkFunction(ast[i])
+  end
+end
+
 function module.check(ast)
   local typeChecker = TypeChecker:new()
-  for i = 1, #ast do
-    typeChecker:checkFunction(ast[i])
-  end
+  typeChecker:check(ast)
   return typeChecker.errors
 end
 
