@@ -466,4 +466,33 @@ function entry point() {
   lu.assertEquals(self:fullTest(input), 36)
 end
 
+function module:testDuplicateFunctions()
+  local input =
+[[function another function() {
+  return 33
+}
+
+function another function() {
+  return 42
+}
+
+function entry point() {
+  a = 1;
+  
+  a = 23 + another function();
+  return a
+}
+
+function another function() {
+  return 3
+}
+]]
+
+  local ast = module.parse(input)
+  lu.assertEquals(type(ast), 'table')
+  
+  local code, errors = module.toStackVM.translate(ast)
+  lu.assertEquals(#errors, 4)
+end
+
 return module

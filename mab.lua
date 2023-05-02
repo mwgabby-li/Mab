@@ -51,7 +51,7 @@ local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'block', 'elseBlock')
 local nodeWhile = node('while', 'position', 'expression', 'block')
 local nodeBoolean = node('boolean', 'value')
-local nodeFunction = node('function', 'name', 'block')
+local nodeFunction = node('function', 'position', 'name', 'block')
 local nodeFunctionCall = node('functionCall', 'name')
 
 local function nodeStatementSequence(first, rest)
@@ -135,7 +135,7 @@ local grammar =
 'program',
 program = endToken * Ct(functionDeclaration^1) * -1,
 
-functionDeclaration = KW'function' * identifier * delim.openFunctionParameterList * delim.closeFunctionParameterList * blockStatement / nodeFunction,
+functionDeclaration = KW'function' * Cp() * identifier * delim.openFunctionParameterList * delim.closeFunctionParameterList * blockStatement / nodeFunction,
 
 statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
 

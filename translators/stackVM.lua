@@ -233,8 +233,27 @@ function Translator:translate(ast)
     return nil, self.errors
   end
   
+  local duplicates = { name }
+
   for i = 1,#ast do
-    self.functions[ast[i].name] = true
+    if self.functions[ast[i].name] ~= nil then
+      -- First duplicate: Set name, and previous position
+      if #duplicates == 0 then
+        duplicates['name'] = ast[i].name
+        duplicates[#duplicates + 1] = self.functions[ast[i].name]
+      end
+      
+      -- First and subsequent duplicates, add position of this duplicate
+      duplicates[#duplicates + 1] = ast[i].position
+    end
+    self.functions[ast[i].name] = ast[i].position
+  end
+
+  if #duplicates > 0 then
+    self:addError(#duplicates .. ' duplicate functions sharing name "'..duplicates.name..'."')
+    for index,position in ipairs(duplicates) do
+      self:addError(index .. ': ', {position=position})
+    end
   end
   
   for i = 1,#ast do
