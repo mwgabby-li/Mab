@@ -195,6 +195,8 @@ function Translator:nodeStatement(ast, depth, fromIf)
   elseif ast.tag == 'return' then
     self:appendNode(ast, false, 'Return', ast.sentence)
     self:nodeExpression(ast.sentence)
+  elseif ast.tag == 'functionCall' then
+    self:appendNode(ast, false, ast.name .. '()')
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment)
     self:appendNode(ast, false, '=', ast.writeTarget, ast.assignment)
@@ -233,7 +235,7 @@ function Translator:nodeFunction(ast)
 end
 
 function Translator:translate(ast)
-  if ast.version ~= 2 then
+  if ast.version ~= 3 then
     self:addError("Aborting graphviz translation, AST version doesn't match. Update graphviz translation!", ast)
     return nil, self.errors
   end

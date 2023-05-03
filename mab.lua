@@ -148,6 +148,8 @@ writeTarget = Ct(variable * (delim.openArray * Cp() * expression * delim.closeAr
 functionCall = identifier * delim.openFunctionParameterList * delim.closeFunctionParameterList / nodeFunctionCall,
 
 statement = blockStatement +
+            -- Function calls are quicker to identify, so put them first
+            functionCall +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             writeTarget * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
             -- If
@@ -195,7 +197,7 @@ local function parse(input)
   local ast = grammar:match(input)
   
   if ast then
-    ast.version = 2
+    ast.version = 3
     return ast
   else    
     -- backup = true (if the error is at the beginning of a line, back up to the previous line)
@@ -379,6 +381,15 @@ if parameters.show.trace then
   print '\nExecution trace:'
   for k, v in ipairs(trace) do
     print(k, v)
+    
+    if trace.stack[k] then
+      for i = #trace.stack[k],1,-1 do
+        print('\t\t\t' .. tostring(trace.stack[k][i]))
+      end
+      if #trace.stack[k] == 0 then
+        print '\t\t\t(empty)'
+      end
+    end
   end
 end
 if parameters.show.result then

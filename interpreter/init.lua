@@ -43,7 +43,7 @@ function StackVM:new(o)
   o = o or {
     errors = {},
     stack = {},
-    top = 1,
+    top = 0,
     memory = {},
   }
   self.__index = self
@@ -58,9 +58,9 @@ function StackVM:addError(message)
   }
 end
 
-function StackVM:traceUnaryOp(operator, value)
+function StackVM:traceUnaryOp(operator)
   if self.trace then
-    trace[#trace + 1] = operator .. ' ' .. tostring(value)
+    self.trace[#self.trace + 1] = operator .. ' ' .. tostring(self.stack[self.top])
   end
 end
 
@@ -76,9 +76,26 @@ function StackVM:traceTwoCodes(code, pc)
   end
 end
 
+function StackVM:traceTwoCodesAndStack(code, pc)
+  if self.trace then
+    self.trace[#self.trace + 1] = code[pc] .. ' ' .. tostring(code[pc + 1]) .. ' ' .. tostring(self.stack[self.top])
+  end
+end
+
 function StackVM:traceCustom(string)
   if self.trace then
     self.trace[#self.trace + 1] = string
+  end
+end
+
+function StackVM:traceStack()
+  if self.trace then
+    local result = {}
+    for k,v in ipairs(self.stack) do
+      result[k] = v
+    end
+
+    self.trace.stack[#self.trace] = result
   end
 end
 
@@ -89,19 +106,23 @@ function StackVM:popStack(amount)
   end
 end
 
-function StackVM:run(code, trace)
+function StackVM:run(code)
   local pc = 1
   while pc <= #code do
     --[[
     io.write '--> '
-    for i = 1, top do io.write(stack[i], ' ') end
+    for i = 1, self.top do io.write(self.stack[i], ' ') end
     io.write '\n'
-    ]]
+    --]]
     if code[pc] == 'push' then
       self:traceTwoCodes(code, pc)
       pc = pc + 1
       self.top = self.top + 1
       self.stack[self.top] = code[pc]
+    elseif code[pc] == 'pop' then
+      self:traceTwoCodes(code, pc)
+      pc = pc + 1
+      self:popStack(code[pc])
     elseif code[pc] == 'add' then
       self:traceBinaryOp(code[pc])
       self.stack[self.top - 1] = self.stack[self.top - 1] + self.stack[self.top]
@@ -109,7 +130,7 @@ function StackVM:run(code, trace)
     elseif code[pc] == 'subtract' then
       self:traceBinaryOp(code[pc])
       self.stack[self.top - 1] = self.stack[self.top - 1] - self.stack[self.top]
-      self.top = self.popStack(1)
+      self:popStack(1)
     elseif code[pc] == 'multiply' then
       self:traceBinaryOp(code[pc])
       self.stack[self.top - 1] = self.stack[self.top - 1] * self.stack[self.top]
@@ -162,7 +183,7 @@ function StackVM:run(code, trace)
       pc = pc + 1
       self.stack[self.top] = self.memory[code[pc] ]
     elseif code[pc] == 'store' then
-      self:traceTwoCodes(code, pc)
+      self:traceTwoCodesAndStack(code, pc)
       pc = pc + 1
       self.memory[code[pc] ] = self.stack[self.top]
       self:popStack(1)
@@ -227,14 +248,14 @@ function StackVM:run(code, trace)
       pc = pc + 1
       pc = pc + code[pc]
     elseif code[pc] == 'jumpIfFalse' then
-      self:traceTwoCodes(code, pc)
+      self:traceTwoCodesAndStack(code, pc)
       pc = pc + 1
       if not self.stack[self.top] then
         pc = pc + code[pc]
       end
       self:popStack(1)
     elseif code[pc] == 'jumpIfFalseJumpNoPop' then
-      self:traceTwoCodes(code, pc)
+      self:traceTwoCodesAndStack(code, pc)
       pc = pc + 1
       if not self.stack[self.top] then
         pc = pc + code[pc]
@@ -242,7 +263,7 @@ function StackVM:run(code, trace)
         self:popStack(1)
       end
     elseif code[pc] == 'jumpIfTrueJumpNoPop' then
-      self:traceTwoCodes(code, pc)
+      self:traceTwoCodesAndStack(code, pc)
       pc = pc + 1
       if self.stack[self.top] then
         pc = pc + code[pc]
@@ -256,30 +277,34 @@ function StackVM:run(code, trace)
       self:popStack(1)
     elseif code[pc] == 'return' then
       self:traceUnaryOp(code[pc])
-      return top, stack
+      return
     elseif code[pc] == 'callFunction' then
       self:traceCustom(code[pc])
+      self:traceStack()
       pc = pc + 1
-      self:run(code[pc], trace)
+      self:run(code[pc])
     else error('Unknown instruction "'..code[pc]..'."')
     end
+    self:traceStack()
     pc = pc + 1
   end
 end
 
-function StackVM:execute(code, trace)
-  if code.version ~= 3 then
+function StackVM:execute(code)
+  if code.version ~= 4 then
     self:addError("Aborting execution, code version doesn't match. Update StackVM interpreter!", ast)
     return nil, self.errors
   end
   
-  self:run(code, trace)
+  self:run(code)
   return self.stack[self.top], self.errors
 end
 
 function module.execute(code, trace)
   local interpreter = StackVM:new()
-  return interpreter:execute(code, trace)
+  trace.stack = {}
+  interpreter.trace = trace
+  return interpreter:execute(code)
 end
 
 return module

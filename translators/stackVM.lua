@@ -175,6 +175,11 @@ function Translator:codeStatement(ast)
   elseif ast.tag == 'return' then
     self:codeExpression(ast.sentence)
     self:addCode('return')
+  elseif ast.tag == 'functionCall' then
+    self:codeFunctionCall(ast)
+    -- Discard return value for function statements, since it's not used by anything.
+    self:addCode('pop')
+    self:addCode(1)
   elseif ast.tag == 'assignment' then
     self:codeAssignment(ast)
   elseif ast.tag == 'if' then
@@ -228,7 +233,7 @@ function Translator:codeFunction(ast)
 end
 
 function Translator:translate(ast)
-  if ast.version ~= 2 then
+  if ast.version ~= 3 then
     self:addError("Aborting stack VM translation, AST version doesn't match. Update stack VM translation!", ast)
     return nil, self.errors
   end

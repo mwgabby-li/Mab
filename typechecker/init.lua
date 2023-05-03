@@ -292,6 +292,8 @@ function TypeChecker:checkStatement(ast)
     if returnType.dimension > 0 then
       self:addError('Trying to return an array type "'.. self:toReadable(returnType) .. '." Disallowed, sorry!', ast)
     end
+  elseif ast.tag == 'functionCall' then
+    -- Actually, we can just ignore this. It doesn't need to match anything.
   elseif ast.tag == 'assignment' then
     -- Get the type of the thing we're writing to, and its root name
     -- (e.g. given a single-dimension array of numbers 'a,'
@@ -348,7 +350,7 @@ function TypeChecker:checkFunction(ast)
 end
 
 function TypeChecker:check(ast)
-  if ast.version ~= 2 then
+  if ast.version ~= 3 then
     self:addError("Aborting type check, AST version doesn't match. Update type checker!", ast)
     return
   end
