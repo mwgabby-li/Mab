@@ -291,7 +291,9 @@ function TypeChecker:checkStatement(ast)
     self:checkStatement(ast.secondChild)
   elseif ast.tag == 'return' then
     local returnType = self:checkExpression(ast.sentence)
-    if returnType.dimension > 0 then
+    if returnType == nil then
+      self:addError('Could not determine type of return type.', ast)
+    elseif returnType.dimension > 0 then
       self:addError('Trying to return an array type "'.. self:toReadable(returnType) .. '." Disallowed, sorry!', ast)
     end
   elseif ast.tag == 'functionCall' then

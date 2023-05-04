@@ -25,7 +25,7 @@ function module:fullTest(input, addEntryPoint)
   if code == nil or #errors > 0 then
     return 'Translation failed!'
   end
-  return module.interpreter.run(code)
+  return module.interpreter.execute(code)
 end
 
 function module:init(parse, typeChecker, toStackVM, interpreter)
@@ -152,7 +152,7 @@ end
 function module:testLessonFourEdgeCases()
   local ast = module.parse(wrapWithEntrypoint('returned = 10; return returned'))
   local code = module.toStackVM.translate(ast)
-  local result = module.interpreter.run(code)
+  local result = module.interpreter.execute(code)
   lu.assertEquals(result, 10)
   
   lu.assertEquals(module.parse(
@@ -377,7 +377,7 @@ return b
   local ast = module.parse(wrapWithEntrypoint(shortCircuit))
   local code = module.toStackVM.translate(ast)
   local trace = {}
-  local result = module.interpreter.run(code, trace)
+  local result = module.interpreter.execute(code, trace)
   local divide = false
   for i, v in ipairs(trace) do
     if v:gmatch('divide')() then
@@ -399,7 +399,7 @@ return b
   ast = module.parse(wrapWithEntrypoint(shortCircuit2))
   code = module.toStackVM.translate(ast)
   trace = {}
-  result = module.interpreter.run(code, trace)
+  result = module.interpreter.execute(code, trace)
   divide = false
   for i, v in ipairs(trace) do
     if v:gmatch('divide')() then
@@ -498,6 +498,10 @@ end
 function module:testIndirectRecursion()
   local input =
 [[
+function entry point () {
+  n = 10;
+  return even()
+}
 function even () {
   if n ~= 0 {
     n = n - 1;
@@ -513,10 +517,6 @@ function odd () {
   } else {
     return false
   }
-}
-function entry point () {
-  n = 10;
-  return even()
 }
 ]]
 
@@ -525,6 +525,10 @@ function entry point () {
 
   input =
 [[
+function entry point () {
+  n = 11;
+  return even()
+}
 function even () {
   if n ~= 0 {
     n = n - 1;
@@ -540,16 +544,16 @@ function odd () {
   } else {
     return false
   }
-}
-function entry point () {
-  n = 11;
-  return even()
 }
 ]]
   lu.assertEquals(self:fullTest(input), false)
   
 input =
 [[
+function entry point () {
+  n = 10;
+  return odd()
+}
 function even () {
   if n ~= 0 {
     n = n - 1;
@@ -565,10 +569,6 @@ function odd () {
   } else {
     return false
   }
-}
-function entry point () {
-  n = 10;
-  return odd()
 }
 ]]
 
@@ -577,6 +577,10 @@ function entry point () {
 
   input =
 [[
+function entry point () {
+  n = 11;
+  return odd()
+}
 function even () {
   if n ~= 0 {
     n = n - 1;
@@ -592,10 +596,6 @@ function odd () {
   } else {
     return false
   }
-}
-function entry point () {
-  n = 11;
-  return odd()
 }
 ]]
   lu.assertEquals(self:fullTest(input), true)

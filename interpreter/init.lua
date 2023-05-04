@@ -302,7 +302,9 @@ end
 
 function module.execute(code, trace)
   local interpreter = StackVM:new()
-  trace.stack = {}
+  if trace ~= nil then
+    trace.stack = {}
+  end
   interpreter.trace = trace
   return interpreter:execute(code)
 end

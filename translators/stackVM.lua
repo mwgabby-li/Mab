@@ -216,16 +216,14 @@ function Translator:codeStatement(ast)
 end
 
 function Translator:codeFunction(ast)
-  local functionCode = {}
-  self.currentCode = functionCode
+  self.currentCode = self.functions[ast.name].code
   self:codeStatement(ast.block)
-  if functionCode[#functionCode] ~= 'return' then
+  if self.currentCode[#self.currentCode] ~= 'return' then
     self:addCode('push')
     self:addCode(0)
     self:addCode('return')
   end
   self.currentCode = nil
-  self.functions[ast.name] = { code = functionCode }
 end
 
 function Translator:translate(ast)
@@ -241,13 +239,13 @@ function Translator:translate(ast)
       -- First duplicate: Set name, and previous position
       if #duplicates == 0 then
         duplicates['name'] = ast[i].name
-        duplicates[#duplicates + 1] = self.functions[ast[i].name]
+        duplicates[#duplicates + 1] = self.functions[ast[i].name].position
       end
       
       -- First and subsequent duplicates, add position of this duplicate
       duplicates[#duplicates + 1] = ast[i].position
     end
-    self.functions[ast[i].name] = ast[i].position
+    self.functions[ast[i].name] = {code = {}, position=ast[i].position}
   end
 
   if #duplicates > 0 then

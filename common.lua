@@ -168,7 +168,7 @@ end
 function common.copyObjectNoSelfReferences(object)
     if type(object) ~= 'table' then return object end
     local result = {}
-    for k, v in pairs(object) do result[copyObjectNoSelfReferences(k)] = copyObjectNoSelfReferences(v) end
+    for k, v in pairs(object) do result[common.copyObjectNoSelfReferences(k)] = common.copyObjectNoSelfReferences(v) end
     return result
 end
 
