@@ -232,29 +232,35 @@ function Translator:translate(ast)
     return nil, self.errors
   end
   
-  local duplicates = { name }
+  local duplicates = {}
 
   for i = 1,#ast do
-    if self.functions[ast[i].name] ~= nil then
-      -- First duplicate: Set name, and previous position
-      if #duplicates == 0 then
-        duplicates['name'] = ast[i].name
-        duplicates[#duplicates + 1] = self.functions[ast[i].name].position
+    -- No function here? Add one!
+    if not self.functions[ast[i].name] then
+      self.functions[ast[i].name] = {code = {}, position=ast[i].position}
+    -- Otherwise, duplication detected!
+    else
+      -- First duplicate: Set name, and position of first definition
+      if duplicates[ast[i].name] == nil then
+        duplicates[ast[i].name] = {}
+        duplicates[ast[i].name][#duplicates[ast[i].name] + 1] = self.functions[ast[i].name].position
       end
       
       -- First and subsequent duplicates, add position of this duplicate
-      duplicates[#duplicates + 1] = ast[i].position
+      duplicates[ast[i].name][#duplicates[ast[i].name] + 1] = ast[i].position
     end
-    self.functions[ast[i].name] = {code = {}, position=ast[i].position}
   end
 
-  if #duplicates > 0 then
-    self:addError(#duplicates .. ' duplicate functions sharing name "'..duplicates.name..'."')
-    for index,position in ipairs(duplicates) do
-      self:addError(index .. ': ', {position=position})
+  -- Report error. Since we list the number of duplicates, we do this as a second pass.
+  for name, duplicate_positions in pairs(duplicates) do
+    if #duplicate_positions > 0 then
+      self:addError(#duplicate_positions .. ' duplicate functions sharing name "'..name..'."')
+      for index,position in ipairs(duplicate_positions) do
+        self:addError(index .. ': ', {position=position})
+      end
     end
   end
-  
+
   for i = 1,#ast do
     self:codeFunction(ast[i])
   end
