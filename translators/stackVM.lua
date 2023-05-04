@@ -102,10 +102,6 @@ function Translator:codeExpression(ast)
     self:addCode('push')
     self:addCode(ast.value)
   elseif ast.tag == 'variable' then
-    if self.functions[ast.value] then
-      self:addError('Reading from variable "'..ast.value..'" with the same name as a function.', ast) 
-    end
-
     if self.variables[ast.value] == nil then
       self:addError('Trying to load from undefined variable "' .. ast.value .. '."', ast) 
     end
@@ -162,7 +158,7 @@ function Translator:codeAssignment(ast)
     self:codeExpression(ast.assignment)
     self:addCode('setArray')
   else
-    self:addError('Unknown write target type, tag was "'..tostring(ast.tag)..'."')
+    self:addError('Unknown write target type, tag was "'..tostring(ast.tag)..'."', ast)
   end
 end
 

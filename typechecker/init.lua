@@ -206,6 +206,8 @@ end
 function TypeChecker:checkExpression(ast, undefinedVariableOK)
   if ast.tag == 'number' or ast.tag == 'boolean' then
     return self:createType(ast.tag)
+  elseif ast.tag == 'functionCall' then
+    return self:createType('unknown')
   elseif ast.tag == 'variable' then
     local variableType = self:duplicateType(ast.value)
     

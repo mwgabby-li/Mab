@@ -495,4 +495,110 @@ function another function() {
   lu.assertEquals(#errors, 4)
 end
 
+function module:testIndirectRecursion()
+  local input =
+[[
+function even () {
+  if n ~= 0 {
+    n = n - 1;
+    return odd()
+  } else {
+    return true
+  }
+}
+function odd () {
+  if n ~= 0 {
+    n = n - 1;
+    return even()
+  } else {
+    return false
+  }
+}
+function entry point () {
+  n = 10;
+  return even()
+}
+]]
+
+
+  lu.assertEquals(self:fullTest(input), true)
+
+  input =
+[[
+function even () {
+  if n ~= 0 {
+    n = n - 1;
+    return odd()
+  } else {
+    return true
+  }
+}
+function odd () {
+  if n ~= 0 {
+    n = n - 1;
+    return even()
+  } else {
+    return false
+  }
+}
+function entry point () {
+  n = 11;
+  return even()
+}
+]]
+  lu.assertEquals(self:fullTest(input), false)
+  
+input =
+[[
+function even () {
+  if n ~= 0 {
+    n = n - 1;
+    return odd()
+  } else {
+    return true
+  }
+}
+function odd () {
+  if n ~= 0 {
+    n = n - 1;
+    return even()
+  } else {
+    return false
+  }
+}
+function entry point () {
+  n = 10;
+  return odd()
+}
+]]
+
+
+  lu.assertEquals(self:fullTest(input), false)
+
+  input =
+[[
+function even () {
+  if n ~= 0 {
+    n = n - 1;
+    return odd()
+  } else {
+    return true
+  }
+}
+function odd () {
+  if n ~= 0 {
+    n = n - 1;
+    return even()
+  } else {
+    return false
+  }
+}
+function entry point () {
+  n = 11;
+  return odd()
+}
+]]
+  lu.assertEquals(self:fullTest(input), true)
+end
+
 return module

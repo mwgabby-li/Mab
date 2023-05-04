@@ -369,7 +369,7 @@ end
 local result, errors = interpreter.execute(code, trace)
 print(string.format('         Execution %s: %0.2f milliseconds.', (result ~= nil and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
-if not result or #errors > 0 then
+if result == nil or #errors > 0 then
   for _, errorTable in ipairs(errors) do
     io.write(errorTable.message)
     io.write'\n\n'
