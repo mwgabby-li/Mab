@@ -149,8 +149,6 @@ writeTarget = Ct(variable * (delim.openArray * Cp() * expression * delim.closeAr
 functionCall = identifier * delim.openFunctionParameterList * delim.closeFunctionParameterList / nodeFunctionCall,
 
 statement = blockStatement +
-            -- Function calls are quicker to identify, so put them first
-            functionCall +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             writeTarget * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
             -- If
@@ -159,6 +157,8 @@ statement = blockStatement +
             KW'return' * Cp() * expression / nodeReturn +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
+            -- Have to put these here or function calls may not be made in if, return, or while statements...
+            functionCall +
             -- Print
             op.print * Cp() * expression / nodePrint,
 
