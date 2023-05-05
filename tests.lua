@@ -493,6 +493,35 @@ function another function() {
   
   local code, errors = module.toStackVM.translate(ast)
   lu.assertEquals(#errors, 4)
+  
+  input =
+[[function another function() {
+  return 33
+}
+
+function another function() {
+  return 42
+}
+
+function entry point() {
+  a = 1;
+  
+  a = 23 + another function();
+  return a
+}
+function entry point() {
+}
+
+
+function another function() {
+  return 3
+}
+]]
+  ast = module.parse(input)
+  lu.assertEquals(type(ast), 'table')
+  
+  code, errors = module.toStackVM.translate(ast)
+  lu.assertEquals(#errors, 7)
 end
 
 function module:testIndirectRecursion()
