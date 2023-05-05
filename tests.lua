@@ -167,16 +167,16 @@ function module:testLessonFourEdgeCases()
       bla bla
     ]]), nil)
   
-  lu.assertEquals(module.parse(wrapWithEntrypoint'#{##}')[1].block, {tag = 'emptyStatement'})
+  lu.assertEquals(module.parse(wrapWithEntrypoint'#{##}')[1].body.body, {tag = 'emptyStatement'})
   
-  lu.assertEquals(module.parse(wrapWithEntrypoint'#{#{#}')[1].block, {tag = 'emptyStatement'})
+  lu.assertEquals(module.parse(wrapWithEntrypoint'#{#{#}')[1].body.body, {tag = 'emptyStatement'})
   
   lu.assertEquals(module.parse(wrapWithEntrypoint
     [[
       #{
       x=1
       #}
-    ]])[1].block, {tag = 'emptyStatement'})
+    ]])[1].body.body, {tag = 'emptyStatement'})
   
   lu.assertEquals(self:fullTest(
     [[
