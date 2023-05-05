@@ -172,4 +172,16 @@ function common.copyObjectNoSelfReferences(object)
     return result
 end
 
+function common.hash(string, start)
+  start = start or 1484741823
+  assert(#string <= 1000000, "Hash fail, {string:byte(1,-1) doesn't work with strings over 1 million bytes long.")
+  local stringBytes = {string:byte(1,-1)}
+  local hash = ~(start & #string)
+  for i = 1,#stringBytes do
+    local byte = stringBytes[i]
+    hash = ~(hash & ((hash<<5) + (hash >>2))) + byte
+  end
+  return hash
+end
+
 return common
