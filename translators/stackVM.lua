@@ -162,9 +162,15 @@ function Translator:codeAssignment(ast)
   end
 end
 
+function Translator:codeBlock(ast)
+  self:codeStatement(ast.body)
+end
+
 function Translator:codeStatement(ast)
   if ast.tag == 'emptyStatement' then
     return
+  elseif ast.tag == 'block' then
+    self:codeBlock(ast)
   elseif ast.tag == 'statementSequence' then
     self:codeStatement(ast.firstChild)
     self:codeStatement(ast.secondChild)
@@ -183,19 +189,19 @@ function Translator:codeStatement(ast)
     self:codeExpression(ast.expression)
     local skipIfFixup = self:addJump('jumpIfFalse')
     -- Inside of if
-    self:codeStatement(ast.block)
-    if ast.elseBlock then
+    self:codeStatement(ast.body)
+    if ast.elseBody then
       -- If else, we need an instruction at the end of
-      -- the 'if' block to jump past the 'else' block
+      -- the 'if' body to jump past the 'else' body
       local skipElseFixup = self:addJump('jump')
 
       -- And our target for failing the 'if' is this 'else,'
       -- so set its target here after the jump to the end of 'else.'
       self:fixupJump(skipIfFixup)
       -- Fill out the 'else'
-      self:codeStatement(ast.elseBlock)
+      self:codeStatement(ast.elseBody)
 
-      -- Finally, set the 'skip else' jump to here, after the 'else' block
+      -- Finally, set the 'skip else' jump to here, after the 'else' body
       self:fixupJump(skipElseFixup)
     else
       self:fixupJump(skipIfFixup)
@@ -204,7 +210,7 @@ function Translator:codeStatement(ast)
     local whileStart = self:currentInstructionIndex()
     self:codeExpression(ast.expression)
     local skipWhileFixup = self:addJump 'jumpIfFalse'
-    self:codeStatement(ast.block)
+    self:codeStatement(ast.body)
     self:addJump('jump', whileStart)
     self:fixupJump(skipWhileFixup)
   elseif ast.tag == 'print' then
@@ -217,7 +223,7 @@ end
 
 function Translator:codeFunction(ast)
   self.currentCode = self.functions[ast.name].code
-  self:codeStatement(ast.block)
+  self:codeStatement(ast.body)
   if self.currentCode[#self.currentCode] ~= 'return' then
     self:addCode('push')
     self:addCode(0)
@@ -227,7 +233,7 @@ function Translator:codeFunction(ast)
 end
 
 function Translator:translate(ast)
-  if ast.version ~= 3 then
+  if ast.version ~= 4 then
     self:addError("Aborting stack VM translation, AST version doesn't match. Update stack VM translation!", ast)
     return nil, self.errors
   end

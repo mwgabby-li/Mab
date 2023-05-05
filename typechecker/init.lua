@@ -286,6 +286,8 @@ end
 function TypeChecker:checkStatement(ast)
   if ast.tag == 'emptyStatement' then
     return
+  elseif ast.tag == 'block' then
+    self:checkStatement(ast.body)
   elseif ast.tag == 'statementSequence' then
     self:checkStatement(ast.firstChild)
     self:checkStatement(ast.secondChild)
@@ -332,9 +334,9 @@ function TypeChecker:checkStatement(ast)
       self:addError('if statements require a boolean value,' ..
                     ' or an expression evaluating to a boolean.', ast)
     end
-    self:checkStatement(ast.block)
-    if ast.elseBlock then
-      self:checkStatement(ast.elseBlock)
+    self:checkStatement(ast.body)
+    if ast.elseBody then
+      self:checkStatement(ast.elseBody)
     end
   elseif ast.tag == 'while' then
     local expressionType = self:checkExpression(ast.expression)
@@ -342,7 +344,7 @@ function TypeChecker:checkStatement(ast)
       self:addError('while loop conditionals require a boolean value,' ..
                     ' or an expression evaluating to a boolean.', ast)
     end
-    self:checkStatement(ast.block)
+    self:checkStatement(ast.body)
   elseif ast.tag == 'print' then
     self:checkExpression(ast.toPrint)
   else error 'invalid tree'
@@ -350,11 +352,11 @@ function TypeChecker:checkStatement(ast)
 end
 
 function TypeChecker:checkFunction(ast)
-  self:checkStatement(ast.block)
+  self:checkStatement(ast.body)
 end
 
 function TypeChecker:check(ast)
-  if ast.version ~= 3 then
+  if ast.version ~= 4 then
     self:addError("Aborting type check, AST version doesn't match. Update type checker!", ast)
     return
   end

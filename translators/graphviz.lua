@@ -172,8 +172,8 @@ function Translator:addNodeName(ast, nodeNames, depth)
   if ast.secondChild and ast.secondChild.tag ~= ast.tag then
     nodeNames[depth][#nodeNames[depth] + 1] = self:nodeName(ast.secondChild)
   end
-  if ast.elseBlock and ast.elseBlock.tag ~= ast.tag then
-    nodeNames[depth][#nodeNames[depth] + 1] = self:nodeName(ast.elseBlock)
+  if ast.elseBody and ast.elseBody.tag ~= ast.tag then
+    nodeNames[depth][#nodeNames[depth] + 1] = self:nodeName(ast.elseBody)
   end
 end
 
@@ -186,6 +186,9 @@ function Translator:nodeStatement(ast, depth, fromIf)
   if ast.tag == 'emptyStatement' then
     self:appendNode(ast, false, "Empty")
     return
+  elseif ast.tag == 'block' then
+    self:appendNode(ast, false, 'Block', ast.body)
+    self:nodeStatement(ast.body, depth)
   elseif ast.tag == 'statementSequence' then
     self:addNodeName(ast, self.statementNodeNames, depth)
 
@@ -206,16 +209,16 @@ function Translator:nodeStatement(ast, depth, fromIf)
     
     local tag = fromIf and 'Else If' or 'If'
     
-    self:appendNode(ast, false, tag, ast.expression, ast.block, ast.elseBlock)
+    self:appendNode(ast, false, tag, ast.expression, ast.body, ast.elseBody)
     self:nodeExpression(ast.expression)
-    self:nodeStatement(ast.block, depth + 1)
-    if ast.elseBlock then
-      self:nodeStatement(ast.elseBlock, depth, true)
+    self:nodeStatement(ast.body, depth + 1)
+    if ast.elseBody then
+      self:nodeStatement(ast.elseBody, depth, true)
     end
   elseif ast.tag == 'while' then
-    self:appendNode(ast, false, 'While', ast.expression, ast.block)
+    self:appendNode(ast, false, 'While', ast.expression, ast.body)
     self:nodeExpression(ast.expression)
-    self:nodeStatement(ast.block, depth + 1)    
+    self:nodeStatement(ast.body, depth + 1)    
   elseif ast.tag == 'print' then
     self:nodeExpression(ast.toPrint)
     self:appendNode(ast, false, 'Print', ast.toPrint)
@@ -230,12 +233,12 @@ function Translator:nodeFunction(ast)
     label = 'Entry Point'
   end
 
-  self:appendNode(ast, false, label, ast.block)
-  self:nodeStatement(ast.block)
+  self:appendNode(ast, false, label, ast.body)
+  self:nodeStatement(ast.body)
 end
 
 function Translator:translate(ast)
-  if ast.version ~= 3 then
+  if ast.version ~= 4 then
     self:addError("Aborting graphviz translation, AST version doesn't match. Update graphviz translation!", ast)
     return nil, self.errors
   end

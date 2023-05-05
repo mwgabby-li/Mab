@@ -291,7 +291,7 @@ function StackVM:run(code)
 end
 
 function StackVM:execute(code)
-  if code.version ~= 4 then
+  if code.version ~= 5 then
     self:addError("Aborting execution, code version doesn't match. Update StackVM interpreter!", ast)
     return nil, self.errors
   end

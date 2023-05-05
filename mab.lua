@@ -48,11 +48,12 @@ local nodeAssignment = node('assignment', 'writeTarget', 'position', 'assignment
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')
-local nodeIf = node('if', 'position', 'expression', 'block', 'elseBlock')
-local nodeWhile = node('while', 'position', 'expression', 'block')
+local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
+local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'value')
-local nodeFunction = node('function', 'position', 'name', 'block')
+local nodeFunction = node('function', 'position', 'name', 'body')
 local nodeFunctionCall = node('functionCall', 'name')
+local nodeBlock = node('block', 'body')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -139,7 +140,7 @@ functionDeclaration = KW'function' * Cp() * identifier * delim.openFunctionParam
 
 statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
 
-blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock,
+blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock / nodeBlock,
 
 elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
@@ -197,7 +198,7 @@ local function parse(input)
   local ast = grammar:match(input)
   
   if ast then
-    ast.version = 3
+    ast.version = 4
     return ast
   else    
     -- backup = true (if the error is at the beginning of a line, back up to the previous line)
@@ -288,7 +289,7 @@ end
 
 if parameters.show.AST then
   print '\nAST:'
-  print(pt.pt(ast, {'version', 'tag', 'name', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild', 'block', 'sentence', 'position'}))
+  print(pt.pt(ast, {'version', 'tag', 'name', 'identifier', 'assignment', 'value', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
 end
 
 if parameters.show.graphviz then
