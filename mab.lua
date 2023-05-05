@@ -1,9 +1,15 @@
 #!/usr/bin/env lua
 
+package.path = package.path .. ';1 Parser/?.lua'
+package.path = package.path .. ';1 Parser/Components/?.lua'
+package.path = package.path .. ';2 Type Checker/?.lua'
+package.path = package.path .. ';3 Translators/?.lua'
+package.path = package.path .. ';4 Interpreter/?.lua'
+
 local typeChecker = require 'typechecker'
-local toStackVM = require 'translators.stackVM'
-local graphviz = require 'translators.graphviz'
-local interpreter = require 'interpreter'
+local toStackVM = require 'toStackVM'
+local graphviz = require 'toGraphviz'
+local interpreter = require 'stackVM'
 
 local lpeg = require 'lpeg'
 local pt = require 'External.pt'
@@ -211,8 +217,6 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   arg[1] = nil
   local lu = require 'External.luaunit'
   testFrontend = require 'tests':init(parse, typeChecker, toStackVM, interpreter)
-  testNumerals = require 'numeral.tests'
-  testIdentifiers = require 'identifier.tests'
 
   -- Close the grammar (it's just a table at this point)
   grammar = lpeg.P(grammar)
