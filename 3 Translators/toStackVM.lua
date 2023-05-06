@@ -1,6 +1,7 @@
 local module = {}
 local literals = require 'literals'
 local l_op = literals.op
+local common = require 'common'
 
 local Translator = {}
 
@@ -223,7 +224,7 @@ end
 
 function Translator:codeFunction(ast)
   self.currentCode = self.functions[ast.name].code
-  self:codeStatement(ast.body)
+  self:codeStatement(ast.block)
   if self.currentCode[#self.currentCode] ~= 'return' then
     self:addCode('push')
     self:addCode(0)
@@ -233,11 +234,10 @@ function Translator:codeFunction(ast)
 end
 
 function Translator:translate(ast)
-  if ast.version ~= 4 then
-    self:addError("Aborting stack VM translation, AST version doesn't match. Update stack VM translation!", ast)
+  if not common.verifyVersionAndReportError(self, 'stack VM translation', ast, 'AST', 2614924261) then
     return nil, self.errors
   end
-  
+
   local duplicates = {}
 
   for i = 1,#ast do
@@ -276,7 +276,7 @@ function Translator:translate(ast)
     self:addError('No entry point found. (Program must contain a function named "entry point.")')
     return nil, self.errors
   else
-    entryPoint.code.version = 1 + ast.version
+    entryPoint.code.version = common.toStackVMVersionHash()
     return entryPoint.code, self.errors
   end
 end

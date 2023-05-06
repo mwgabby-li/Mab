@@ -43,7 +43,7 @@ local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'value')
-local nodeFunction = node('function', 'position', 'name', 'body')
+local nodeFunction = node('function', 'position', 'name', 'block')
 local nodeFunctionCall = node('functionCall', 'name')
 local nodeBlock = node('block', 'body')
 
@@ -195,7 +195,7 @@ function module.parse(input, pegdebug)
   local ast = grammar:match(input)
 
   if ast then
-    ast.version = 4
+    ast.version = common.parserVersionHash()
     return ast
   else
     -- backup = true (if the error is at the beginning of a line, back up to the previous line)

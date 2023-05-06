@@ -172,6 +172,41 @@ function common.copyObjectNoSelfReferences(object)
     return result
 end
 
+function common.verifyVersionAndReportError(phase, name, input, inputName, expected)
+  if input.version == expected then
+    return true
+  else
+    phase:addError('Aborting '..name..', '.. inputName.. " version doesn't match. Update " .. name .. '!\n\t(Expected: ' .. expected .. ' Actual: ' ..input.version..'.)', input)
+    return false
+  end
+end
+
+local parserVersionHash = false
+function common.parserVersionHash()
+  if not parserVersionHash then
+    local file = io.open('1 Parser/parser.lua', 'r')
+    local parser = file:read('*all')
+    file:close()
+    -- Remove \r so that the hash will be the same on Windows and Linux/MacOS
+    parser:gsub('\r', '')
+    parserVersionHash = common.hash(parser)
+  end
+  return parserVersionHash
+end
+
+local toStackVMVersionHash = false
+function common.toStackVMVersionHash()
+  if not toStackVMVersionHash then
+    local file = io.open('3 Translators/toStackVM.lua', 'r')
+    local translator = file:read('*all')
+    file:close()
+    -- Remove \r so that the hash will be the same on Windows and Linux/MacOS
+    translator:gsub('\r', '')
+    toStackVMVersionHash = common.hash(translator, common.parserVersionHash())
+  end
+  return toStackVMVersionHash
+end
+
 function common.hash(string, start)
   start = start or 1484741823
   assert(#string <= 1000000, "Hash fail, {string:byte(1,-1) doesn't work with strings over 1 million bytes long.")
@@ -179,9 +214,16 @@ function common.hash(string, start)
   local hash = ~(start & #string)
   for i = 1,#stringBytes do
     local byte = stringBytes[i]
-    hash = ~(hash & ((hash<<5) + (hash >>2))) + byte
+    
+    addByte = (hash<<5) + ((0xFFFFFFFF & hash) >>2) + byte
+    
+    hash = (hash | addByte) & (0xFFFFFFFF & (~(hash & addByte)))
   end
   return hash
 end
+
+-- Calculate these here so that compile timings don't reflect hashing a file.
+common.parserVersionHash()
+common.toStackVMVersionHash()
 
 return common

@@ -1,5 +1,6 @@
 local module = {}
 local l_op = require('literals').op
+local common = require 'common'
 
 local TypeChecker = {}
 
@@ -352,15 +353,14 @@ function TypeChecker:checkStatement(ast)
 end
 
 function TypeChecker:checkFunction(ast)
-  self:checkStatement(ast.body)
+  self:checkStatement(ast.block)
 end
 
 function TypeChecker:check(ast)
-  if ast.version ~= 4 then
-    self:addError("Aborting type check, AST version doesn't match. Update type checker!", ast)
-    return
+  if not common.verifyVersionAndReportError(self, 'type check', ast, 'AST', 2614924261) then
+    return nil, self.errors
   end
-  
+
   for i = 1, #ast do
     self:checkFunction(ast[i])
   end

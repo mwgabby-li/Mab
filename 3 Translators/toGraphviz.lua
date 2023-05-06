@@ -1,5 +1,6 @@
 local module = {}
 local literals = require 'literals'
+local common = require 'common'
 local op = literals.op
 
 local Translator = {}
@@ -233,13 +234,12 @@ function Translator:nodeFunction(ast)
     label = 'Entry Point'
   end
 
-  self:appendNode(ast, false, label, ast.body)
-  self:nodeStatement(ast.body)
+  self:appendNode(ast, false, label, ast.block)
+  self:nodeStatement(ast.block)
 end
 
 function Translator:translate(ast)
-  if ast.version ~= 4 then
-    self:addError("Aborting graphviz translation, AST version doesn't match. Update graphviz translation!", ast)
+  if not common.verifyVersionAndReportError(self, 'graphviz translation', ast, 'AST', 2614924261) then
     return nil, self.errors
   end
 

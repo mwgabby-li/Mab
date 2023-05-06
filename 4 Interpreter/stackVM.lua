@@ -291,11 +291,10 @@ function StackVM:run(code)
 end
 
 function StackVM:execute(code)
-  if code.version ~= 5 then
-    self:addError("Aborting execution, code version doesn't match. Update StackVM interpreter!", ast)
+  if not common.verifyVersionAndReportError(self, 'stack VM interpreter', code, 'code', 351634453) then
     return nil, self.errors
   end
-  
+
   self:run(code)
   return self.stack[self.top], self.errors
 end
