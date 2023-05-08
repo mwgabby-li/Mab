@@ -57,6 +57,7 @@ function StackVM:addError(message)
   ast = ast or {}
   self.errors[#self.errors + 1] = {
     message = message,
+    pc = self.pc,
   }
 end
 
@@ -217,7 +218,7 @@ function StackVM:run(code)
       self:traceCustom(code[pc] .. ' ' .. '[' .. index .. '] = ' .. tostring(value))
 
       if index > array.size or index < 1 then
-        error('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
+        self:addError('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
       end
       
       -- Set the array to this value
@@ -238,7 +239,7 @@ function StackVM:run(code)
       self:popStack(1)
       
       if index > array.size or index < 1 then
-        error('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
+        self:addError('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
       end
       
       -- Set the top of the stack to the value of this index of the array.
@@ -292,7 +293,8 @@ function StackVM:run(code)
       self:traceStack()
       pc = pc + 1
       self:run(code[pc])
-    else error('Unknown instruction "'..code[pc]..'."')
+    else
+      self:addError('Unknown instruction "'..code[pc]..'."')
     end
     self:traceStack()
     pc = pc + 1

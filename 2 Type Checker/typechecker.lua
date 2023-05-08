@@ -372,7 +372,8 @@ function TypeChecker:checkStatement(ast)
     self:checkStatement(ast.body)
   elseif ast.tag == 'print' then
     self:checkExpression(ast.toPrint)
-  else error 'invalid tree'
+  else
+    self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
   end
 end
 

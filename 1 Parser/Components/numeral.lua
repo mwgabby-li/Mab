@@ -3,7 +3,7 @@ local lpeg = require 'lpeg'
 -- Patterns
 local P, R, S = lpeg.P, lpeg.R, lpeg.S
 -- Captures
-local  C, Cc = lpeg.C, lpeg.Cc
+local  C, Cc, Cmt = lpeg.C, lpeg.Cc, lpeg.Cmt
 
 local endToken = require('common').endToken
 
@@ -46,18 +46,24 @@ end
 local baseStart = '0' * (baseStartDigit / digitToBase) * P' '^-1
 local baseNumeral = (baseStart * C(baseDigit^1))
 
-local function toNumberWithUnary(base, num)
+local function toNumberWithUnary(subject, position, base, num)
   -- Remove optional space separators/any captured trailing spaces.
   num = num:gsub('%s+', '')
 
   if not base or base > 1 then
-    return tonumber(num, base)
+    local number = tonumber(num, base)
+    if number then
+      return true, number
+    else
+      return false
+    end
   else
     if #(num:gsub('1', '')) == 0 then
-      return #num
-    else error('invalid unary number "' .. num .. '"')
+      return true, #num
+    else
+      return false
     end
   end
 end
 
-return (baseNumeral + decimalNumeral) / toNumberWithUnary * endToken
+return Cmt(baseNumeral + decimalNumeral, toNumberWithUnary) * endToken
