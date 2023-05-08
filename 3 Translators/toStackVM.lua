@@ -91,6 +91,15 @@ function Translator:variableToNumber(variable)
   return number
 end
 
+function Translator:findLocalVariable(variable)
+  local localVariables = self.localVariables
+  for i=#localVariables,1,-1 do
+    if variable == localVariables[i] then
+      return i
+    end
+  end
+end
+
 function Translator:codeFunctionCall(ast)
   local function_ = self.functions[ast.name]
   if not function_ then
@@ -106,11 +115,16 @@ function Translator:codeExpression(ast)
     self:addCode('push')
     self:addCode(ast.value)
   elseif ast.tag == 'variable' then
-    if self.variables[ast.value] == nil then
+    local index = self:findLocalVariable(ast.value)
+    if index then
+      self:addCode'loadLocal'
+      self:addCode(index)
+    elseif self.variables[ast.value] then
+      self:addCode('load')
+      self:addCode(self:variableToNumber(ast.value))
+    else
       self:addError('Trying to load from undefined variable "' .. ast.value .. '."', ast) 
     end
-    self:addCode('load')
-    self:addCode(self:variableToNumber(ast.value))
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
   elseif ast.tag == 'arrayElement' then
@@ -153,9 +167,16 @@ function Translator:codeAssignment(ast)
     if self.functions[ast.writeTarget.value] then
       self:addError('Assigning to variable "'..ast.writeTarget.value..'" with the same name as a function.', ast.writeTarget) 
     end
+    
     self:codeExpression(ast.assignment)
-    self:addCode('store')
-    self:addCode(self:variableToNumber(ast.writeTarget.value))
+    local index = self:findLocalVariable(ast.writeTarget.value)
+    if index then
+      self:addCode('storeLocal')
+      self:addCode(index)
+    else
+      self:addCode('store')
+      self:addCode(self:variableToNumber(ast.writeTarget.value))
+    end
   elseif writeTarget.tag == 'arrayElement' then
     self:codeExpression(ast.writeTarget.array)
     self:codeExpression(ast.writeTarget.index)

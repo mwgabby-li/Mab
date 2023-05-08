@@ -799,7 +799,41 @@ function module:testDefaultValueForLocalVariables()
   lu.assertEquals(self:fullTest(input), 1)
 end
 
+function module:testMixingGlobalsAndLocals()
+  local input =
+[[function -> number: helper {
+  return 10
+}
+
+function -> number: entry point {
+  number:x = 10;
+  number:y;
+  
+  global number:z = 12;
+    
+  return 1 + helper() + z
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 23)
+end
+
 -- test local variable usage
+function module:testLocalVariableUsage()
+  local input =
+[[function -> number: entry point {
+  number:x = 10;
+  number:y = 20;
+  {
+    number:x = 30;
+    y = x + 3;
+  };
+  return y
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 33)
+end
 
 -- test local variable name collision errors
 

@@ -111,6 +111,7 @@ end
 
 function StackVM:run(code)
   local pc = 1
+  local base = self.top
   while pc <= #code do
     --[[
     io.write '--> '
@@ -185,10 +186,23 @@ function StackVM:run(code)
       self.top = self.top + 1
       pc = pc + 1
       self.stack[self.top] = self.memory[code[pc] ]
+    elseif code[pc] == 'loadLocal' then
+      self:traceTwoCodes(code, pc)
+      -- Get the stack ready to place the value
+      self.top = self.top + 1
+      -- Get the next instruction, which will have the local's index
+      pc = pc + 1
+      -- Set the top of the stack to the local variable from our frame
+      self.stack[self.top] = self.stack[base + code[pc] ]
     elseif code[pc] == 'store' then
       self:traceTwoCodesAndStack(code, pc)
       pc = pc + 1
       self.memory[code[pc] ] = self.stack[self.top]
+      self:popStack(1)
+    elseif code[pc] == 'storeLocal' then
+      self:traceTwoCodesAndStack(code, pc)
+      pc = pc + 1
+      self.stack[base + code[pc] ] = self.stack[self.top]
       self:popStack(1)
     elseif code[pc] == 'newArray' then
       self:traceCustom(code[pc])

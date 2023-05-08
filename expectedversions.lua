@@ -15,5 +15,5 @@ local module = { AST = {}, code = {}}
 module.AST.TypeChecker = 3498909003
 module.AST.GraphViz = 3498909003
 module.AST.StackVM = 3498909003
-module.code.StackVM = 1821081575
+module.code.StackVM = 800835718
 return module
