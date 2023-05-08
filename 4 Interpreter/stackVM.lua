@@ -307,6 +307,11 @@ function StackVM:execute(code)
   end
 
   self:run(code)
+  
+  if self.top ~= 1 then
+    self:addError('Expected stack size of 1 at the end of the program, but stack size is '..self.top..'. Internal error!')
+  end
+  
   return self.stack[self.top], self.errors
 end
 
