@@ -148,8 +148,9 @@ statement = blockStatement +
             KW'return' * Cp() * expression / nodeReturn +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
-            -- Have to put these here or function calls may not be made in if, return, or while statements...
-            functionCall +
+            -- Call keyword is a solution for functions as statements and whitespace in identifiers,
+            -- while retaining the ability of identifiers to start with keywords.
+            KW'call' * functionCall +
             -- Print
             op.print * Cp() * expression / nodePrint,
 
