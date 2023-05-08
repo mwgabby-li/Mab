@@ -6,7 +6,7 @@ local identifierPattern = require 'identifier'
 
 local tokens = require 'tokens'
 local op = tokens.op
-local KW = tokens.KW
+local KW, KWc = tokens.KW, tokens.KWc
 local sep = tokens.sep
 local delim = tokens.delim
 local I = common.I
@@ -37,14 +37,16 @@ end
 
 local nodeVariable = node('variable', 'position', 'value')
 local nodeAssignment = node('assignment', 'writeTarget', 'position', 'assignment')
+local nodeNewVariable = node('newVariable', 'scope', 'typeExpression', 'position', 'value', 'assignment')
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'value')
-local nodeFunction = node('function', 'position', 'name', 'block')
+local nodeFunction = node('function', 'typeExpression', 'position', 'name', 'block')
 local nodeFunctionCall = node('functionCall', 'name')
+local nodeTypeExpression = node('typeExpression', 'position', 'typeName')
 local nodeBlock = node('block', 'body')
 
 local function nodeStatementSequence(first, rest)
@@ -121,13 +123,15 @@ local functionDeclaration = V'functionDeclaration'
 -- Something that can be written to, i.e. assigned to. AKA 'left-hand side'
 local writeTarget = V'writeTarget'
 
+local typeExpression = V'typeExpression'
+
 local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
 'program',
 program = endToken * Ct(functionDeclaration^1) * -1,
 
-functionDeclaration = KW'function' * Cp() * identifier * delim.openFunctionParameterList * delim.closeFunctionParameterList * blockStatement / nodeFunction,
+functionDeclaration = KW'function' * sep.functionResult * typeExpression * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
 
 statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
 
@@ -142,6 +146,8 @@ functionCall = identifier * delim.openFunctionParameterList * delim.closeFunctio
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             writeTarget * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
+            -- New variable
+            (KWc'global' + KWc'local' + Cc'local') * typeExpression * sep.newVariable * Cp() * identifier * (op.assign * expression)^-1 / nodeNewVariable +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
@@ -153,6 +159,8 @@ statement = blockStatement +
             KW'call' * functionCall +
             -- Print
             op.print * Cp() * expression / nodePrint,
+
+typeExpression = Cp() * (KWc'boolean' + KWc'number' + Cc'unknown') / nodeTypeExpression,
 
 boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
 

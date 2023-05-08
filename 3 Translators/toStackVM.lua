@@ -37,6 +37,7 @@ function Translator:new(o)
     functions = {},
     variables = {},
     numVariables = 0,
+    localVariables = {},
   }
   self.__index = self
   setmetatable(o, self)
@@ -166,7 +167,21 @@ function Translator:codeAssignment(ast)
 end
 
 function Translator:codeBlock(ast)
-  self:codeStatement(ast.body)
+  if self.codingFunction then
+    self.codingFunction = nil
+    self:codeStatement(ast.body)
+  else
+    local localsBeforeBlock = #self.localVariables
+    self:codeStatement(ast.body)
+    local numToRemove = #self.localVariables - localsBeforeBlock
+    if numToRemove > 0 then
+      for i = 1,numToRemove do
+        table.remove(self.localVariables)
+      end
+      self:addCode'pop'
+      self:addCode(numToRemove)
+    end
+  end
 end
 
 function Translator:codeStatement(ast)
@@ -180,11 +195,41 @@ function Translator:codeStatement(ast)
   elseif ast.tag == 'return' then
     self:codeExpression(ast.sentence)
     self:addCode('return')
+    -- Add the number of locals at this time so we can update the stack.
+    self:addCode(#self.localVariables)
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
     -- Discard return value for function statements, since it's not used by anything.
     self:addCode('pop')
     self:addCode(1)
+  elseif ast.tag == 'newVariable' then
+    -- Both global and local need their expression set up
+    if ast.assignment then
+      self:codeExpression(ast.assignment)
+    -- Default values otherwise!
+    else
+      if ast.typeExpression then
+        if ast.typeExpression.typeName == 'number' then
+          self:addCode 'push'
+          self:addCode(0)
+        elseif ast.typeExpression.typeName == 'boolean' then
+          self:addCode 'push'
+          self:addCode(false)
+        else
+          self:addError('No type for variable "' .. ast.value .. '."', ast)
+          self:addCode 'push'
+          self:addCode(0)
+        end
+      end
+    end
+    
+    if ast.scope == 'local' then
+      self.localVariables[#self.localVariables + 1] = ast.value
+    -- TODO: Needs to check for errors: name collisions. Any others?
+    else
+      self:addCode('store')
+      self:addCode(self:variableToNumber(ast.value))
+    end
   elseif ast.tag == 'assignment' then
     self:codeAssignment(ast)
   elseif ast.tag == 'if' then
@@ -226,11 +271,13 @@ end
 
 function Translator:codeFunction(ast)
   self.currentCode = self.functions[ast.name].code
+  self.codingFunction = true
   self:codeStatement(ast.block)
   if self.currentCode[#self.currentCode] ~= 'return' then
     self:addCode('push')
     self:addCode(0)
     self:addCode('return')
+    self:addCode(0)
   end
   self.currentCode = nil
 end

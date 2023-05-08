@@ -143,7 +143,7 @@ end
 
 
 local function wrapWithEntrypoint(string)
-  return 'function ' .. entryPointName .. '() {' .. string .. '}'
+  return 'function -> number: '.. entryPointName ..' {' .. string .. '}'
 end
 
 function module:fullTest(input, addEntryPoint)
@@ -162,7 +162,11 @@ function module:fullTest(input, addEntryPoint)
   if code == nil or #errors > 0 then
     return 'Translation failed!'
   end
-  return module.interpreter.execute(code)
+  local result, errors = module.interpreter.execute(code)
+  if #errors ~= 0 then
+    return 'Running failed!'
+  end  
+  return result
 end
 
 function module:init(parse, typeChecker, toStackVM, interpreter)
@@ -289,6 +293,7 @@ end
 function module:testLessonFourEdgeCases()
   local ast = module.parse(wrapWithEntrypoint('returned = 10; return returned'))
   local code = module.toStackVM.translate(ast)
+  lu.assertNotEquals(code, nil)
   local result = module.interpreter.execute(code)
   lu.assertEquals(result, 10)
   
@@ -304,16 +309,16 @@ function module:testLessonFourEdgeCases()
       bla bla
     ]]), nil)
   
-  lu.assertEquals(module.parse(wrapWithEntrypoint'#{##}')[1].body.body, {tag = 'emptyStatement'})
+  lu.assertEquals(module.parse(wrapWithEntrypoint'#{##}')[1].block.body, {tag = 'emptyStatement'})
   
-  lu.assertEquals(module.parse(wrapWithEntrypoint'#{#{#}')[1].body.body, {tag = 'emptyStatement'})
+  lu.assertEquals(module.parse(wrapWithEntrypoint'#{#{#}')[1].block.body, {tag = 'emptyStatement'})
   
   lu.assertEquals(module.parse(wrapWithEntrypoint
     [[
       #{
       x=1
       #}
-    ]])[1].body.body, {tag = 'emptyStatement'})
+    ]])[1].block.body, {tag = 'emptyStatement'})
   
   lu.assertEquals(self:fullTest(
     [[
@@ -335,14 +340,14 @@ function module:testLessonFourEdgeCases()
 end
 
 function module:testNot()
-    local input = 'return ! (1.5~=0)'
-    lu.assertEquals(self:fullTest(input, true), false)
+    local input = 'function -> boolean:' .. entryPointName .. ' { return ! (1.5~=0) }'
+    lu.assertEquals(self:fullTest(input), false)
   
-    input = 'return ! ! (167~=0)'
-    lu.assertEquals(self:fullTest(input, true), true)
+    input = 'function -> boolean:' .. entryPointName .. ' { return ! ! (167~=0) }'
+    lu.assertEquals(self:fullTest(input), true)
     
-    input = 'return!!!(12412.435~=0)'
-    lu.assertEquals(self:fullTest(input, true), false)
+    input = 'function -> boolean:' .. entryPointName .. ' { return!!!(12412.435~=0) }'
+    lu.assertEquals(self:fullTest(input), false)
 end
 
 function module:testIf()
@@ -514,6 +519,7 @@ return b
   local ast = module.parse(wrapWithEntrypoint(shortCircuit))
   local code = module.toStackVM.translate(ast)
   local trace = {}
+  lu.assertNotEquals(code, nil)
   local result = module.interpreter.execute(code, trace)
   local divide = false
   for i, v in ipairs(trace) do
@@ -549,7 +555,7 @@ end
 
 function module:testWhile()
   local input =
-[[function entry point() {
+[[function -> number: entry point {
   a = 1;
   b = 10;
   while a < b {
@@ -564,7 +570,7 @@ end
 
 function module:testArrays()
   local input =
-[[function entry point() {
+[[function -> boolean: entry point {
   array = new[2][2] true;
   array[1][1] = false;
 
@@ -581,7 +587,7 @@ end
 
 function module:testEntryPointNameExclude()
   local input =
-[[function entry point() {
+[[function -> number: entry point {
   entry point = 12
 }
 ]]
@@ -591,11 +597,11 @@ end
 function module:testFunctionCall()
   local input =
 [[
-function another function() {
+function -> number: another function {
   return 12
 }
 
-function entry point() {
+function -> number: entry point {
   return 24 + another function();
 }
 ]]
@@ -605,22 +611,22 @@ end
 
 function module:testDuplicateFunctions()
   local input =
-[[function another function() {
+[[function -> number: another function {
   return 33
 }
 
-function another function() {
+function -> number: another function {
   return 42
 }
 
-function entry point() {
+function -> number: entry point {
   a = 1;
   
   a = 23 + another function();
   return a
 }
 
-function another function() {
+function -> number: another function {
   return 3
 }
 ]]
@@ -632,25 +638,25 @@ function another function() {
   lu.assertEquals(#errors, 4)
   
   input =
-[[function another function() {
+[[function -> number: another function {
   return 33
 }
 
-function another function() {
+function -> number: another function {
   return 42
 }
 
-function entry point() {
+function -> number: entry point {
   a = 1;
   
   a = 23 + another function();
   return a
 }
-function entry point() {
+function -> number: entry point {
 }
 
 
-function another function() {
+function -> number: another function {
   return 3
 }
 ]]
@@ -663,12 +669,11 @@ end
 
 function module:testIndirectRecursion()
   local input =
-[[
-function entry point () {
+[[function -> boolean: entry point {
   n = 10;
   return even()
 }
-function even () {
+function -> boolean: even {
   if n ~= 0 {
     n = n - 1;
     return odd()
@@ -676,7 +681,7 @@ function even () {
     return true
   }
 }
-function odd () {
+function -> boolean: odd {
   if n ~= 0 {
     n = n - 1;
     return even()
@@ -691,11 +696,11 @@ function odd () {
 
   input =
 [[
-function entry point () {
+function -> boolean: entry point {
   n = 11;
   return even()
 }
-function even () {
+function -> boolean: even {
   if n ~= 0 {
     n = n - 1;
     return odd()
@@ -703,7 +708,7 @@ function even () {
     return true
   }
 }
-function odd () {
+function -> boolean: odd {
   if n ~= 0 {
     n = n - 1;
     return even()
@@ -716,11 +721,11 @@ function odd () {
   
 input =
 [[
-function entry point () {
+function -> boolean: entry point {
   n = 10;
   return odd()
 }
-function even () {
+function -> boolean: even {
   if n ~= 0 {
     n = n - 1;
     return odd()
@@ -728,7 +733,7 @@ function even () {
     return true
   }
 }
-function odd () {
+function -> boolean: odd {
   if n ~= 0 {
     n = n - 1;
     return even()
@@ -743,11 +748,11 @@ function odd () {
 
   input =
 [[
-function entry point () {
+function -> boolean: entry point {
   n = 11;
   return odd()
 }
-function even () {
+function -> boolean: even {
   if n ~= 0 {
     n = n - 1;
     return odd()
@@ -755,7 +760,7 @@ function even () {
     return true
   }
 }
-function odd () {
+function -> boolean: odd {
   if n ~= 0 {
     n = n - 1;
     return even()
@@ -766,5 +771,46 @@ function odd () {
 ]]
   lu.assertEquals(self:fullTest(input), true)
 end
+
+-- test local variables
+function module:testLocalVariableCreation()
+  local input =
+[[function -> number: entry point {
+  number:x = 1;
+  number:y = 2;
+  
+  return 10
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 10)
+end
+
+function module:testDefaultValueForLocalVariables()
+  local input =
+[[function -> number: entry point {
+  number:x = 10;
+  number:y;
+  
+  return 1
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 1)
+end
+
+-- test local variable usage
+
+-- test local variable name collision errors
+
+-- test function parameters
+
+-- test local variable/parameter name collision
+
+-- test arguments and parameter semantically?
+
+-- test main has no parameters
+
+-- test default argument
 
 return module

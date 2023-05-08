@@ -8,7 +8,8 @@ local function T(tokenize)
 end
 
 
-local module = { op = {}, delim = {}, sep = {}, kw = {}  }
+-- Operators, delimiters, separators, keywords, and keywords that capture the keyword.
+local module = { op = {}, delim = {}, sep = {}, kw = {}, kwc = {} }
 
 function module.KW(keyword)
   if not module.kw[keyword] then
@@ -16,6 +17,16 @@ function module.KW(keyword)
   end
 
   return module.kw[keyword]
+end
+
+function module.KWc(keyword)
+  -- Make sure it's recorded in the kw table
+  module.KW(keyword)
+
+  if not module.kwc[keyword] then
+    module.kwc[keyword] = C(keyword) * -lpeg.locale().alnum * endToken
+  end
+  return module.kwc[keyword]
 end
 
 -- Delimiters
@@ -31,6 +42,8 @@ module.delim.closeFunctionParameterList = T(l.delim.closeFunctionParameterList)
 
 -- Separators
 module.sep.statement = T(l.sep.statement)
+module.sep.newVariable = T(l.sep.newVariable)
+module.sep.functionResult = T(l.sep.functionResult)
 
 module.op.assign = T(l.op.assign)
 module.op.sum = T(C(P(l.op.add) + l.op.subtract))

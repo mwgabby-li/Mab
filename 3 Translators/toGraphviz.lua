@@ -203,6 +203,13 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:nodeExpression(ast.sentence)
   elseif ast.tag == 'functionCall' then
     self:appendNode(ast, false, ast.name .. '()')
+  elseif ast.tag == 'newVariable' then
+    if ast.assignment then
+      self:appendNode(ast, false, ast.scope .. ' ' .. ast.typeExpression.typeName ..': ' .. ast.value .. ' = ', ast.assignment)
+      self:nodeExpression(ast.assignment)    
+    else
+      self:appendNode(ast, false, ast.scope .. ' ' .. ast.typeExpression.typeName ..': ' .. ast.value)
+    end
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment)
     self:appendNode(ast, false, '=', ast.writeTarget, ast.assignment)
@@ -231,9 +238,9 @@ function Translator:nodeStatement(ast, depth, fromIf)
 end
 
 function Translator:nodeFunction(ast)
-  local label = 'Function\n\\"' .. ast.name ..'\\"'
+  local label = 'Function\n' .. '() ➔ ' .. ast.typeExpression.typeName .. ': ' .. ast.name
   if ast.name == literals.entryPointName then
-    label = 'Entry Point'
+    label = '() ➔ ' .. ast.typeExpression.typeName .. ': Entry Point'
   end
 
   self:appendNode(ast, false, label, ast.block)

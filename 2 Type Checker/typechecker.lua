@@ -124,7 +124,9 @@ TypeChecker.resultTypeUnaryOps = {
 
 function TypeChecker:new(o)
   o = o or {
+    currentFunction = '',
     variableTypes = {},
+    functionTypes = {},
     errors = {},
   }
   self.__index = self
@@ -210,7 +212,7 @@ function TypeChecker:checkExpression(ast, undefinedVariableOK)
   if ast.tag == 'number' or ast.tag == 'boolean' then
     return self:createType(ast.tag)
   elseif ast.tag == 'functionCall' then
-    return self:createType('unknown')
+    return self.functionTypes[ast.name]
   elseif ast.tag == 'variable' then
     local variableType = self:duplicateType(ast.value)
     
@@ -291,6 +293,22 @@ function TypeChecker:checkStatement(ast)
     return
   elseif ast.tag == 'block' then
     self:checkStatement(ast.body)
+  elseif ast.tag == 'newVariable' then
+    local assignmentType = self:createType('unknown')
+    if ast.assignment then
+      assignmentType = self:checkExpression(ast.assignment)
+      local variableType = self:createType(ast.typeExpression.typeName)
+      if not self:typeMatches(variableType, assignmentType) then
+        self:addError('Type of variable is ' .. self:toReadable(variableType), ast.typeExpression)
+        self:addError('But variable is being assigned to ' .. self:toReadable(assignmentType), ast)
+      end
+      
+      local inferredTypeTodo = variableType
+      
+      if ast.scope == 'global' then
+        self:addVariable(ast.value, inferredTypeTodo)
+      end
+    end
   elseif ast.tag == 'statementSequence' then
     self:checkStatement(ast.firstChild)
     self:checkStatement(ast.secondChild)
@@ -300,6 +318,10 @@ function TypeChecker:checkStatement(ast)
       self:addError('Could not determine type of return type.', ast)
     elseif returnType.dimension > 0 then
       self:addError('Trying to return an array type "'.. self:toReadable(returnType) .. '." Disallowed, sorry!', ast)
+    elseif not self:typeMatches(returnType, self.functionTypes[self.currentFunction]) then
+      self:addError('Mismatched types with return, function "' .. self.currentFunction .. '" returns "' ..
+                    self:toReadable(self.functionTypes[self.currentFunction]) .. '," but returning type "' ..
+                    self:toReadable(returnType) .. '."', ast)
     end
   elseif ast.tag == 'functionCall' then
     -- Actually, we can just ignore this. It doesn't need to match anything.
@@ -355,12 +377,23 @@ function TypeChecker:checkStatement(ast)
 end
 
 function TypeChecker:checkFunction(ast)
+  self.currentFunction = ast.name
   self:checkStatement(ast.block)
 end
 
 function TypeChecker:check(ast)
   if not common.verifyVersionAndReportError(self, 'type check', ast, 'AST', ExpectedASTVersion) then
     return nil, self.errors
+  end
+
+  for i = 1, #ast do
+    local functionType = self:createType(ast[i].typeExpression.typeName)
+    if self.functionTypes[ast[i].name] == nil then
+      self.functionTypes[ast[i].name] = functionType
+    elseif not self:typesMatch(self.functionTypes[ast[i].name], functionType) then
+      self:addError('Function "' .. ast[i].name .. '" redefined with type "' .. self:toReadable(functionType) ..
+                    ', was "' .. self:toReadable(self.functionTypes[ast[i].name])..'."')
+    end
   end
 
   for i = 1, #ast do

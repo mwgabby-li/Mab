@@ -12,8 +12,8 @@ local module = { AST = {}, code = {}}
 -- Do not update the hash unless there's a reasonable certainty of compatibility,
 -- the point is for it to be a reminder.
 -- Setting everything to latest makes the reminder worthless.
-module.AST.TypeChecker = 'ignore'
-module.AST.GraphViz = 'ignore'
-module.AST.StackVM = 'ignore'
-module.code.StackVM = 'ignore'
+module.AST.TypeChecker = 3498909003
+module.AST.GraphViz = 3498909003
+module.AST.StackVM = 3498909003
+module.code.StackVM = 1821081575
 return module

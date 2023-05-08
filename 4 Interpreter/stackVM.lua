@@ -278,7 +278,14 @@ function StackVM:run(code)
       io.write '\n'
       self:popStack(1)
     elseif code[pc] == 'return' then
-      self:traceUnaryOp(code[pc])
+      self:traceCustom('return' .. (code[pc] == 0 and '' or ', pop ' .. code[pc + 1]))
+      pc = pc + 1
+      local pop = code[pc]
+      for i=self.top - pop,self.top do
+        self.stack[i] = self.stack[i + pop]
+      end
+      self:popStack(pop)
+      self:traceStack()
       return
     elseif code[pc] == 'callFunction' then
       self:traceCustom(code[pc])
