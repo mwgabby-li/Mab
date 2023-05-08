@@ -1,5 +1,7 @@
 local common = require 'common'
 
+local ExpectedCodeVersion = require('expectedversions').code.StackVM
+
 local module = {}
 
 -- For if we want to align array elements by printed length
@@ -291,7 +293,7 @@ function StackVM:run(code)
 end
 
 function StackVM:execute(code)
-  if not common.verifyVersionAndReportError(self, 'stack VM interpreter', code, 'code', 351634453) then
+  if not common.verifyVersionAndReportError(self, 'stack VM interpreter', code, 'code', ExpectedCodeVersion) then
     return nil, self.errors
   end
 

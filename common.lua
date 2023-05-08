@@ -175,6 +175,9 @@ end
 function common.verifyVersionAndReportError(phase, name, input, inputName, expected)
   if input.version == expected then
     return true
+  elseif expected == 'ignore' then
+    print('WARNING! Ignoring version number for ' .. name ..'.' .. ' Version is ' .. input.version .. '.')
+    return true
   else
     phase:addError('Aborting '..name..', '.. inputName.. " version doesn't match. Update " .. name .. '!\n\t(Expected: ' .. expected .. ' Actual: ' ..input.version..'.)', input)
     return false

@@ -3,6 +3,8 @@ local literals = require 'literals'
 local l_op = literals.op
 local common = require 'common'
 
+local ExpectedASTVersion = require('expectedversions').AST.StackVM
+
 local Translator = {}
 
 local toName = {
@@ -234,7 +236,7 @@ function Translator:codeFunction(ast)
 end
 
 function Translator:translate(ast)
-  if not common.verifyVersionAndReportError(self, 'stack VM translation', ast, 'AST', 2614924261) then
+  if not common.verifyVersionAndReportError(self, 'stack VM translation', ast, 'AST', ExpectedASTVersion) then
     return nil, self.errors
   end
 

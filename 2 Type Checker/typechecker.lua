@@ -2,6 +2,8 @@ local module = {}
 local l_op = require('literals').op
 local common = require 'common'
 
+local ExpectedASTVersion = require('expectedversions').AST.TypeChecker
+
 local TypeChecker = {}
 
 TypeChecker.typeCompatibleBinaryOps = {
@@ -357,7 +359,7 @@ function TypeChecker:checkFunction(ast)
 end
 
 function TypeChecker:check(ast)
-  if not common.verifyVersionAndReportError(self, 'type check', ast, 'AST', 2614924261) then
+  if not common.verifyVersionAndReportError(self, 'type check', ast, 'AST', ExpectedASTVersion) then
     return nil, self.errors
   end
 
