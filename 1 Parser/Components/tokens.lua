@@ -7,7 +7,6 @@ local function T(tokenize)
   return tokenize * endToken
 end
 
-
 -- Operators, delimiters, separators, keywords, and keywords that capture the keyword.
 local module = { op = {}, delim = {}, sep = {}, kw = {}, kwc = {} }
 
@@ -30,20 +29,14 @@ function module.KWc(keyword)
 end
 
 -- Delimiters
-module.delim.openArray = T(l.delim.openArray)
-module.delim.closeArray = T(l.delim.closeArray)
-module.delim.openFactor = T(l.delim.openFactor)
-module.delim.closeFactor = T(l.delim.closeFactor)
-module.delim.openBlock = T(l.delim.openBlock)
-module.delim.closeBlock = T(l.delim.closeBlock)
-module.delim.openFunctionParameterList = T(l.delim.openFunctionParameterList)
-module.delim.closeFunctionParameterList = T(l.delim.closeFunctionParameterList)
-
+for key, delim in pairs(l.delim) do
+  module.delim[key] = T(delim)
+end
 
 -- Separators
-module.sep.statement = T(l.sep.statement)
-module.sep.newVariable = T(l.sep.newVariable)
-module.sep.functionResult = T(l.sep.functionResult)
+for key, separator in pairs(l.sep) do
+  module.sep[key] = T(separator)
+end
 
 module.op.assign = T(l.op.assign)
 module.op.sum = T(C(P(l.op.add) + l.op.subtract))
