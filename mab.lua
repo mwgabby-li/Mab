@@ -84,10 +84,12 @@ if parameters.show.input then
 end
 io.write 'Parsing...'
 local start = os.clock()
-local ast, errorMessage = parser.parse(input, parameters.pegdebug)
-print(string.format('         %s: %0.2f milliseconds.', ast and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+local pcallResult, ast, errorMessage = pcall(parser.parse, input, parameters.pegdebug)
+print(string.format('         %s: %0.2f milliseconds.', (pcallResult and ast) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
-if errorMessage then
+if not pcallResult then
+  print("Internal error: " .. ast)
+elseif errorMessage then
   io.stderr:write('Unable to continue ' .. errorMessage)
   io.stderr:write('Failed to generate AST from input.\n')
   return 1
@@ -95,17 +97,17 @@ end
 
 if parameters.show.AST then
   print '\nAST:'
-  print(pt.pt(ast, {'version', 'tag', 'scope', 'typeExpression', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
+  print(pt.pt(ast, {'version', 'tag', 'scope', 'parameters', 'typeExpression', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
 end
 
 if parameters.show.graphviz then
-  local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.graphviz, 'generating GraphViz file', 'AST')
+  local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.GraphViz, 'generating GraphViz file', 'AST')
 
   io.write '\nGraphviz AST...'
   start = os.clock()
-  local result, messageOrGraphviz, errors = pcall(graphviz.translate, ast)
-  print(string.format('    %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-  if not result or #errors > 0 then
+  local pcallResult, graphviz, errors = pcall(graphviz.translate, ast)
+  print(string.format('    %s: %0.2f milliseconds.', (pcallResult and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  if not pcallResult or #errors > 0 then
     if mismatchAndErrors then
       print(mismatchAndErrors)
     end
@@ -119,7 +121,7 @@ if parameters.show.graphviz then
         io.write'\n\n'
       end
     else
-      print('Internal error: ' .. messageOrGraphviz)
+      print('Internal error: ' .. graphviz)
     end
   else
     if mismatchNoErrors then
@@ -128,7 +130,7 @@ if parameters.show.graphviz then
     local prefix = input_file or 'temp'
     local dotFileName = prefix .. '.dot'
     local dotFile = io.open(dotFileName, 'wb')
-    dotFile:write(messageOrGraphviz)
+    dotFile:write(graphviz)
     dotFile:close()
     local svgFileName = prefix .. '.svg'
     os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
@@ -141,8 +143,8 @@ if parameters.typechecker then
 
   io.write '\nType checking...'
   start = os.clock()
-  local result, errors = pcall(typeChecker.check, ast)
-  print(string.format('   %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  local pcallResult, errors = pcall(typeChecker.check, ast)
+  print(string.format('   %s: %0.2f milliseconds.', (pcallResult and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
   if not result or #errors > 0 then
     if mismatchAndErrors then
       print(mismatchAndErrors)
@@ -170,17 +172,17 @@ end
 
 io.write '\nTranslating...'
 start = os.clock()
-local result, code, errors = pcall(toStackVM.translate, ast)
-print(string.format('     %s: %0.2f milliseconds.', (code and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+local pcallResult, code, errors = pcall(toStackVM.translate, ast)
+print(string.format('     %s: %0.2f milliseconds.', (pcallResult and code and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.StackVM, 'translating to StackVM code', 'AST')
 
-if not result or not code or #errors > 0 then
+if not pcallResult or not code or #errors > 0 then
   if mismatchAndErrors then
     print(mismatchAndErrors)
   end
 
-  if result then
+  if pcallResult then
     for _, errorTable in ipairs(errors) do
       -- backup = false (positions for type errors are precise)
       if errorTable.position then
@@ -209,7 +211,7 @@ if parameters.show.trace then
   trace = {}
 end
 local pcallResult, result, errors = pcall(interpreter.execute, code, trace)
-print(string.format('         Execution %s: %0.2f milliseconds.', (result ~= nil and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+print(string.format('         Execution %s: %0.2f milliseconds.', (pcallResult and result ~= nil and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(code, versions.code.StackVM, 'executing StackVM code', 'code')
 
