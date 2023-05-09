@@ -292,11 +292,13 @@ function Translator:codeFunction(ast)
   self.currentCode = self.functions[ast.name].code
   self.codingFunction = true
   self:codeStatement(ast.block)
-  if self.currentCode[#self.currentCode] ~= 'return' then
+  if self.currentCode[#self.currentCode - 1] ~= 'return' then
+    -- TODO First-class functions/closures... is this correct?
+    --      We might have more local variables than this? Or maybe it works differently?
     self:addCode('push')
     self:addCode(0)
     self:addCode('return')
-    self:addCode(0)
+    self:addCode(#self.localVariables)
   end
   self.currentCode = nil
 end
