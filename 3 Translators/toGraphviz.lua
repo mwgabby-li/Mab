@@ -3,8 +3,6 @@ local literals = require 'literals'
 local common = require 'common'
 local op = literals.op
 
-local ExpectedASTVersion = require('expectedversions').AST.GraphViz
-
 local Translator = {}
 
 function Translator:new(o)
@@ -248,10 +246,6 @@ function Translator:nodeFunction(ast)
 end
 
 function Translator:translate(ast)
-  if not common.verifyVersionAndReportError(self, 'graphviz translation', ast, 'AST', ExpectedASTVersion) then
-    return nil, self.errors
-  end
-
   for i = 1,#ast do
     self:nodeFunction(ast[i])
   end

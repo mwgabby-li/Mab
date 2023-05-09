@@ -12,6 +12,13 @@ local toStackVM = require 'toStackVM'
 local graphviz = require 'toGraphviz'
 local interpreter = require 'stackVM'
 
+local versions = {
+  AST = { TypeChecker = 34989090030,
+          GraphViz = 34989090030,
+          StackVM = 34989090030 },
+  code = { StackVM = 18881233680 },
+}
+
 local pt = require 'External.pt'
 local common = require 'common'
 
@@ -92,11 +99,88 @@ if parameters.show.AST then
 end
 
 if parameters.show.graphviz then
+  local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.graphviz, 'generating GraphViz file', 'AST')
+
   io.write '\nGraphviz AST...'
   start = os.clock()
-  local graphviz, errors = graphviz.translate(ast)
+  local result, messageOrGraphviz, errors = pcall(graphviz.translate, ast)
   print(string.format('    %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-  if #errors > 0 then
+  if not result or #errors > 0 then
+    if mismatchAndErrors then
+      print(mismatchAndErrors)
+    end
+    if result then
+      for _, errorTable in ipairs(errors) do
+        -- backup = false (positions for type errors are precise)
+        if errorTable.position then
+          io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
+        end
+        io.write(errorTable.message)
+        io.write'\n\n'
+      end
+    else
+      print('Internal error: ' .. messageOrGraphviz)
+    end
+  else
+    if mismatchNoErrors then
+      print(mismatchNoErrors)
+    end
+    local prefix = input_file or 'temp'
+    local dotFileName = prefix .. '.dot'
+    local dotFile = io.open(dotFileName, 'wb')
+    dotFile:write(messageOrGraphviz)
+    dotFile:close()
+    local svgFileName = prefix .. '.svg'
+    os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
+    os.execute('firefox "'.. svgFileName .. '" &')
+  end
+end
+
+if parameters.typechecker then
+  local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.TypeChecker, 'type checking', 'AST')
+
+  io.write '\nType checking...'
+  start = os.clock()
+  local result, errors = pcall(typeChecker.check, ast)
+  print(string.format('   %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  if not result or #errors > 0 then
+    if mismatchAndErrors then
+      print(mismatchAndErrors)
+    end
+    if result then
+      for _, errorTable in ipairs(errors) do
+        -- backup = false (positions for type errors are precise)
+        if errorTable.position then
+          io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
+        end
+        io.write(errorTable.message)
+        io.write'\n\n'
+      end
+    else
+      print("Internal error: "..errors)
+    end
+
+    return 1
+  elseif mismatchNoErrors then
+    print(mismatchNoErrors)
+  end
+else
+  print '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.'
+end
+
+io.write '\nTranslating...'
+start = os.clock()
+local result, code, errors = pcall(toStackVM.translate, ast)
+print(string.format('     %s: %0.2f milliseconds.', (code and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+
+local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.StackVM, 'translating to StackVM code', 'AST')
+
+if not result or not code or #errors > 0 then
+  if mismatchAndErrors then
+    print(mismatchAndErrors)
+  end
+
+  if result then
     for _, errorTable in ipairs(errors) do
       -- backup = false (positions for type errors are precise)
       if errorTable.position then
@@ -106,53 +190,11 @@ if parameters.show.graphviz then
       io.write'\n\n'
     end
   else
-    local prefix = input_file or 'temp'
-    local dotFileName = prefix .. '.dot'
-    local dotFile = io.open(dotFileName, 'wb')
-    dotFile:write(graphviz)
-    dotFile:close()
-    local svgFileName = prefix .. '.svg'
-    os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
-    os.execute('firefox "'.. svgFileName .. '" &')
-  end
-end
-
-if parameters.typechecker then
-  io.write '\nType checking...'
-  start = os.clock()
-  local errors = typeChecker.check(ast)
-  print(string.format('   %s: %0.2f milliseconds.', (#errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-  if #errors > 0 then
-    for _, errorTable in ipairs(errors) do
-      -- backup = false (positions for type errors are precise)
-      if errorTable.position then
-        io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
-      end
-      io.write(errorTable.message)
-      io.write'\n\n'
-    end
-
-    return 1
-  end
-else
-  print '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.'
-end
-
-io.write '\nTranslating...'
-start = os.clock()
-local code, errors = toStackVM.translate(ast)
-print(string.format('     %s: %0.2f milliseconds.', (code and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-
-if not code or #errors > 0 then
-  for _, errorTable in ipairs(errors) do
-    -- backup = false (positions for type errors are precise)
-    if errorTable.position then
-      io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
-    end
-    io.write(errorTable.message)
-    io.write'\n\n'
+    print("Internal error: "..code)
   end
   return 1
+elseif mismatchNoErrors then
+    print(mismatchNoErrors)
 end
 
 if parameters.show.code then
@@ -166,15 +208,26 @@ local trace = nil
 if parameters.show.trace then
   trace = {}
 end
-local result, errors = interpreter.execute(code, trace)
+local pcallResult, result, errors = pcall(interpreter.execute, code, trace)
 print(string.format('         Execution %s: %0.2f milliseconds.', (result ~= nil and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
-if result == nil or #errors > 0 then
-  for _, errorTable in ipairs(errors) do
-    io.write(errorTable.message)
-    io.write'\n\n'
+local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(code, versions.code.StackVM, 'executing StackVM code', 'code')
+
+if not pcallResult or result == nil or #errors > 0 then
+  if mismatchAndErrors then
+    print(mismatchAndErrors)
+  end
+  if pcallResult then
+    for _, errorTable in ipairs(errors) do
+      io.write(errorTable.message)
+      io.write'\n\n'
+    end
+  else
+    print("Internal error: "..result)
   end
   return 1
+elseif mismatchNoErrors then
+  print(mismatchNoErrors)
 end
 
 if parameters.show.trace then

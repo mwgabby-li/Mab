@@ -2,8 +2,6 @@ local module = {}
 local l_op = require('literals').op
 local common = require 'common'
 
-local ExpectedASTVersion = require('expectedversions').AST.TypeChecker
-
 local TypeChecker = {}
 
 TypeChecker.typeCompatibleBinaryOps = {
@@ -383,10 +381,6 @@ function TypeChecker:checkFunction(ast)
 end
 
 function TypeChecker:check(ast)
-  if not common.verifyVersionAndReportError(self, 'type check', ast, 'AST', ExpectedASTVersion) then
-    return nil, self.errors
-  end
-
   for i = 1, #ast do
     local functionType = self:createType(ast[i].typeExpression.typeName)
     if self.functionTypes[ast[i].name] == nil then
