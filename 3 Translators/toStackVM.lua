@@ -36,6 +36,8 @@ function Translator:new(o)
     variables = {},
     numVariables = 0,
     localVariables = {},
+    -- Set this to zero so the loop in newVariable will work even in top-level blocks.
+    blockBases = {[0] = 0},
   }
   self.__index = self
   setmetatable(o, self)
@@ -186,13 +188,21 @@ function Translator:codeAssignment(ast)
 end
 
 function Translator:codeBlock(ast)
+  -- TODO: First-class functions/closures, nested functions?
+  --       This is correct since return always pops all locals, so we don't need to do it twice!
+  --       However, this might change with first-class functions and closures.
   if self.codingFunction then
     self.codingFunction = nil
     self:codeStatement(ast.body)
   else
-    local localsBeforeBlock = #self.localVariables
+    -- The base of this block is one more than the current number of locals,
+    -- since the last local in the table, if any, is from the previous scope.
+    local numLocals = #self.localVariables
+    self.blockBases[#self.blockBases + 1] = numLocals + 1
     self:codeStatement(ast.body)
-    local numToRemove = #self.localVariables - localsBeforeBlock
+    local numToRemove = #self.localVariables - numLocals
+    self.blockBases[#self.blockBases] = nil
+    -- Remove the trailing numToRemove local variables from the table
     if numToRemove > 0 then
       for i = 1,numToRemove do
         table.remove(self.localVariables)
@@ -222,6 +232,16 @@ function Translator:codeStatement(ast)
     self:addCode('pop')
     self:addCode(1)
   elseif ast.tag == 'newVariable' then
+    if ast.scope == 'local' then
+      local numLocals = #self.localVariables
+      for i=numLocals,self.blockBases[#self.blockBases],-1 do
+        if self.localVariables[i] == ast.value then
+          self:addError('Variable "' .. ast.value .. '" already defined in this scope.', ast)
+          return
+        end
+      end
+    end
+
     -- Both global and local need their expression set up
     if ast.assignment then
       self:codeExpression(ast.assignment)
