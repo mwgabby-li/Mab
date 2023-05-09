@@ -44,8 +44,9 @@ local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'value')
-local nodeFunction = node('function', 'typeExpression', 'position', 'name', 'block')
-local nodeFunctionCall = node('functionCall', 'name')
+local nodeFunction = node('function', 'parameters', 'typeExpression', 'position', 'name', 'block')
+local nodeParameter = node('parameter', 'position', 'name', 'typeExpression')
+local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
 local nodeTypeExpression = node('typeExpression', 'position', 'typeName')
 local nodeBlock = node('block', 'body')
 
@@ -122,6 +123,11 @@ local identifier = V'identifier'
 local functionDeclaration = V'functionDeclaration'
 -- Something that can be written to, i.e. assigned to. AKA 'left-hand side'
 local writeTarget = V'writeTarget'
+-- Inputs specified in the function type declaration.
+local parameter = V'parameter'
+local parameters = V'parameters'
+-- Things passed to the function when it's invoked.
+local arguments = V'arguments'
 
 local typeExpression = V'typeExpression'
 
@@ -131,7 +137,9 @@ local grammar =
 'program',
 program = endToken * Ct(functionDeclaration^1) * -1,
 
-functionDeclaration = KW'function' * sep.functionResult * typeExpression * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
+functionDeclaration = KW'function' * parameters * sep.functionResult * typeExpression * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
+parameter = Cp() * identifier * sep.parameter * typeExpression / nodeParameter,
+parameters = Ct((parameter * (parameter)^0)^-1),
 
 statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
 
@@ -141,7 +149,8 @@ elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW
 
 variable = Cp() * identifier / nodeVariable,
 writeTarget = Ct(variable * (delim.openArray * Cp() * expression * delim.closeArray)^0) / foldArrayElement,
-functionCall = identifier * delim.openFunctionParameterList * delim.closeFunctionParameterList / nodeFunctionCall,
+functionCall = identifier * Cp() * delim.openFunctionParameterList * arguments * delim.closeFunctionParameterList / nodeFunctionCall,
+arguments = Ct((expression * (sep.argument * expression)^0)^-1),
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
@@ -185,6 +194,7 @@ sumExpr = Ct(termExpr * (Cp() * op.sum * termExpr)^0) / foldBinaryOps,
 notExpr = op.not_ * Cp() * notExpr / addUnaryOp + sumExpr,
 comparisonExpr = Ct(notExpr * (Cp() * op.comparison * notExpr)^0) / foldBinaryOps,
 logicExpr = Ct(comparisonExpr * (Cp() * op.logical * comparisonExpr)^0) / foldBinaryOps,
+-- Set this to the lowest one so nothing else has to change if a new one is added that's lower.
 expression = logicExpr,
 
 -- Avoid duplication of complicated patterns that are used more than once by defining them here

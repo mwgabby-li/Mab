@@ -885,6 +885,10 @@ input =
   lu.assertEquals(#errors, 2)
 end
 
+-- test function parameter count mismatch (zero when should be something, number when should be another number, something when should be zero.)
+
+-- test function parameter 
+
 -- test function parameters
 
 -- test local variable/parameter name collision

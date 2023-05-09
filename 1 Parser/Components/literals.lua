@@ -44,6 +44,8 @@ module.delim.closeFunctionParameterList = ')'
 --  Separators
 module.sep.statement = ';'
 module.sep.newVariable = ':'
+module.sep.parameter = ':'
+module.sep.argument = ','
 module.sep.functionResult = '->'
 
 module.entryPointName = 'entry point'
