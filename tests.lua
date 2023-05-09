@@ -835,7 +835,55 @@ function module:testLocalVariableUsage()
   lu.assertEquals(self:fullTest(input), 33)
 end
 
--- test local variable name collision errors
+function module:testLocalVariableShadowingAndNameCollision()
+  local input =
+[[function -> number: entry point {
+    :x = 10;
+    :y = 20;
+    {
+      :y = 30;
+      y = x + 3;
+    };
+    return y
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 20)
+  
+input =
+[[function -> number: entry point {
+    :x = 10;
+    :y = 20;
+    {
+      :y = 30;
+      y = y + 3;
+      return y
+    };
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 33)
+  
+input =
+[[function -> number: entry point {
+    :x = 10;
+    :x = 11;
+    :y = 20;
+    {
+      :y = 30;
+      :y = 10;
+      y = y + 3;
+      return y
+    };
+}
+]]
+  local ast = module.parse(input)
+  lu.assertNotEquals(ast, nil)
+    
+  local code, errors = module.toStackVM.translate(ast)
+  lu.assertNotEquals(errors, nil)
+  lu.assertEquals(#errors, 2)
+end
 
 -- test function parameters
 
