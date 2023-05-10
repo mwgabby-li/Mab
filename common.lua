@@ -224,7 +224,7 @@ function common.toReadableNumber(number, singular)
   local suffix = singular ~= nil and ' '..(number == 1 and singular or singular..'s') or ''
   
   if abs > 9 then
-    return tostring(number)
+    return tostring(number)..suffix
   elseif abs == 0 then
     return 'zero'..suffix
   elseif abs == 1 then
@@ -246,7 +246,7 @@ function common.toReadableNumber(number, singular)
   elseif abs == 9 then
     return prefix..'nine'..suffix
   else
-    return tostring(number)
+    return tostring(number)..suffix
   end
 end
 
