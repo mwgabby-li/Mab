@@ -245,6 +245,8 @@ function common.toReadableNumber(number, singular)
     return prefix..'eight'..suffix
   elseif abs == 9 then
     return prefix..'nine'..suffix
+  else
+    return tostring(number)
   end
 end
 
