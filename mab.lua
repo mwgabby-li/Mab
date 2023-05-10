@@ -227,7 +227,6 @@ if not pcallResult or result == nil or #errors > 0 then
   else
     print("Internal error: "..result)
   end
-  return 1
 elseif mismatchNoErrors then
   print(mismatchNoErrors)
 end
@@ -247,7 +246,12 @@ if parameters.show.trace then
     end
   end
 end
-if parameters.show.result then
+if parameters.show.result and pcallResult and result ~= nil then
   print '\nResult:'
   print(result)
+end
+
+-- Return 1 to indicate failure.
+if not pcallResult or result == nil or #errors > 0 then
+  return 1
 end
