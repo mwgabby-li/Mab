@@ -32,6 +32,7 @@ function Translator:new(o)
   o = o or {
     errors = {},
     currentCode = {},
+    currentParameters = 0,
     functions = {},
     variables = {},
     numVariables = 0,
@@ -98,6 +99,12 @@ function Translator:findLocalVariable(variable)
       return i
     end
   end
+  local currentParameters = self.currentParameters
+  for i=1,#currentParameters do
+    if variable == currentParameters[i].name then
+        return -(#currentParameters - i)
+    end
+  end
 end
 
 function Translator:codeFunctionCall(ast)
@@ -105,8 +112,20 @@ function Translator:codeFunctionCall(ast)
   if not function_ then
     self:addError('Undefined function "'..ast.name..'()."', ast)
   else
+    local arguments = ast.arguments
+    if #function_.parameters ~= #arguments then
+      local pcount = #function_.parameters
+      local acount = #ast.arguments
+      self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pcount, 'parameter')..
+                    ' but was sent '..common.toReadableNumber(acount, 'argument')..'.', ast)
+    end
+    -- Push arguments on the stack for the function
+    for i=1,#arguments do
+      self:codeExpression(arguments[i])
+    end
     self:addCode('callFunction')
     self:addCode(function_.code)
+    -- Function's return code will do the argument popping.
   end
 end
 
@@ -225,7 +244,7 @@ function Translator:codeStatement(ast)
     self:codeExpression(ast.sentence)
     self:addCode('return')
     -- Add the number of locals at this time so we can update the stack.
-    self:addCode(#self.localVariables)
+    self:addCode(#self.localVariables + #self.currentParameters)
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
     -- Discard return value for function statements, since it's not used by anything.
@@ -310,6 +329,7 @@ end
 
 function Translator:codeFunction(ast)
   self.currentCode = self.functions[ast.name].code
+  self.currentParameters = self.functions[ast.name].parameters
   self.codingFunction = true
   self:codeStatement(ast.block)
   if self.currentCode[#self.currentCode - 1] ~= 'return' then
@@ -318,7 +338,7 @@ function Translator:codeFunction(ast)
     self:addCode('push')
     self:addCode(0)
     self:addCode('return')
-    self:addCode(#self.localVariables)
+    self:addCode(#self.localVariables + #self.currentParameters)
   end
   self.currentCode = nil
 end
@@ -329,7 +349,7 @@ function Translator:translate(ast)
   for i = 1,#ast do
     -- No function here? Add one!
     if not self.functions[ast[i].name] then
-      self.functions[ast[i].name] = {code = {}, position=ast[i].position}
+      self.functions[ast[i].name] = {code = {}, parameters=ast[i].parameters, position=ast[i].position}
     -- Otherwise, duplication detected!
     else
       -- First duplicate: Set name, and position of first definition
@@ -363,6 +383,10 @@ function Translator:translate(ast)
     return nil, self.errors
   else
     entryPoint.code.version = common.toStackVMVersionHash()
+    local eppCount = #entryPoint.parameters
+    if eppCount > 0 then
+      self:addError('Entry point has '..common.toReadableNumber(eppCount, 'parameter')..' but should have none.', entryPoint.parameters[1])
+    end
     return entryPoint.code, self.errors
   end
 end

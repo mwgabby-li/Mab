@@ -886,6 +886,58 @@ input =
 end
 
 -- test function parameter count mismatch (zero when should be something, number when should be another number, something when should be zero.)
+function module.testParameterArgumentCountMismatch()
+  -- Matching
+  local input =
+[[function n:number -> number: test {
+  return n
+}
+
+function -> number: entry point {
+  return test(2)
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 2)
+
+  -- Sent nothing, should be sent one
+  input =
+[[function n:number -> number: test {
+  return n
+}
+
+function -> number: entry point {
+  return test()
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 'Translation failed!')
+
+  -- Sent one, should have sent two
+  input =
+[[function n:number n2:number -> number: test {
+  return n
+}
+
+function -> number: entry point {
+  return test(2)
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 'Translation failed!')
+  
+  -- Sent one, should not have sent any
+  input =
+[[function -> number: test {
+}
+
+function -> number: entry point {
+  return test(2)
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 'Translation failed!')
+end
 
 -- test function parameter 
 
