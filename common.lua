@@ -208,6 +208,46 @@ function common.toStackVMVersionHash()
   return toStackVMVersionHash
 end
 
+-- Numbers less than ten are spelled out.
+-- You can also pass in a label that becomes plural with 's' and it will become a matching suffix.
+-- e.g.:
+-- local packetCount = 9
+-- toReadableNumber(packetCount, 'packet')
+-- will become: 'nine packets'
+-- and
+-- packetCount = 1
+-- toReadableNumber(packetCount, 'packet')
+-- will become: 'one packet'
+function common.toReadableNumber(number, singular)
+  local abs = math.abs(number)
+  local prefix = number < 0 and ' negative' or ''
+  local suffix = singular ~= nil and ' '..(number == 1 and singular or singular..'s') or ''
+  
+  if abs > 9 then
+    return tostring(number)
+  elseif abs == 0 then
+    return 'zero'..suffix
+  elseif abs == 1 then
+    return prefix..'one'..suffix
+  elseif abs == 2 then
+    return prefix..'two'..suffix
+  elseif abs == 3 then
+    return prefix..'three'..suffix
+  elseif abs == 4 then
+    return prefix..'four'..suffix
+  elseif abs == 5 then
+    return prefix..'five'..suffix
+  elseif abs == 6 then
+    return prefix..'six'..suffix
+  elseif abs == 7 then
+    return prefix..'seven'..suffix
+  elseif abs == 8 then
+    return prefix..'eight'..suffix
+  elseif abs == 9 then
+    return prefix..'nine'..suffix
+  end
+end
+
 function common.hash(string, start)
   start = start or 1484741823
   assert(#string <= 1000000, "Hash fail, {string:byte(1,-1) doesn't work with strings over 1 million bytes long.")
