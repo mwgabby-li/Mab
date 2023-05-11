@@ -939,15 +939,83 @@ function -> number: entry point {
   lu.assertEquals(self:fullTest(input), 'Translation failed!')
 end
 
--- test function parameter 
+function module.testDuplicateFunctionParameters()
+  local input = 
+[[function n:number n:number g:number g:number g:number b:number -> boolean :
+  manyCollisions {
+}
 
--- test function parameters
+function -> number:
+  entry point {
+  return manyCollisions(1, 1, 2, 2, 2, 3)
+}
+]]
 
--- test local variable/parameter name collision
+  lu.assertEquals(self:fullTest(input), 'Translation failed!')
+end
 
--- test arguments and parameter semantically?
+function module.testFactorial()
+  local input =
+[[function n:number-> number:
+  factorial {
+  if n <= 0 {
+    return 1
+  };
+  
+  return n * factorial(n - 1)
+}
 
--- test main has no parameters
+function -> number:
+  entry point {
+  return factorial(10)
+}
+]]
+  
+  lu.assertEquals(self:fullTest(input), 3628800)
+end
+
+
+function module.testMainNoParameters()
+  local input =
+[[
+function n:number -> number:
+  entry point {
+}
+]]
+  
+  lu.assertEquals(self:fullTest(input), 'Translation failed!')
+end
+
+function module.testFunctionParameters()
+  local input =
+[[function a:number b:number -> number:
+  sum {
+  return a + b
+}
+function -> number:
+  entry point {
+  return sum(65,24)
+}
+]]
+  lu.assertEquals(self:fullTest(input), 89)
+  
+  
+  local input =
+[[function a:number b:number -> number:
+  sum {
+  return a + b
+}
+function -> number:
+  entry point {
+  number:a = 10;
+  number:b = 24;
+  
+  return sum(a * 12,b)
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 144)
+end
 
 -- test default argument
 
