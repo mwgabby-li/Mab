@@ -336,7 +336,14 @@ function Translator:codeFunction(ast)
     -- TODO First-class functions/closures... is this correct?
     --      We might have more local variables than this? Or maybe it works differently?
     self:addCode('push')
-    self:addCode(0)
+    if ast.typeExpression.typeName == 'number' then
+      self:addCode(0)
+    elseif ast.typeExpression.typeName == 'boolean' then
+      self:addCode(false)
+    else
+      self:addError('Internal error: unknown type "'..ast.typeExpression.typeName..'" when generating automatic return value.')
+      self:addCode(0)
+    end
     self:addCode('return')
     self:addCode(#self.localVariables + #self.currentParameters)
   end
