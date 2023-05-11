@@ -375,6 +375,9 @@ end
 function Translator:codeFunction(ast)
   self.currentCode = self.functions[ast.name].code
   self.currentParameters = self.functions[ast.name].parameters
+
+  self:duplicateParameterCheck(ast)
+
   self.codingFunction = true
   self:codeStatement(ast.block)
   if self.currentCode[#self.currentCode - 1] ~= 'return' then
