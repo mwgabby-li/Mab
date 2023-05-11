@@ -327,6 +327,51 @@ function Translator:codeStatement(ast)
   end
 end
 
+function Translator:duplicateParameterCheck(ast)
+  local parameters = self.functions[ast.name].parameters
+
+  -- Duplicate parameter check
+  local duplicates = {}
+  local duplicateCount = 0
+  for i = 1,#parameters - 1 do
+    local parameterName = parameters[i].name
+    -- If we haven't counted the duplicates of this parameter yet
+    if duplicates[parameterName] == nil then
+      for j = i + 1,#parameters do
+        if parameterName == parameters[j].name then
+          if duplicates[parameterName] then
+            duplicates[parameterName].count = duplicates[parameterName].count + 1
+          else
+            duplicates[parameterName] = { position=parameters[i].position, count=2 }
+            duplicateCount = duplicateCount + 1
+          end
+        end
+      end
+    end
+  end
+
+  if duplicateCount == 1 then
+    local name, countAndPosition = next(duplicates)
+    local errorMessage = 'Function "'..ast.name..'" has '..common.toReadableNumber(countAndPosition.count)..' instances of the parameter "'..name..'."'
+    self:addError(errorMessage, parameters[1])
+  elseif duplicateCount > 1 then
+    local errorMessage = 'Function "'..ast.name..'" has:\n'
+    local num = 0
+    for name, countAndPosition in pairs(duplicates) do
+      errorMessage = errorMessage..' '..common.toReadableNumber(countAndPosition.count)..' instances of the parameter "'..name
+      num = num + 1
+      if num + 1 == duplicateCount then
+        errorMessage = errorMessage..',"\n and'
+      elseif num == duplicateCount then
+        errorMessage = errorMessage..'."'
+      else
+        errorMessage = errorMessage..',"\n'
+      end
+    end
+    self:addError(errorMessage, parameters[1])
+  end
+end
+
 function Translator:codeFunction(ast)
   self.currentCode = self.functions[ast.name].code
   self.currentParameters = self.functions[ast.name].parameters
