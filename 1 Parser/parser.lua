@@ -44,7 +44,7 @@ local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'value')
-local nodeFunction = node('function', 'parameters', 'typeExpression', 'position', 'name', 'block')
+local nodeFunction = node('function', 'parameters', 'defaultArgument', 'typeExpression', 'position', 'name', 'block')
 local nodeParameter = node('parameter', 'position', 'name', 'typeExpression')
 local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
 local nodeTypeExpression = node('typeExpression', 'position', 'typeName')
@@ -137,7 +137,7 @@ local grammar =
 'program',
 program = endToken * Ct(functionDeclaration^1) * -1,
 
-functionDeclaration = KW'function' * parameters * sep.functionResult * typeExpression * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
+functionDeclaration = KW'function' * parameters * ((op.assign * expression) + Cc({})) * sep.functionResult * typeExpression * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
 parameter = Cp() * identifier * sep.parameter * typeExpression / nodeParameter,
 parameters = Ct((parameter * (parameter)^0)^-1),
 

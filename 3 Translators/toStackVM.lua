@@ -113,16 +113,30 @@ function Translator:codeFunctionCall(ast)
     self:addError('Undefined function "'..ast.name..'()."', ast)
   else
     local arguments = ast.arguments
-    if #function_.parameters ~= #arguments then
+    local hasDefault = next(function_.defaultArgument) ~= nil
+    
+    if #function_.parameters == #arguments then
+      -- Push arguments on the stack for the function
+      for i=1,#arguments do
+        self:codeExpression(arguments[i])
+      end
+    elseif hasDefault and #function_.parameters == #arguments + 1 then
+      -- Push arguments on the stack for the function
+      for i=1,#arguments - 1 do
+        self:codeExpression(arguments[i])
+      end
+      self:codeExpression(function_.defaultArgument)
+    else
       local pcount = #function_.parameters
       local acount = #ast.arguments
       self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pcount, 'parameter')..
                     ' but was sent '..common.toReadableNumber(acount, 'argument')..'.', ast)
+      -- Try to do what they asked, I guess...
+      for i=1,#arguments do
+        self:codeExpression(arguments[i])
+      end
     end
-    -- Push arguments on the stack for the function
-    for i=1,#arguments do
-      self:codeExpression(arguments[i])
-    end
+
     self:addCode('callFunction')
     self:addCode(function_.code)
     -- Function's return code will do the argument popping.
@@ -404,7 +418,7 @@ function Translator:translate(ast)
   for i = 1,#ast do
     -- No function here? Add one!
     if not self.functions[ast[i].name] then
-      self.functions[ast[i].name] = {code = {}, parameters=ast[i].parameters, position=ast[i].position}
+      self.functions[ast[i].name] = {code = {}, parameters=ast[i].parameters, defaultArgument=ast[i].defaultArgument, position=ast[i].position}
     -- Otherwise, duplication detected!
     else
       -- First duplicate: Set name, and position of first definition
