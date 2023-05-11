@@ -432,6 +432,17 @@ function Translator:translate(ast)
     end
   end
 
+  local entryPoint = self.functions[literals.entryPointName]
+  if not entryPoint then
+    self:addError('No entry point found. (Program must contain a function named "entry point.")')
+  else
+    entryPoint.code.version = common.toStackVMVersionHash()
+    local eppCount = #entryPoint.parameters
+    if eppCount > 0 then
+      self:addError('Entry point has '..common.toReadableNumber(eppCount, 'parameter')..' but should have none.', entryPoint.parameters[1])
+    end
+  end
+
   -- Report error. Since we list the number of duplicates, we do this as a second pass.
   for name, duplicate_positions in pairs(duplicates) do
     if #duplicate_positions > 0 then
@@ -445,17 +456,10 @@ function Translator:translate(ast)
   for i = 1,#ast do
     self:codeFunction(ast[i])
   end
-  
-  local entryPoint = self.functions[literals.entryPointName]
+
   if not entryPoint then
-    self:addError('No entry point found. (Program must contain a function named "entry point.")')
     return nil, self.errors
   else
-    entryPoint.code.version = common.toStackVMVersionHash()
-    local eppCount = #entryPoint.parameters
-    if eppCount > 0 then
-      self:addError('Entry point has '..common.toReadableNumber(eppCount, 'parameter')..' but should have none.', entryPoint.parameters[1])
-    end
     return entryPoint.code, self.errors
   end
 end
