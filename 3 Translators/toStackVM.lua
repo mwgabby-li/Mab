@@ -194,21 +194,63 @@ function Translator:codeExpression(ast)
   end
 end
 
+function Translator:codeNewVariable(ast)
+  if ast.scope == 'local' then
+    local numLocals = #self.localVariables
+    for i=numLocals,self.blockBases[#self.blockBases],-1 do
+      if self.localVariables[i] == ast.value then
+        self:addError('Variable "' .. ast.value .. '" already defined in this scope.', ast)
+      end
+    end
+  elseif self.variables[ast.value] ~= nil then
+    self:addError('Re-defining global variable "' .. ast.value .. '."', ast)
+  end
+
+  if self.functions[ast.value] then
+    self:addError('Creating a variable "'..ast.value..'" with the same name as a function.', ast) 
+  end
+
+  -- Both global and local need their expression set up
+  if ast.assignment then
+    self:codeExpression(ast.assignment)
+  -- Default values otherwise!
+  else
+    if ast.typeExpression then
+      if ast.typeExpression.typeName == 'number' then
+        self:addCode 'push'
+        self:addCode(0)
+      elseif ast.typeExpression.typeName == 'boolean' then
+        self:addCode 'push'
+        self:addCode(false)
+      else
+        self:addError('No type for variable "' .. ast.value .. '."', ast)
+        self:addCode 'push'
+        self:addCode(0)
+      end
+    end
+  end
+
+  if ast.scope == 'local' then
+    self.localVariables[#self.localVariables + 1] = ast.value
+  else
+    self:addCode('store')
+    self:addCode(self:variableToNumber(ast.value))
+  end
+end
+
 function Translator:codeAssignment(ast)
   local writeTarget = ast.writeTarget
   if writeTarget.tag == 'variable' then
-    if self.functions[ast.writeTarget.value] then
-      self:addError('Assigning to variable "'..ast.writeTarget.value..'" with the same name as a function.', ast.writeTarget) 
-    end
-    
     self:codeExpression(ast.assignment)
     local index = self:findLocalVariable(ast.writeTarget.value)
     if index then
       self:addCode('storeLocal')
       self:addCode(index)
-    else
+    elseif self.variables[ast.writeTarget.value] then
       self:addCode('store')
       self:addCode(self:variableToNumber(ast.writeTarget.value))
+    else
+      self:addError('Assigning to undefined variable "'..ast.writeTarget.value..'."', ast.writeTarget)
     end
   elseif writeTarget.tag == 'arrayElement' then
     self:codeExpression(ast.writeTarget.array)
@@ -265,43 +307,7 @@ function Translator:codeStatement(ast)
     self:addCode('pop')
     self:addCode(1)
   elseif ast.tag == 'newVariable' then
-    if ast.scope == 'local' then
-      local numLocals = #self.localVariables
-      for i=numLocals,self.blockBases[#self.blockBases],-1 do
-        if self.localVariables[i] == ast.value then
-          self:addError('Variable "' .. ast.value .. '" already defined in this scope.', ast)
-          return
-        end
-      end
-    end
-
-    -- Both global and local need their expression set up
-    if ast.assignment then
-      self:codeExpression(ast.assignment)
-    -- Default values otherwise!
-    else
-      if ast.typeExpression then
-        if ast.typeExpression.typeName == 'number' then
-          self:addCode 'push'
-          self:addCode(0)
-        elseif ast.typeExpression.typeName == 'boolean' then
-          self:addCode 'push'
-          self:addCode(false)
-        else
-          self:addError('No type for variable "' .. ast.value .. '."', ast)
-          self:addCode 'push'
-          self:addCode(0)
-        end
-      end
-    end
-    
-    if ast.scope == 'local' then
-      self.localVariables[#self.localVariables + 1] = ast.value
-    -- TODO: Needs to check for errors: name collisions. Any others?
-    else
-      self:addCode('store')
-      self:addCode(self:variableToNumber(ast.value))
-    end
+    self:codeNewVariable(ast)
   elseif ast.tag == 'assignment' then
     self:codeAssignment(ast)
   elseif ast.tag == 'if' then
