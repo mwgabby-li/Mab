@@ -178,7 +178,7 @@ function module:init(parse, typeChecker, toStackVM, interpreter)
 end
 
 function module:testAssignmentAndParentheses()
-  lu.assertEquals(self:fullTest('i = (1 + 2) * 3; return i', true), 9)
+  lu.assertEquals(self:fullTest(':i = (1 + 2) * 3; return i', true), 9)
 end
 
 function module:testReturn()
@@ -186,7 +186,7 @@ function module:testReturn()
 end
 
 function module:testAssignmentAndReturn()
-  local input = 'i = 4 * 3; return i;'
+  local input = ':i = 4 * 3; return i;'
   lu.assertEquals(self:fullTest(input, true), 12)
 end
 
@@ -201,36 +201,36 @@ function module:testEmptyInput()
 end
 
 function module:testStackedUnaryOperators()
-  local input = 'i = - - - - 4 * 3; return i'
+  local input = ':i = - - - - 4 * 3; return i'
   lu.assertEquals(self:fullTest(input, true), 12)
 end
 
 function module:testUnaryOperators()
-  local input = 'i = -4 * 3; return i'
+  local input = ':i = -4 * 3; return i'
   lu.assertEquals(self:fullTest(input, true), -12)
 end
 
 function module:testEmptyStatementsLeadingTrailing()
-    local input = ';;;;i = 4 * 3; return 12;;;;'
+    local input = ';;;;:i = 4 * 3; return 12;;;;'
   lu.assertEquals(self:fullTest(input, true), 12)
 end
 
 function module:testEmptyStatementsInterspersed()
-  local input = ';;;;i = 4 * 3;;;;b = 12;;;;return i;;;;'
+  local input = ';;;;:i = 4 * 3;;;;:b = 12;;;;return i;;;;'
   lu.assertEquals(self:fullTest(input, true), 12)
 end
 
 function module:testComplexSequenceResult()
-    local input = 'x value = 12 / 2;'..
-                  'y value = 12 * 12 / 2;'..
-                  'z value = x value * y value % 12;'..
+    local input = ':x value = 12 / 2;'..
+                  ':y value = 12 * 12 / 2;'..
+                  ':z value = x value * y value % 12;'..
                   'z value = y value ^ x value + z value;'..
                   'return z value;'
   lu.assertEquals(self:fullTest(input, true), 139314069504)
 end
 
 function module:testExponentPrecedence()
-    local input = 'i = 2 ^ 3 ^ 2; return i'
+    local input = ':i = 2 ^ 3 ^ 2; return i'
   lu.assertEquals(self:fullTest(input, true), 512)
 end
 
@@ -239,7 +239,7 @@ function module:testBlockAndLineComments()
 [[
 # Start comment
 
-a = 10 + 4; # End of line comment
+:a = 10 + 4; # End of line comment
 #{#} # Single-line block comment
 
 # Block comment inside line comment: #{ blah blah blah #}
@@ -247,10 +247,10 @@ a = 10 + 4; # End of line comment
 #{
 # Comments nested in block comment
 # Another one
-b = b * 10 # Commented-out line of code
+:b = b * 10 # Commented-out line of code
 #}
-b = a * a;
-c = a/b;
+:b = a * a;
+:c = a/b;
 
 # Disabled block comment
 
@@ -265,33 +265,33 @@ end
 
 function module:testKeywordExcludeRules()
   lu.assertEquals(module.parse(wrapWithEntrypoint'return1'), nil)
-  lu.assertEquals(module.parse(wrapWithEntrypoint'a = 1; returna'), nil)
+  lu.assertEquals(module.parse(wrapWithEntrypoint':a = 1; returna'), nil)
   lu.assertEquals(module.parse(wrapWithEntrypoint'return = 1'), nil)
   lu.assertEquals(module.parse(wrapWithEntrypoint'return return'), nil)
   
-  lu.assertEquals(self:fullTest('delta x = 1; return delta x', true), 1)
+  lu.assertEquals(self:fullTest(':delta x = 1; return delta x', true), 1)
   
-  lu.assertEquals(self:fullTest('return of the variable = 1; return return of the variable', true), 1)
+  lu.assertEquals(self:fullTest(':return of the variable = 1; return return of the variable', true), 1)
 end
 
 function module:testFullProgram()
   local input =
 [[
 # a is 14
-a = 10 + 4;
+:a = 10 + 4;
 #{
   14 * 14 - 10 = 186
 #}
-b = a * a - 10;
+:b = a * a - 10;
 # (186 + 10)/14
-c = (b + 10)/a;
+:c = (b + 10)/a;
 return c;
 ]]
   lu.assertEquals(self:fullTest(input, true), 14)
 end
 
 function module:testLessonFourEdgeCases()
-  local ast = module.parse(wrapWithEntrypoint('returned = 10; return returned'))
+  local ast = module.parse(wrapWithEntrypoint(':returned = 10; return returned'))
   local code = module.toStackVM.translate(ast)
   lu.assertNotEquals(code, nil)
   local result = module.interpreter.execute(code)
@@ -299,7 +299,7 @@ function module:testLessonFourEdgeCases()
   
   lu.assertEquals(module.parse(
     [[
-      x=1;
+      :x=1;
       returnx
     ]]), nil)
   
@@ -316,25 +316,25 @@ function module:testLessonFourEdgeCases()
   lu.assertEquals(module.parse(wrapWithEntrypoint
     [[
       #{
-      x=1
+      :x=1
       #}
     ]])[1].block.body, {tag = 'emptyStatement'})
   
   lu.assertEquals(self:fullTest(
     [[
-      #{#}x=1;
+      #{#}:x=1;
       return x
     ]], true), 1)
     
   lu.assertEquals(self:fullTest(
     [[
-      #{#} x=10; #{#}
+      #{#} :x=10; #{#}
       return x
     ]], true), 10)
   lu.assertEquals(self:fullTest(
         [[
         ##{
-        x=10
+        :x=10
         #}
         ]], true), 0)
 end
@@ -352,11 +352,11 @@ end
 
 function module:testIf()
 local input = [[
-a = 10 + 4;
-b = a * a - -10;
-c = a/b;
+:a = 10 + 4;
+:b = a * a - -10;
+:c = a/b;
 if c < a {
-  this is a long name = 24;
+  :this is a long name = 24;
   c = 12;
 };
 return c;
@@ -366,8 +366,8 @@ end
 
 function module:testIfElseElseIf()
   local ifOnlyYes =
-[[a = 20;
-b = 10;
+[[:a = 20;
+:b = 10;
 if b < a {
   b = 1
 };
@@ -377,8 +377,8 @@ return b;
   lu.assertEquals(self:fullTest(ifOnlyYes, true), 1)
 
   local ifOnlyNo =
-[[a = 20;
-b = 100;
+[[:a = 20;
+:b = 100;
 if b < a {
   b = 1
 };
@@ -388,8 +388,8 @@ return b;
   lu.assertEquals(self:fullTest(ifOnlyNo, true), 100)
 
   local ifElseYes =
-[[a = 20;
-b = 10;
+[[:a = 20;
+:b = 10;
 if b < a {
   b = 1
 } else {
@@ -401,8 +401,8 @@ return b;
   lu.assertEquals(self:fullTest(ifElseYes, true), 1)
 
   local ifElseNo =
-[[a = 20;
-b = 100;
+[[:a = 20;
+:b = 100;
 if b < a {
   b = 1
 } else {
@@ -414,8 +414,8 @@ return b;
   lu.assertEquals(self:fullTest(ifElseNo, true), 2)
 
   local ifElseIfYes =
-[[a = 20;
-b = 10;
+[[:a = 20;
+:b = 10;
 if b < a {
   b = 1
 } elseif b > a {
@@ -427,8 +427,8 @@ return b;
   lu.assertEquals(self:fullTest(ifElseIfYes, true), 1)
 
     local ifElseIfNo =
-[[a = 20;
-b = 100;
+[[:a = 20;
+:b = 100;
 if b < a {
   b = 1
 } elseif b > a {
@@ -440,8 +440,8 @@ return b;
   lu.assertEquals(self:fullTest(ifElseIfNo, true), 2)
 
   local ifElseIfNeither =
-[[a = 20;
-b = a;
+[[:a = 20;
+:b = a;
 if b < a {
   b = 1
 } elseif b > a {
@@ -452,8 +452,8 @@ return b;
 
   lu.assertEquals(self:fullTest(ifElseIfNeither, true), 20)
   local firstClause =
-[[a = 20;
-b = 10;
+[[:a = 20;
+:b = 10;
 if b < a {
   b = 1
 } elseif b > a {
@@ -466,8 +466,8 @@ return b;
   lu.assertEquals(self:fullTest(firstClause, true), 1)
 
   local secondClause =
-[[a = 20;
-b = 100;
+[[:a = 20;
+:b = 100;
 if b < a {
   b = 1
 } elseif b > a {
@@ -479,8 +479,8 @@ return b;
 ]]
   lu.assertEquals(self:fullTest(secondClause, true), 2)
   local thirdClause =
-[[a = 20;
-b = a;
+[[:a = 20;
+:b = a;
 if b < a {
 b = 1
 } elseif b > a {
@@ -494,8 +494,8 @@ return b;
   lu.assertEquals(self:fullTest(thirdClause, true), 3)
 
   local empty =
-[[a = 20;
-b = a;
+[[:a = 20;
+:b = a;
 if b < a {
 } elseif b > a {
 } else {
@@ -508,8 +508,8 @@ end
 
 function module:testShortCircuit()
   local shortCircuit = [[
-a = 20;
-b = 10;
+:a = 20;
+:b = 10;
 if b > a & 1/2 = 0.5 {
   b = 100
 };
@@ -531,8 +531,8 @@ return b
   lu.assertEquals(result, 10)
 
   local shortCircuit2 = [[
-a = 20;
-b = 10;
+:a = 20;
+:b = 10;
 if b < a | 1/2 = 0.5 {
   b = 100
 };
@@ -556,8 +556,8 @@ end
 function module:testWhile()
   local input =
 [[function -> number: entry point {
-  a = 1;
-  b = 10;
+  :a = 1;
+  :b = 10;
   while a < b {
     a = a + 1
   };
@@ -571,10 +571,10 @@ end
 function module:testArrays()
   local input =
 [[function -> boolean: entry point {
-  array = new[2][2] true;
+  :array = new[2][2] true;
   array[1][1] = false;
 
-  test = true;
+  :test = true;
   test = test & array[1][2];
   test = test & array[2][1];
   test = test & array[2][2];
@@ -588,7 +588,7 @@ end
 function module:testEntryPointNameExclude()
   local input =
 [[function -> number: entry point {
-  entry point = 12
+  :entry point = 12
 }
 ]]
   lu.assertEquals(self:fullTest(input), 'Translation failed!')
@@ -620,7 +620,7 @@ function -> number: another function {
 }
 
 function -> number: entry point {
-  a = 1;
+  :a = 1;
   
   a = 23 + another function();
   return a
@@ -647,7 +647,7 @@ function -> number: another function {
 }
 
 function -> number: entry point {
-  a = 1;
+  :a = 1;
   
   a = 23 + another function();
   return a
@@ -670,7 +670,7 @@ end
 function module:testIndirectRecursion()
   local input =
 [[function -> boolean: entry point {
-  n = 10;
+  global:n = 10;
   return even()
 }
 function -> boolean: even {
@@ -697,7 +697,7 @@ function -> boolean: odd {
   input =
 [[
 function -> boolean: entry point {
-  n = 11;
+  global:n = 11;
   return even()
 }
 function -> boolean: even {
@@ -722,7 +722,7 @@ function -> boolean: odd {
 input =
 [[
 function -> boolean: entry point {
-  n = 10;
+  global:n = 10;
   return odd()
 }
 function -> boolean: even {
@@ -749,7 +749,7 @@ function -> boolean: odd {
   input =
 [[
 function -> boolean: entry point {
-  n = 11;
+  global:n = 11;
   return odd()
 }
 function -> boolean: even {
@@ -886,7 +886,7 @@ input =
 end
 
 -- test function parameter count mismatch (zero when should be something, number when should be another number, something when should be zero.)
-function module.testParameterArgumentCountMismatch()
+function module:testParameterArgumentCountMismatch()
   -- Matching
   local input =
 [[function n:number -> number: test {
@@ -939,7 +939,7 @@ function -> number: entry point {
   lu.assertEquals(self:fullTest(input), 'Translation failed!')
 end
 
-function module.testDuplicateFunctionParameters()
+function module:testDuplicateFunctionParameters()
   local input = 
 [[function n:number n:number g:number g:number g:number b:number -> boolean :
   manyCollisions {
@@ -954,7 +954,7 @@ function -> number:
   lu.assertEquals(self:fullTest(input), 'Translation failed!')
 end
 
-function module.testFactorial()
+function module:testFactorial()
   local input =
 [[function n:number-> number:
   factorial {
@@ -975,7 +975,7 @@ function -> number:
 end
 
 
-function module.testMainNoParameters()
+function module:testMainNoParameters()
   local input =
 [[
 function n:number -> number:
@@ -986,7 +986,7 @@ function n:number -> number:
   lu.assertEquals(self:fullTest(input), 'Translation failed!')
 end
 
-function module.testFunctionParameters()
+function module:testFunctionParameters()
   local input =
 [[function a:number b:number -> number:
   sum {
