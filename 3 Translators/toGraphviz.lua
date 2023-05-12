@@ -236,10 +236,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
 end
 
 function Translator:nodeFunction(ast)
-  local label = 'Function\n' .. '() ➔ ' .. ast.typeExpression.typeName .. ': ' .. ast.name
-  if ast.name == literals.entryPointName then
-    label = '() ➔ ' .. ast.typeExpression.typeName .. ': Entry Point'
-  end
+  local label = '() ➔ ' .. ast.typeExpression.typeName .. ':\n' .. ast.name
 
   self:appendNode(ast, false, label, ast.block)
   self:nodeStatement(ast.block)
