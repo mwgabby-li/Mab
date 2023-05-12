@@ -124,6 +124,8 @@ function TypeChecker:new(o)
   o = o or {
     currentFunction = '',
     variableTypes = {},
+    blocks = {},
+    functions = {},
     functionTypes = {},
     errors = {},
   }
@@ -145,8 +147,24 @@ function TypeChecker:createType(name, dimension)
 end
 
 function TypeChecker:duplicateType(variable)
-  local current = self.variableTypes[variable]
-  if current then
+  -- Check locals
+  for i = #self.blocks,1, -1 do
+    local typeOfVariable = self.blocks[i].locals[variable]
+    if typeOfVariable then
+      return self:createType(typeOfVariable.name, typeOfVariable.dimension)
+    end
+  end
+
+  -- Check parameters
+  for i = 1,#self.currentParameters do
+    if self.currentParameters[i] then
+      return self:createType(self.currentParameters[i].typeExpression.typeName)
+    end
+  end
+
+  -- Check globals
+  local global = self.variableTypes[variable]
+  if global then
     return self:createType(self.variableTypes[variable].name, self.variableTypes[variable].dimension)
   end
 end
@@ -201,20 +219,21 @@ function TypeChecker:toReadable(typeTable)
   end
 end
 
-function TypeChecker:addVariable(identifier, typeOfIdentifier)
-  -- To-Do: Scope?
-  self.variableTypes[identifier] = typeOfIdentifier
+function TypeChecker:checkFunctionCall(ast)
+  
+  
+  return self.functionTypes[ast.name]
 end
 
-function TypeChecker:checkExpression(ast, undefinedVariableOK)
+function TypeChecker:checkExpression(ast)
   if ast.tag == 'number' or ast.tag == 'boolean' then
     return self:createType(ast.tag)
   elseif ast.tag == 'functionCall' then
-    return self.functionTypes[ast.name]
+    return self:checkFunctionCall(ast)
   elseif ast.tag == 'variable' then
     local variableType = self:duplicateType(ast.value)
     
-    if variableType == nil and not undefinedVariableOK then
+    if variableType == nil then
       self:addError('Attempting to use undefined variable "'..ast.value..'."', ast)
     end
 
@@ -286,27 +305,59 @@ function TypeChecker:checkExpression(ast, undefinedVariableOK)
   end
 end
 
+function TypeChecker:checkNewVariable(ast)
+  local specifiedType = self:createType(ast.typeExpression.typeName)
+  local inferredType = specifiedType
+
+  -- Possibilities:
+  -- No type specified:
+  if self:typeMatches(specifiedType, 'unknown') then
+    -- Assignment?
+    if ast.assignment then
+      -- Set the type to the assignment value.
+      inferredType = self:checkExpression(ast.assignment)
+      if inferredType == nil or self:typeMatches(inferredType, 'unknown') then
+        self:addError('Cannot determine type of variable "'..ast.value..'" because no type was specified and the assignment has no type.', ast)
+      end
+    -- No assignment?
+    else
+      -- This is not currently allowed.
+      self:addError('Cannot determine type of variable "'..ast.value..'" because no type was specified and no assignment was made.', ast)
+    end
+
+  -- Type specified and assignment.
+  elseif ast.assignment then
+    -- MUST MATCH.
+    assignmentType = self:checkExpression(ast.assignment)
+    if not self:typeMatches(specifiedType, assignmentType) then
+      self:addError('Type of variable is ' .. self:toReadable(specifiedType), ast.typeExpression)
+      self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType), ast)
+    end
+    
+  -- Type specified, no assignment.
+  --  This is OK.
+  else
+    -- No action.
+  end
+
+  if ast.scope == 'global' then
+    self.variableTypes[ast.value] = inferredType
+  else
+    self.currentBlock.locals[ast.value] = inferredType
+  end
+end
+
 function TypeChecker:checkStatement(ast)
   if ast.tag == 'emptyStatement' then
     return
   elseif ast.tag == 'block' then
+    self.blocks[#self.blocks + 1] = { locals = {} }
+    self.currentBlock = self.blocks[#self.blocks]
     self:checkStatement(ast.body)
+    self.blocks[#self.blocks] = nil
+    self.currentBlock = self.blocks[#self.blocks]
   elseif ast.tag == 'newVariable' then
-    local assignmentType = self:createType('unknown')
-    if ast.assignment then
-      assignmentType = self:checkExpression(ast.assignment)
-      local variableType = self:createType(ast.typeExpression.typeName)
-      if not self:typeMatches(variableType, assignmentType) then
-        self:addError('Type of variable is ' .. self:toReadable(variableType), ast.typeExpression)
-        self:addError('But variable is being assigned to ' .. self:toReadable(assignmentType), ast)
-      end
-      
-      local inferredTypeTodo = variableType
-      
-      if ast.scope == 'global' then
-        self:addVariable(ast.value, inferredTypeTodo)
-      end
-    end
+    self:checkNewVariable(ast)
   elseif ast.tag == 'statementSequence' then
     self:checkStatement(ast.firstChild)
     self:checkStatement(ast.secondChild)
@@ -328,24 +379,12 @@ function TypeChecker:checkStatement(ast)
     -- (e.g. given a single-dimension array of numbers 'a,'
     --  'a[12]' is the target, the type is {name='number', dimension=0},
     --  and the root name is 'a.')
-    -- undefined variable OK: true, assignments are the only case where this is allowed.
-    local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget, true)
+    local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget)
     
     -- Get the type of the source of the assignment
     local expressionType = self:checkExpression(ast.assignment)
   
-    -- If the thing we're writing to has a type and that type is 'unknown,' with a matching dimension,
-    -- this assignment is allowed to set its type.
-    if writeTargetType == nil then
-      -- This variable doesn't yet exist
-      self:addVariable(writeTargetRootName, expressionType)
-    -- Variable exists, and its type is 'unknown?'
-    elseif self:typeMatches(writeTargetType, 'unknown') and
-           writeTargetType.dimension == expressionType.dimension then
-        writeTargetType = expressionType
-        self.variableTypes[writeTargetRootName].name = writeTargetType.name
-    -- However, if the write target exists already and its type does not match
-    elseif not self:typeMatches(writeTargetType, expressionType) then
+    if not self:typeMatches(writeTargetType, expressionType) then
       self:addError('Attempted to change type from "' ..
                     self:toReadable(writeTargetType) .. '" to "' ..
                     self:toReadable(expressionType) .. '." Disallowed, sorry!', ast)
@@ -377,16 +416,29 @@ end
 
 function TypeChecker:checkFunction(ast)
   self.currentFunction = ast.name
+  self.currentParameters = ast.parameters
   self:checkStatement(ast.block)
 end
 
 function TypeChecker:check(ast)
   for i = 1, #ast do
-    local functionType = self:createType(ast[i].typeExpression.typeName)
+    local returnType = self:createType(ast[i].typeExpression.typeName)
+    if self.functions[ast[i].name] == nil then
+      self.functions[ast[i].name] = { returnType = returnType, parameters=ast[i].parameters }
+    elseif not self:typesMatch(self.functions[ast[i].name].returnType, returnType) then
+      self:addError('Function "' .. ast[i].name .. '" redefined with type "' .. self:toReadable(returnType) ..
+                    ', was "' .. self:toReadable(self.functions[ast[i].name].returnType)..'."')
+    end
+    
+    -- Check type of default argument expression against last parameter
+    if ast[i].defaultArgument then
+      -- No last parameter? This is also an error.
+    end
+    
     if self.functionTypes[ast[i].name] == nil then
-      self.functionTypes[ast[i].name] = functionType
-    elseif not self:typesMatch(self.functionTypes[ast[i].name], functionType) then
-      self:addError('Function "' .. ast[i].name .. '" redefined with type "' .. self:toReadable(functionType) ..
+      self.functionTypes[ast[i].name] = returnType
+    elseif not self:typesMatch(self.functionTypes[ast[i].name], returnType) then
+      self:addError('Function "' .. ast[i].name .. '" redefined with type "' .. self:toReadable(returnType) ..
                     ', was "' .. self:toReadable(self.functionTypes[ast[i].name])..'."')
     end
   end

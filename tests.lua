@@ -945,7 +945,7 @@ function module:testDuplicateFunctionParameters()
   manyCollisions {
 }
 
-function -> number:
+function -> boolean:
   entry point {
   return manyCollisions(1, 1, 2, 2, 2, 3)
 }

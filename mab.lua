@@ -145,11 +145,11 @@ if parameters.typechecker then
   start = os.clock()
   local pcallResult, errors = pcall(typeChecker.check, ast)
   print(string.format('   %s: %0.2f milliseconds.', (pcallResult and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-  if not result or #errors > 0 then
+  if not pcallResult or #errors > 0 then
     if mismatchAndErrors then
       print(mismatchAndErrors)
     end
-    if result then
+    if pcallResult then
       for _, errorTable in ipairs(errors) do
         -- backup = false (positions for type errors are precise)
         if errorTable.position then
