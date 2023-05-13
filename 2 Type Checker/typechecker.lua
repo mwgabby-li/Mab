@@ -126,7 +126,6 @@ function TypeChecker:new(o)
     variableTypes = {},
     blocks = {},
     functions = {},
-    functionTypes = {},
     errors = {},
   }
   self.__index = self
@@ -220,9 +219,19 @@ function TypeChecker:toReadable(typeTable)
 end
 
 function TypeChecker:checkFunctionCall(ast)
-  
-  
-  return self.functionTypes[ast.name]
+  -- 
+  for i=1,#ast.arguments do
+    local parameter = self.functions[ast.name].parameters[i]
+    local parameterType = self:createType(parameter.typeExpression.typeName)
+    local argumentType = self:checkExpression(ast.arguments[i])
+    if not self:typeMatches(parameterType, argumentType) then
+        self:addError('Argument '..common.toReadableNumber(i)..' to function "' .. ast.name .. '" evaluates to type "'..
+                      self:toReadable(argumentType)..'," but parameter "'..parameter.name..'" is type "'..
+                      self:toReadable(parameterType)..'."', ast.arguments[i])
+    end
+  end
+
+  return self.functions[ast.name].returnType
 end
 
 function TypeChecker:checkExpression(ast)
@@ -367,9 +376,9 @@ function TypeChecker:checkStatement(ast)
       self:addError('Could not determine type of return type.', ast)
     elseif returnType.dimension > 0 then
       self:addError('Trying to return an array type "'.. self:toReadable(returnType) .. '." Disallowed, sorry!', ast)
-    elseif not self:typeMatches(returnType, self.functionTypes[self.currentFunction]) then
+    elseif not self:typeMatches(returnType, self.functions[self.currentFunction].returnType) then
       self:addError('Mismatched types with return, function "' .. self.currentFunction .. '" returns "' ..
-                    self:toReadable(self.functionTypes[self.currentFunction]) .. '," but returning type "' ..
+                    self:toReadable(self.functions[self.currentFunction].returnType) .. '," but returning type "' ..
                     self:toReadable(returnType) .. '."', ast)
     end
   elseif ast.tag == 'functionCall' then
@@ -433,13 +442,19 @@ function TypeChecker:check(ast)
     -- Check type of default argument expression against last parameter
     if ast[i].defaultArgument then
       -- No last parameter? This is also an error.
-    end
-    
-    if self.functionTypes[ast[i].name] == nil then
-      self.functionTypes[ast[i].name] = returnType
-    elseif not self:typesMatch(self.functionTypes[ast[i].name], returnType) then
-      self:addError('Function "' .. ast[i].name .. '" redefined with type "' .. self:toReadable(returnType) ..
-                    ', was "' .. self:toReadable(self.functionTypes[ast[i].name])..'."')
+      local defaultArgumentType = self:checkExpression(ast[i].defaultArgument)
+      local numParameters = #ast[i].parameters
+      if numParameters == 0 then
+        self:addError('Function "' .. ast[i].name .. '" has a default argument but no parameters.', ast[i])
+      else
+        local lastParameter = ast[i].parameters[numParameters]
+        local parameterType = self:createType(lastParameter.typeExpression.typeName)
+        if not self:typeMatches(defaultArgumentType,parameterType) then
+        self:addError('Default argument for function "' .. ast[i].name .. '" evaluates to type "'..
+                      self:toReadable(defaultArgumentType)..'," but parameter "'..lastParameter.name..'" is type "'..
+                      self:toReadable(parameterType)..'."', lastParameter)
+        end
+      end
     end
   end
 
