@@ -137,7 +137,7 @@ local grammar =
 'program',
 program = endToken * Ct(functionDeclaration^1) * -1,
 
-functionDeclaration = KW'function' * parameters * ((op.assign * expression) + Cc({})) * sep.functionResult * typeExpression * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
+functionDeclaration = KW'function' * parameters * ((op.assign * expression) + Cc(false)) * sep.functionResult * typeExpression * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
 parameter = Cp() * identifier * sep.parameter * typeExpression / nodeParameter,
 parameters = Ct((parameter * (parameter)^0)^-1),
 

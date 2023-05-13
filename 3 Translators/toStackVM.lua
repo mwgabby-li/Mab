@@ -113,14 +113,13 @@ function Translator:codeFunctionCall(ast)
     self:addError('Undefined function "'..ast.name..'()."', ast)
   else
     local arguments = ast.arguments
-    local hasDefault = next(function_.defaultArgument) ~= nil
     
     if #function_.parameters == #arguments then
       -- Push arguments on the stack for the function
       for i=1,#arguments do
         self:codeExpression(arguments[i])
       end
-    elseif hasDefault and #function_.parameters == #arguments + 1 then
+    elseif function_.defaultArgument and #function_.parameters == #arguments + 1 then
       -- Push arguments on the stack for the function
       for i=1,#arguments - 1 do
         self:codeExpression(arguments[i])
