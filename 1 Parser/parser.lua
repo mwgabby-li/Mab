@@ -43,7 +43,7 @@ local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
-local nodeBoolean = node('boolean', 'value')
+local nodeBoolean = node('boolean', 'position', 'value')
 local nodeFunction = node('function', 'parameters', 'defaultArgument', 'typeExpression', 'position', 'name', 'block')
 local nodeParameter = node('parameter', 'position', 'name', 'typeExpression')
 local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
@@ -171,7 +171,7 @@ statement = blockStatement +
 
 typeExpression = Cp() * (KWc'boolean' + KWc'number' + Cc'unknown') / nodeTypeExpression,
 
-boolean = (KW'true' * Cc(true) + KW'false' * Cc(false)) / nodeBoolean,
+boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +
