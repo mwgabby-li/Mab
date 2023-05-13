@@ -121,7 +121,7 @@ function Translator:codeFunctionCall(ast)
       end
     elseif function_.defaultArgument and #function_.parameters == #arguments + 1 then
       -- Push arguments on the stack for the function
-      for i=1,#arguments - 1 do
+      for i=1,#arguments do
         self:codeExpression(arguments[i])
       end
       self:codeExpression(function_.defaultArgument)
