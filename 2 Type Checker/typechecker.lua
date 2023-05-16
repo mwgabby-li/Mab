@@ -347,7 +347,7 @@ function TypeChecker:checkExpression(ast)
   elseif ast.tag == 'arrayElement' then
     local indexType = self:checkExpression(ast.index)
     if not self:typeMatches(indexType, kNumberType) then
-      indexType = indexType or 'nil'
+      indexType = indexType or tostring(indexType)
       self:addError('Array indexing with type "' ..
                     self:toReadable(indexType) .. '", only "number" is allowed. Sorry!', ast)
     end
