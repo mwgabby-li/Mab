@@ -1018,5 +1018,8 @@ function -> number:
 end
 
 -- test default argument
+  -- default used
+  -- default not used
+  -- default with no arguments
 
 return module
