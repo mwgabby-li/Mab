@@ -172,9 +172,9 @@ statement = blockStatement +
             -- Print
             op.print * Cp() * expression / nodePrint,
 
-booleanType = KW'boolean' * Cc{name='boolean', dimension=false},
-numberType = KW'number' * Cc{name='number', dimension=false},
-omittedType = Cc{name='unknown', dimension=false},
+booleanType = KW'boolean' * Cc{name='boolean', dimensions=false},
+numberType = KW'number' * Cc{name='number', dimensions=false},
+omittedType = Cc{name='unknown', dimensions=false},
 
 typeExpression = Cp() * (booleanType + numberType + omittedType) / nodeTypeExpression,
 

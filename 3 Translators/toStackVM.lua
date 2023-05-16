@@ -215,7 +215,7 @@ function Translator:codeNewVariable(ast)
   -- Default values otherwise!
   else
     if ast.typeExpression then
-      if ast.typeExpression.value.dimension then
+      if ast.typeExpression.value.dimensions then
         self:addError('TODO: Default values for array types. Add a default value to: "' .. ast.value .. '."', ast)
       end
 
@@ -408,7 +408,7 @@ function Translator:codeFunction(ast)
     --      We might have more local variables than this? Or maybe it works differently?
     self:addCode('push')
     -- TODO: Doesn't support creating default returns for arrays.
-    if ast.typeExpression.value.dimension then
+    if ast.typeExpression.value.dimensions then
       self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
                     ast.name .. '."', self.functions[ast.name])
     end
