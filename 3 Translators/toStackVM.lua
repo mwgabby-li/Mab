@@ -215,10 +215,14 @@ function Translator:codeNewVariable(ast)
   -- Default values otherwise!
   else
     if ast.typeExpression then
-      if ast.typeExpression.typeName == 'number' then
+      if ast.typeExpression.value.dimension then
+        self:addError('TODO: Default values for array types. Add a default value to: "' .. ast.value .. '."', ast)
+      end
+
+      if ast.typeExpression.value.name == 'number' then
         self:addCode 'push'
         self:addCode(0)
-      elseif ast.typeExpression.typeName == 'boolean' then
+      elseif ast.typeExpression.value.name == 'boolean' then
         self:addCode 'push'
         self:addCode(false)
       else
@@ -403,12 +407,18 @@ function Translator:codeFunction(ast)
     -- TODO First-class functions/closures... is this correct?
     --      We might have more local variables than this? Or maybe it works differently?
     self:addCode('push')
-    if ast.typeExpression.typeName == 'number' then
+    -- TODO: Doesn't support creating default returns for arrays.
+    if ast.typeExpression.value.dimension then
+      self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
+                    ast.name .. '."', self.functions[ast.name])
+    end
+
+    if ast.typeExpression.value.name == 'number' then
       self:addCode(0)
-    elseif ast.typeExpression.typeName == 'boolean' then
+    elseif ast.typeExpression.value.name == 'boolean' then
       self:addCode(false)
     else
-      self:addError('Internal error: unknown type "'..ast.typeExpression.typeName..'" when generating automatic return value.')
+      self:addError('Internal error: unknown type "'..ast.typeExpression.value.name..'" when generating automatic return value.')
       self:addCode(0)
     end
     self:addCode('return')

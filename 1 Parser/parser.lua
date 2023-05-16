@@ -47,7 +47,7 @@ local nodeBoolean = node('boolean', 'position', 'value')
 local nodeFunction = node('function', 'parameters', 'defaultArgument', 'typeExpression', 'position', 'name', 'block')
 local nodeParameter = node('parameter', 'position', 'name', 'typeExpression')
 local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
-local nodeTypeExpression = node('typeExpression', 'position', 'typeName')
+local nodeTypeExpression = node('typeExpression', 'position', 'value')
 local nodeBlock = node('block', 'body')
 
 local function nodeStatementSequence(first, rest)
@@ -130,6 +130,9 @@ local parameters = V'parameters'
 local arguments = V'arguments'
 
 local typeExpression = V'typeExpression'
+local booleanType = V'booleanType'
+local numberType = V'numberType'
+local omittedType = V'omittedType'
 
 local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
@@ -169,7 +172,11 @@ statement = blockStatement +
             -- Print
             op.print * Cp() * expression / nodePrint,
 
-typeExpression = Cp() * (KWc'boolean' + KWc'number' + Cc'unknown') / nodeTypeExpression,
+booleanType = KW'boolean' * Cc{name='boolean', dimension=false},
+numberType = KW'number' * Cc{name='number', dimension=false},
+omittedType = Cc{name='unknown', dimension=false},
+
+typeExpression = Cp() * (booleanType + numberType + omittedType) / nodeTypeExpression,
 
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 

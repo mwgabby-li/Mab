@@ -141,7 +141,7 @@ function TypeChecker:addError(message, ast)
 end
 
 function TypeChecker:createType(name, dimension)
-  dimension = dimension or 0
+  dimension = dimension or false
   return {name=name, dimension=dimension}
 end
 
@@ -157,7 +157,7 @@ function TypeChecker:duplicateType(variable)
   -- Check parameters
   for i = 1,#self.currentParameters do
     if self.currentParameters[i] then
-      return self:createType(self.currentParameters[i].typeExpression.typeName)
+      return self.currentParameters[i].typeExpression.value
     end
   end
 
@@ -184,7 +184,7 @@ function TypeChecker:typeMatches(typeTable, nameOrTypeTable)
 end
 
 function TypeChecker:toResultType(op, binary, typeTable)
-  if typeTable.dimension > 0 then
+  if typeTable.dimension then
     return nil
   end
   
@@ -196,7 +196,7 @@ function TypeChecker:toResultType(op, binary, typeTable)
 end
 
 function TypeChecker:isCompatible(op, binary, typeTable)
-  if typeTable.dimension > 0 then
+  if typeTable.dimension then
     return false
   end
   
@@ -210,7 +210,7 @@ end
 function TypeChecker:toReadable(typeTable)
   if typeTable == nil then
     return 'invalid type'
-  elseif typeTable.dimension == 0 then
+  elseif not typeTable.dimension then
     return typeTable.name
   else
     local dimensionString = typeTable.dimension == 1 and '' or typeTable.dimension .. 'D '
@@ -219,15 +219,19 @@ function TypeChecker:toReadable(typeTable)
 end
 
 function TypeChecker:checkFunctionCall(ast)
-  -- 
+  if #ast.arguments ~= #self.functions[ast.name].parameters then
+    -- Don't try type checking, this is another phase's error.
+    return self.functions[ast.name].returnType
+  end
+
   for i=1,#ast.arguments do
     local parameter = self.functions[ast.name].parameters[i]
-    local parameterType = self:createType(parameter.typeExpression.typeName)
+    local parameterType = parameter.typeExpression.value
     local argumentType = self:checkExpression(ast.arguments[i])
     if not self:typeMatches(parameterType, argumentType) then
-        self:addError('Argument '..common.toReadableNumber(i)..' to function "' .. ast.name .. '" evaluates to type "'..
-                      self:toReadable(argumentType)..'," but parameter "'..parameter.name..'" is type "'..
-                      self:toReadable(parameterType)..'."', ast.arguments[i])
+      self:addError('Argument '..common.toReadableNumber(i)..' to function "' .. ast.name .. '" evaluates to type "'..
+                    self:toReadable(argumentType)..'," but parameter "'..parameter.name..'" is type "'..
+                    self:toReadable(parameterType)..'."', ast.arguments[i])
     end
   end
 
@@ -255,7 +259,10 @@ function TypeChecker:checkExpression(ast)
     end
 
     local initType = self:checkExpression(ast.initialValue)
-    return self:createType(initType.name, initType.dimension + 1)
+    -- If the init type is an array, the new dimension is one more.
+    -- Otherwise, the new dimension is 1.
+    local newDimension = not initType.dimension and 1 or initType.dimension + 1
+    return self:createType(initType.name, newDimension)
   elseif ast.tag == 'arrayElement' then
     local indexType = self:checkExpression(ast.index)
     if not self:typeMatches(indexType, 'number') then
@@ -267,6 +274,8 @@ function TypeChecker:checkExpression(ast)
     local arrayType, variableName = self:checkExpression(ast.array)
     
     arrayType.dimension = arrayType.dimension - 1
+    -- Dimensions of zero size are considered 'false,' not a dimension.
+    arrayType.dimension = arrayType.dimension ~= 0 and arrayType.dimension or false
     return arrayType, variableName
   elseif ast.tag == 'binaryOp' then
     -- If type checking fails on one of the subexpressions,
@@ -315,7 +324,7 @@ function TypeChecker:checkExpression(ast)
 end
 
 function TypeChecker:checkNewVariable(ast)
-  local specifiedType = self:createType(ast.typeExpression.typeName)
+  local specifiedType = ast.typeExpression.value
   local inferredType = specifiedType
 
   -- Possibilities:
@@ -374,7 +383,7 @@ function TypeChecker:checkStatement(ast)
     local returnType = self:checkExpression(ast.sentence)
     if returnType == nil then
       self:addError('Could not determine type of return type.', ast)
-    elseif returnType.dimension > 0 then
+    elseif returnType.dimension then
       self:addError('Trying to return an array type "'.. self:toReadable(returnType) .. '." Disallowed, sorry!', ast)
     elseif not self:typeMatches(returnType, self.functions[self.currentFunction].returnType) then
       self:addError('Mismatched types with return, function "' .. self.currentFunction .. '" returns "' ..
@@ -386,7 +395,7 @@ function TypeChecker:checkStatement(ast)
   elseif ast.tag == 'assignment' then
     -- Get the type of the thing we're writing to, and its root name
     -- (e.g. given a single-dimension array of numbers 'a,'
-    --  'a[12]' is the target, the type is {name='number', dimension=0},
+    --  'a[12]' is the target, the type is {name='number', dimension=1},
     --  and the root name is 'a.')
     local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget)
     
@@ -431,7 +440,7 @@ end
 
 function TypeChecker:check(ast)
   for i = 1, #ast do
-    local returnType = self:createType(ast[i].typeExpression.typeName)
+    local returnType = ast[i].typeExpression.value
     if self.functions[ast[i].name] == nil then
       self.functions[ast[i].name] = { returnType = returnType, parameters=ast[i].parameters }
     elseif not self:typesMatch(self.functions[ast[i].name].returnType, returnType) then
@@ -448,7 +457,7 @@ function TypeChecker:check(ast)
         self:addError('Function "' .. ast[i].name .. '" has a default argument but no parameters.', ast[i])
       else
         local lastParameter = ast[i].parameters[numParameters]
-        local parameterType = self:createType(lastParameter.typeExpression.typeName)
+        local parameterType = lastParameter.typeExpression.value
         if not self:typeMatches(defaultArgumentType,parameterType) then
         self:addError('Default argument for function "' .. ast[i].name .. '" evaluates to type "'..
                       self:toReadable(defaultArgumentType)..'," but parameter "'..lastParameter.name..'" is type "'..
