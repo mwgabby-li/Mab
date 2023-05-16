@@ -164,6 +164,10 @@ function Translator:codeExpression(ast)
     self:codeExpression(ast.index)
     self:addCode('getArray')
   elseif ast.tag == 'newArray' then
+    if ast.size.tag ~= 'number' then
+      self:addError('New array sizes must be literal numbers.', ast)
+    end
+
     self:codeExpression(ast.initialValue)
     self:codeExpression(ast.size)
     self:addCode('newArray')

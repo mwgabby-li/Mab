@@ -197,6 +197,21 @@ function TypeChecker:duplicateType(variable)
   end
 end
 
+function TypeChecker:typeValid(apple)
+  if apple.name == 'unknown' then
+    return false
+  end
+
+  if apple.dimensions then
+    for i=1,#apple.dimensions do
+      if apple.dimensions[i] == 'invalid' then
+        return false
+      end
+    end
+  end
+  return true
+end
+
 function TypeChecker:typeMatches(apple, orange)
   if apple == nil or orange == nil then
     return false
@@ -219,6 +234,10 @@ function TypeChecker:typeMatches(apple, orange)
   end
   
   for i=1,#apple.dimensions do
+    if apple.dimensions[i] == 'invalid' or orange.dimensions[i] == 'invalid' then
+      return false
+    end
+
     if apple.dimensions[i] ~= orange.dimensions[i] then
       return false
     end
@@ -304,17 +323,24 @@ function TypeChecker:checkExpression(ast)
     local sizeType = self:checkExpression(ast.size)
     if not self:typeMatches(sizeType, kNumberType) then
       self:addError('Creating a new array indexed with "' ..
-                    sizeType.name .. '", only "number" is allowed. Sorry!', ast)
+                    sizeType.name .. '", only "number" is allowed. Sorry!', ast.size)
     end
+    
+    -- Set size to a special 'invalid' value if the array's not indexed with a number.
+    local size = ast.size.value or 'invalid'
+    if ast.size.tag ~= 'number' then
+      self:addError('New arrays must be created with literal numbers. Sorry!', ast)
+    end
+    
 
     local initType = self:checkExpression(ast.initialValue)
     
     -- If the init type is an array, the new dimensions have one more element.
     -- Otherwise, the new dimensions are 1D with the size equal to the value.
-    local newDimension = {ast.size.value}
+    local newDimension = {size}
     if initType.dimensions then
       newDimension = cloneDimensions(initType.dimensions)
-      newDimension[#newDimension + 1] = ast.size.value
+      newDimension[#newDimension + 1] = size
     end
 
     return self:createType(initType.name, newDimension)
@@ -459,12 +485,31 @@ function TypeChecker:checkStatement(ast)
     local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget)
     
     -- Get the type of the source of the assignment
-    local expressionType = self:checkExpression(ast.assignment)
+    local expressionType, etRootName = self:checkExpression(ast.assignment)
   
     if not self:typeMatches(writeTargetType, expressionType) then
-      self:addError('Attempted to change type from "' ..
-                    self:toReadable(writeTargetType) .. '" to "' ..
-                    self:toReadable(expressionType) .. '." Disallowed, sorry!', ast)
+      local wttValid = self:typeValid(writeTargetType)
+      local etValid = self:typeValid(expressionType)
+      
+      if not wttValid and not etValid then
+        local etMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
+        self:addError('Sorry, cannot assign '..etMessage..
+                      self:toReadable(writeTargetType)..
+                      '."\nThe invalid type of "'..writeTargetRootName..'," the assignment target, also prevents this: "'..
+                      self:toReadable(expressionType)..'."', ast)
+      elseif not wttValid then
+        self:addError('Sorry, cannot assign to "'..writeTargetRootName..'" because its type is invalid: "' ..
+                      self:toReadable(writeTargetType) .. '."', ast)
+      elseif not etValid then
+        local endOfMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
+        
+        self:addError('Sorry, cannot assign '..endOfMessage..
+                      self:toReadable(expressionType) .. '."', ast)
+      elseif wttValid and etValid then
+        self:addError('Attempted to change type from "' ..
+                      self:toReadable(writeTargetType) .. '" to "' ..
+                      self:toReadable(expressionType) .. '." Disallowed, sorry!', ast)
+      end
     end
   elseif ast.tag == 'if' then
     local expressionType = self:checkExpression(ast.expression)
