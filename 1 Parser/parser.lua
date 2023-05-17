@@ -48,6 +48,7 @@ local nodeFunction = node('function', 'parameters', 'defaultArgument', 'returnTy
 local nodeParameter = node('parameter', 'position', 'name', 'type_')
 local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
 local nodeBlock = node('block', 'body')
+local nodeTernary = node('ternary', 'testPosition', 'test', 'position', 'truePosition', 'trueExpression', 'falsePosition', 'falseExpression')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -142,6 +143,7 @@ local booleanType = V'booleanType'
 local numberType = V'numberType'
 local omittedType = V'omittedType'
 local arrayType = V'arrayType'
+local ternaryExpr = V'ternaryExpr'
 
 local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
@@ -212,8 +214,9 @@ sumExpr = Ct(termExpr * (Cp() * op.sum * termExpr)^0) / foldBinaryOps,
 notExpr = op.not_ * Cp() * notExpr / addUnaryOp + sumExpr,
 comparisonExpr = Ct(notExpr * (Cp() * op.comparison * notExpr)^0) / foldBinaryOps,
 logicExpr = Ct(comparisonExpr * (Cp() * op.logical * comparisonExpr)^0) / foldBinaryOps,
+ternaryExpr = Cp() * logicExpr * Cp() * op.ternary * Cp() * expression * op.ternaryBranch * Cp() * expression / nodeTernary + logicExpr,
 -- Set this to the lowest one so nothing else has to change if a new one is added that's lower.
-expression = logicExpr,
+expression = ternaryExpr,
 
 -- Avoid duplication of complicated patterns that are used more than once by defining them here
 endToken = common.endTokenPattern,

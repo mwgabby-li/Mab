@@ -20,6 +20,8 @@ module.op.equal = '='
 module.op.notEqual = '~='
 module.op.and_ = '&'
 module.op.or_ = '|'
+module.op.ternary = '?'
+module.op.ternaryBranch = ':'
 
 -- Literals for unary operators
 module.op.not_ = '!'

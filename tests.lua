@@ -1117,6 +1117,81 @@ function -> number:
   lu.assertEquals(self:fullTest(input), 144)
 end
 
+function module:testTernaryOperator()
+  local input =
+[[function -> number: entry point {
+
+    :x = 12;
+    :y = 10;
+
+    :result = x > y ? true : false;
+
+    if result = true {
+        return 1
+    } else {
+        return 0
+    }
+}
+]]
+  lu.assertEquals(self:fullTest(input), 1)
+
+  input =
+  [[function -> number: entry point {
+
+      :x = 10;
+      :y = 12;
+
+      :result = x > y ? true : false;
+
+      if result = true {
+          return 1
+      } else {
+          return 0
+      }
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 0)
+  
+  -- Not a boolean
+  input =
+  [[function -> number: entry point {
+
+      :x = 10;
+      :y = 12;
+
+      :result = x + y ? true : false;
+
+      if result = true {
+          return 1
+      } else {
+          return 0
+      }
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+
+  -- Mismatched types in branches
+  input =
+  [[function -> number: entry point {
+
+      :x = 10;
+      :y = 12;
+
+      :result = x < y ? true : 0;
+
+      if result = true {
+          return 1
+      } else {
+          return 0
+      }
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+end
+
 -- test default argument
   -- default used
   -- default not used

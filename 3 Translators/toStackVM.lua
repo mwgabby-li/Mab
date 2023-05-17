@@ -192,6 +192,23 @@ function Translator:codeExpression(ast)
     if ast.op ~= '+' then
       self:addCode(unaryToName[ast.op])
     end
+  elseif ast.tag == 'ternary' then
+    -- The test expression
+    self:codeExpression(ast.test)
+    -- Jump to the false expression if the test fails
+    local toFalseExpressionFixup = self:addJump('jumpIfFalse')
+    -- The true expression
+    self:codeExpression(ast.trueExpression)
+    -- If we evaluate the true expression, skip the false one:
+    local skipFalseExpressionFixup = self:addJump('jump')
+    -- Target to go to the false expression is on the jump to the end
+    --  (One past because the PC is incremented before executing the next
+    --   instruction after a jump)
+    self:fixupJump(toFalseExpressionFixup)
+    self:codeExpression(ast.falseExpression)
+    -- Target to skip the false expression is the last code in the false expression
+    --  (Again, the PC is incremented after a jump.)
+    self:fixupJump(skipFalseExpressionFixup)
   else
     self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
   end

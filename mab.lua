@@ -13,10 +13,10 @@ local graphviz = require 'toGraphviz'
 local interpreter = require 'stackVM'
 
 local versions = {
-  AST = { TypeChecker = 34989090030,
+  AST = { TypeChecker = 4059075351,
           GraphViz = 34989090030,
-          StackVM = 34989090030 },
-  code = { StackVM = 18881233680 },
+          StackVM = 4059075351 },
+  code = { StackVM = 1422448217 },
 }
 
 local pt = require 'External.pt'

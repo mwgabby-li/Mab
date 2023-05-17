@@ -162,7 +162,7 @@ end
 function TypeChecker:addError(message, ast)
   self.errors[#self.errors + 1] = {
     message = message,
-    position = ast.position,
+    position = type(ast) == 'table' and ast.position or ast,
   }
 end
 
@@ -418,6 +418,28 @@ function TypeChecker:checkExpression(ast)
       -- is binary op? - false (unary op)
       return self:toResultType(ast.op, false, childType)
     end
+  elseif ast.tag == 'ternary' then
+    local testType = self:checkExpression(ast.test)
+    if not self:typeMatches(testType, kBooleanType) then
+      self:addError('Ternary condition expression must evaluate to boolean.\n'..
+                    'This expression evalulates to "'..self:toReadable(testType)..
+                    '."', ast.testPosition)
+    end
+
+    local trueBranchType = self:checkExpression(ast.trueExpression)
+    local falseBranchType = self:checkExpression(ast.falseExpression)
+    if not self:typeMatches(trueBranchType, falseBranchType) then
+      self:addError('The two branches of the ternary operator must have the same type.\n'..
+                    ' Currently, the type of the true branch is "'..
+                    self:toReadable(trueBranchType)..
+                    ',"\n and the type of the false branch is "'..
+                    self:toReadable(falseBranchType)..'."\n'..
+                    ' Further type checks in this run will assume this evaulated to "'..
+                    self:toReadable(trueBranchType)..'."', ast)
+    end
+
+    -- Assume true branch type.
+    return trueBranchType
   else
     self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
     return self:createType('unknown')
