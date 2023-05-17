@@ -67,7 +67,7 @@ end
 
 function StackVM:traceBinaryOp(operator)
   if self.trace then
-    self.trace[#self.trace + 1] = operator .. ' ' .. self.stack[self.top - 1] .. ' ' .. self.stack[self.top]
+    self.trace[#self.trace + 1] = operator .. ' ' .. tostring(self.stack[self.top - 1]) .. ' ' .. tostring(self.stack[self.top])
   end
 end
 
