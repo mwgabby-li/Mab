@@ -203,10 +203,10 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:appendNode(ast, false, ast.name .. '()')
   elseif ast.tag == 'newVariable' then
     if ast.assignment then
-      self:appendNode(ast, false, ast.scope .. ' ' .. ast.typeExpression.typeName ..': ' .. ast.value .. ' = ', ast.assignment)
+      self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.value .. ' = ', ast.assignment)
       self:nodeExpression(ast.assignment)    
     else
-      self:appendNode(ast, false, ast.scope .. ' ' .. ast.typeExpression.typeName ..': ' .. ast.value)
+      self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.value)
     end
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment)
@@ -236,7 +236,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
 end
 
 function Translator:nodeFunction(ast)
-  local label = '() ➔ ' .. ast.typeExpression.typeName .. ':\n' .. ast.name
+  local label = '() ➔ ' .. ast.type_.tag .. ':\n' .. ast.name
 
   self:appendNode(ast, false, label, ast.block)
   self:nodeStatement(ast.block)

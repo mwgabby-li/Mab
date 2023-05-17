@@ -16,7 +16,7 @@ local I = common.I
 local function node(tag, ...)
   local labels = {...}
   local parameters = table.concat(labels, ', ')
-  local fields = string.gsub(parameters, '(%w+)', '%1 = %1')
+  local fields = string.gsub(parameters, '([%w_]+)', '%1 = %1')
   local code = string.format(
     'return function(%s) return {tag = "%s", %s} end',
     parameters, tag, fields)
@@ -37,17 +37,16 @@ end
 
 local nodeVariable = node('variable', 'position', 'value')
 local nodeAssignment = node('assignment', 'writeTarget', 'position', 'assignment')
-local nodeNewVariable = node('newVariable', 'scope', 'typeExpression', 'position', 'value', 'assignment')
+local nodeNewVariable = node('newVariable', 'scope', 'type_', 'position', 'value', 'assignment')
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'position', 'value')
-local nodeFunction = node('function', 'parameters', 'defaultArgument', 'typeExpression', 'position', 'name', 'block')
-local nodeParameter = node('parameter', 'position', 'name', 'typeExpression')
+local nodeFunction = node('function', 'parameters', 'defaultArgument', 'returnType', 'position', 'name', 'block')
+local nodeParameter = node('parameter', 'position', 'name', 'type_')
 local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
-local nodeTypeExpression = node('typeExpression', 'position', 'value')
 local nodeBlock = node('block', 'body')
 
 local function nodeStatementSequence(first, rest)
@@ -107,6 +106,15 @@ local function foldNewArray(list, initialValue)
   return tree
 end
 
+local function makeArrayType(dimensions, elementType)
+  local typeNode = {tag='array', dimensions={}, elementType = elementType}
+  for i=1,#dimensions do
+    local size = dimensions[i].tag == 'number' and dimensions[i].value or 'invalid:'..dimensions[i].tag
+    typeNode.dimensions[#typeNode.dimensions + 1] = size
+  end
+  return typeNode
+end
+
 ---- Grammar -----------------------------------------------------------------------------------------------------------
 local V = lpeg.V
 local primary, exponentExpr, termExpr = V'primary', V'exponentExpr', V'termExpr'
@@ -129,10 +137,11 @@ local parameters = V'parameters'
 -- Things passed to the function when it's invoked.
 local arguments = V'arguments'
 
-local typeExpression = V'typeExpression'
+local type_ = V'type_'
 local booleanType = V'booleanType'
 local numberType = V'numberType'
 local omittedType = V'omittedType'
+local arrayType = V'arrayType'
 
 local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
@@ -140,8 +149,8 @@ local grammar =
 'program',
 program = endToken * Ct(functionDeclaration^1) * -1,
 
-functionDeclaration = KW'function' * parameters * ((op.assign * expression) + Cc(false)) * sep.functionResult * typeExpression * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
-parameter = Cp() * identifier * sep.parameter * typeExpression / nodeParameter,
+functionDeclaration = KW'function' * parameters * ((op.assign * expression) + Cc(false)) * sep.functionResult * type_ * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
+parameter = Cp() * identifier * sep.parameter * type_ / nodeParameter,
 parameters = Ct((parameter * (parameter)^0)^-1),
 
 statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
@@ -159,7 +168,7 @@ statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             writeTarget * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
             -- New variable
-            (KWc'global' + KWc'local' + Cc'local') * typeExpression * sep.newVariable * Cp() * identifier * (op.assign * expression)^-1 / nodeNewVariable +
+            (KWc'global' + KWc'local' + Cc'local') * type_ * sep.newVariable * Cp() * identifier * (op.assign * expression)^-1 / nodeNewVariable +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
@@ -172,11 +181,13 @@ statement = blockStatement +
             -- Print
             op.print * Cp() * expression / nodePrint,
 
-booleanType = KW'boolean' * Cc{name='boolean', dimensions=false},
-numberType = KW'number' * Cc{name='number', dimensions=false},
-omittedType = Cc{name='unknown', dimensions=false},
+booleanType = Cp() * KW'boolean' / node('boolean', 'position'),
+numberType = Cp() * KW'number' / node('number', 'position'),
+omittedType = Cp() / node('unknown', 'position'),
+arrayType = Ct((delim.openArray * expression * delim.closeArray)^1) * (booleanType + numberType + omittedType) / makeArrayType,
 
-typeExpression = Cp() * (booleanType + numberType + omittedType) / nodeTypeExpression,
+
+type_ = (booleanType + numberType + arrayType + omittedType),
 
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 

@@ -1,5 +1,6 @@
 local module = {}
-local l_op = require('literals').op
+local literals = require'literals'
+local l_op = literals.op
 local common = require 'common'
 
 local TypeChecker = {}
@@ -78,9 +79,9 @@ function readonlytable(table)
    });
 end
 
-local kBooleanType = readonlytable{name='boolean', dimensions=false}
-local kNumberType = readonlytable{name='number', dimensions=false}
-local kUnknownType = readonlytable{name='unknown', dimensions=false}
+local kBooleanType = readonlytable{tag='boolean'}
+local kNumberType = readonlytable{tag='number'}
+local kUnknownType = readonlytable{tag='unknown'}
 
 TypeChecker.resultTypeBinaryOps = {
   number = {
@@ -165,46 +166,57 @@ function TypeChecker:addError(message, ast)
   }
 end
 
-function TypeChecker:createType(name, dimensions)
-  dimensions = dimensions or false
-  return {name=name, dimensions=dimensions}
+function TypeChecker:createBasicType(tag)
+  return {tag=tag}
 end
 
-function TypeChecker:duplicateType(variable)
+function TypeChecker:createArrayType(dimensions, elementType)
+  return {tag='array', dimensions=dimensions, elementType=elementType}
+end
+
+function TypeChecker:cloneType(type_)
+  if type_.tag == 'array' then
+    local clonedDimensions = cloneDimensions(type_.dimensions)
+    return {tag='array', dimensions = clonedDimensions, elementType = self:cloneType(type_.elementType)}
+  elseif type_.tag == 'number' or type_.tag == 'boolean' or type_.tag == 'unknown' then
+    return {tag=type_.tag}
+  else
+    self:addError('Internal error: Unknown type tag "'..type_.tag..'."')
+  end
+end
+
+function TypeChecker:duplicateVariablesType(variable)
   -- Check locals
   for i = #self.blocks,1, -1 do
     local typeOfVariable = self.blocks[i].locals[variable]
     if typeOfVariable then
-      local clonedDimensions = cloneDimensions(typeOfVariable.dimensions)
-      return self:createType(typeOfVariable.name, clonedDimensions)
+      return self:cloneType(typeOfVariable)
     end
   end
 
   -- Check parameters
   for i = 1,#self.currentParameters do
-    if self.currentParameters[i] then
-      local parameter = self.currentParameters[i]
-      local clonedDimensions = cloneDimensions(parameter.typeExpression.value.dimensions)
-      return self:createType(parameter.typeExpression.value.name, clonedDimensions)
+    local parameter = self.currentParameters[i]
+    if parameter.name == variable then
+      return self:cloneType(parameter.type_)
     end
   end
 
   -- Check globals
   local global = self.variableTypes[variable]
   if global then
-    local clonedDimensions = cloneDimensions(self.variableTypes[variable].dimensions)
-    return self:createType(self.variableTypes[variable].name, clonedDimensions)
+    return self:cloneType(global)
   end
 end
 
 function TypeChecker:typeValid(apple)
-  if apple.name == 'unknown' then
+  if apple.tag == 'unknown' then
     return false
   end
 
   if apple.dimensions then
     for i=1,#apple.dimensions do
-      if apple.dimensions[i] == 'invalid' then
+      if type(apple.dimensions[i]) == 'string' then
         return false
       end
     end
@@ -217,72 +229,71 @@ function TypeChecker:typeMatches(apple, orange)
     return false
   end
   
-  if apple.name ~= orange.name then
+  if apple.tag ~= orange.tag then
     return false
   end
   
-  if apple.dimensions == orange.dimensions and apple.dimensions == false then
-    return true
-  end
-  
-  if apple.dimensions == false or orange.dimensions == false then
-    return false
-  end
-  
-  if #apple.dimensions ~= #orange.dimensions then
-    return false
-  end
-  
-  for i=1,#apple.dimensions do
-    if apple.dimensions[i] == 'invalid' or orange.dimensions[i] == 'invalid' then
+  if apple.tag == 'array' then
+    if #apple.dimensions ~= #orange.dimensions then
       return false
     end
+    for i=1,#apple.dimensions do
+      if type(apple.dimensions[i]) == 'string' or type(orange.dimensions[i]) == 'string' then
+        return false
+      end
 
-    if apple.dimensions[i] ~= orange.dimensions[i] then
-      return false
+      if apple.dimensions[i] ~= orange.dimensions[i] then
+        return false
+      end
+      return true
     end
+  elseif apple.tag == 'boolean' or apple.tag == 'number' or apple.tag == 'unknown' then
+    return true
+  else
+    self:addError('Internal error: Unknown type tag "'..apple.tag..'."')
+    return false
   end
-  
+
   return true
 end
 
-function TypeChecker:toResultType(op, binary, typeTable)
-  if typeTable.dimensions then
-    return nil
+function TypeChecker:toResultType(op, binary, type_)
+  if type_.tag == 'array' or type_.tag =='function' then
+    return 
   end
-  
+
   if binary then
-    return self:createType(self.resultTypeBinaryOps[typeTable.name][op])
+    return self:createBasicType(self.resultTypeBinaryOps[type_.tag][op])
   else
-    return self:createType(self.resultTypeUnaryOps[typeTable.name][op])
+    return self:createBasicType(self.resultTypeUnaryOps[type_.tag][op])
   end
 end
 
-function TypeChecker:isCompatible(op, binary, typeTable)
-  if typeTable.dimensions then
+function TypeChecker:isCompatible(op, binary, type_)
+  if type_.tag == 'array' or type_.tag =='function' then
     return false
   end
   
   if binary then
-    return self.typeCompatibleBinaryOps[typeTable.name][op]
+    return self.typeCompatibleBinaryOps[type_.tag][op]
   else
-    return self.typeCompatibleUnaryOps[typeTable.name][op]
+    return self.typeCompatibleUnaryOps[type_.tag][op]
   end
 end
 
-function TypeChecker:toReadable(typeTable)
-  if typeTable == nil then
+function TypeChecker:toReadable(type_)
+  if type_ == nil then
     return 'invalid type'
-  elseif not typeTable.dimensions then
-    return typeTable.name
+  elseif not type_.dimensions then
+    return type_.tag
   else
-    numDimensions = #typeTable.dimensions
+    numDimensions = #type_.dimensions
     local dimensionString = numDimensions == 1 and '' or numDimensions .. 'D '
     local explicitDimensions = ''
     for i = 1,numDimensions do
-      explicitDimensions = explicitDimensions..'['..typeTable.dimensions[i]..']'
+      explicitDimensions = explicitDimensions..'['..type_.dimensions[i]..']'
     end
-    return dimensionString .. 'array ('..explicitDimensions..') of '.. typeTable.name ..'s'
+    return dimensionString .. 'array ('..explicitDimensions..') of "'.. self:toReadable(type_.elementType)..'"s'
   end
 end
 
@@ -294,7 +305,7 @@ function TypeChecker:checkFunctionCall(ast)
 
   for i=1,#ast.arguments do
     local parameter = self.functions[ast.name].parameters[i]
-    local parameterType = parameter.typeExpression.value
+    local parameterType = parameter.type_
     local argumentType = self:checkExpression(ast.arguments[i])
     if not self:typeMatches(parameterType, argumentType) then
       self:addError('Argument '..common.toReadableNumber(i)..' to function "' .. ast.name .. '" evaluates to type "'..
@@ -308,11 +319,11 @@ end
 
 function TypeChecker:checkExpression(ast)
   if ast.tag == 'number' or ast.tag == 'boolean' then
-    return self:createType(ast.tag)
+    return self:createBasicType(ast.tag)
   elseif ast.tag == 'functionCall' then
     return self:checkFunctionCall(ast)
   elseif ast.tag == 'variable' then
-    local variableType = self:duplicateType(ast.value)
+    local variableType = self:duplicateVariablesType(ast.value)
     
     if variableType == nil then
       self:addError('Attempting to use undefined variable "'..ast.value..'."', ast)
@@ -323,7 +334,7 @@ function TypeChecker:checkExpression(ast)
     local sizeType = self:checkExpression(ast.size)
     if not self:typeMatches(sizeType, kNumberType) then
       self:addError('Creating a new array indexed with "' ..
-                    sizeType.name .. '", only "number" is allowed. Sorry!', ast.size)
+                    sizeType.tag .. '", only "number" is allowed. Sorry!', ast.size)
     end
     
     -- Set size to a special 'invalid' value if the array's not indexed with a number.
@@ -331,19 +342,22 @@ function TypeChecker:checkExpression(ast)
     if ast.size.tag ~= 'number' then
       self:addError('New arrays must be created with literal numbers. Sorry!', ast)
     end
-    
 
     local initType = self:checkExpression(ast.initialValue)
     
     -- If the init type is an array, the new dimensions have one more element.
     -- Otherwise, the new dimensions are 1D with the size equal to the value.
-    local newDimension = {size}
+    local newDimensions = {size}
+    local elementType
     if initType.dimensions then
-      newDimension = cloneDimensions(initType.dimensions)
-      newDimension[#newDimension + 1] = size
+      newDimensions = cloneDimensions(initType.dimensions)
+      newDimensions[#newDimensions + 1] = size
+      elementType = initType.elementType
+    else
+      elementType = initType
     end
 
-    return self:createType(initType.name, newDimension)
+    return self:createArrayType(newDimensions, self:cloneType(elementType))
   elseif ast.tag == 'arrayElement' then
     local indexType = self:checkExpression(ast.index)
     if not self:typeMatches(indexType, kNumberType) then
@@ -356,10 +370,12 @@ function TypeChecker:checkExpression(ast)
 
     local newDimensions = cloneDimensions(arrayType.dimensions)
     newDimensions[#newDimensions] = nil
+    local resultType
     if next(newDimensions) == nil then
-      newDimensions = false
+      resultType = self:cloneType(arrayType.elementType)
+    else
+      resultType = self:createArrayType(newDimensions, self:cloneType(arrayType.elementType))
     end
-    local resultType = self:createType(arrayType.name, newDimensions)
 
     return resultType, variableName
   elseif ast.tag == 'binaryOp' then
@@ -409,12 +425,15 @@ function TypeChecker:checkExpression(ast)
 end
 
 function TypeChecker:checkNewVariable(ast)
-  local specifiedType = ast.typeExpression.value
+  local specifiedType = ast.type_
   local inferredType = specifiedType
 
   -- Possibilities:
+  -- Invalid type specified:
+  if not self:typeMatches(specifiedType, kUnknownType) and not self:typeValid(specifiedType) then
+    self:addError('Type of variable "'..ast.value..'" specified, but type is invalid: "'..self:toReadable(specifiedType)..'."', ast)
   -- No type specified:
-  if self:typeMatches(specifiedType, kUnknownType) then
+  elseif self:typeMatches(specifiedType, kUnknownType) then
     -- Assignment?
     if ast.assignment then
       -- Set the type to the assignment value.
@@ -433,8 +452,8 @@ function TypeChecker:checkNewVariable(ast)
     -- MUST MATCH.
     assignmentType = self:checkExpression(ast.assignment)
     if not self:typeMatches(specifiedType, assignmentType) then
-      self:addError('Type of variable is ' .. self:toReadable(specifiedType), ast.typeExpression)
-      self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType), ast)
+      self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
+      self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)
     end
     
   -- Type specified, no assignment.
@@ -468,8 +487,6 @@ function TypeChecker:checkStatement(ast)
     local returnType = self:checkExpression(ast.sentence)
     if returnType == nil then
       self:addError('Could not determine type of return type.', ast)
-    elseif returnType.dimensions then
-      self:addError('Trying to return an array type "'.. self:toReadable(returnType) .. '." Disallowed, sorry!', ast)
     elseif not self:typeMatches(returnType, self.functions[self.currentFunction].returnType) then
       self:addError('Mismatched types with return, function "' .. self.currentFunction .. '" returns "' ..
                     self:toReadable(self.functions[self.currentFunction].returnType) .. '," but returning type "' ..
@@ -544,14 +561,19 @@ end
 
 function TypeChecker:check(ast)
   for i = 1, #ast do
-    local returnType = ast[i].typeExpression.value
+    -- First, go through all the functions ahead of time and get their information.
+    -- Mab uses the 'two pass compilation' style of forward declarations,
+    -- so the type checker has to do the same thing as other parts of the code.
+    local returnType = ast[i].returnType
     if self.functions[ast[i].name] == nil then
-      self.functions[ast[i].name] = { returnType = returnType, parameters=ast[i].parameters }
+      self.functions[ast[i].name] = { returnType = returnType, parameters=ast[i].parameters, position=ast[i].position }
+    -- Error for a function being defined with two types. Errors in other parts of the compiler for duplicate function names...
+    -- TODO: Overloading support, etc. No checks on function parameters and so on...
     elseif not self:typesMatch(self.functions[ast[i].name].returnType, returnType) then
       self:addError('Function "' .. ast[i].name .. '" redefined with type "' .. self:toReadable(returnType) ..
                     ', was "' .. self:toReadable(self.functions[ast[i].name].returnType)..'."')
     end
-    
+
     -- Check type of default argument expression against last parameter
     if ast[i].defaultArgument then
       -- No last parameter? This is also an error.
@@ -561,13 +583,21 @@ function TypeChecker:check(ast)
         self:addError('Function "' .. ast[i].name .. '" has a default argument but no parameters.', ast[i])
       else
         local lastParameter = ast[i].parameters[numParameters]
-        local parameterType = lastParameter.typeExpression.value
+        local parameterType = lastParameter.type_
         if not self:typeMatches(defaultArgumentType,parameterType) then
         self:addError('Default argument for function "' .. ast[i].name .. '" evaluates to type "'..
                       self:toReadable(defaultArgumentType)..'," but parameter "'..lastParameter.name..'" is type "'..
                       self:toReadable(parameterType)..'."', lastParameter)
         end
       end
+    end
+  end
+  
+  -- Make sure entry point returns a number.
+  local entryPoint = self.functions[literals.entryPointName] 
+  if entryPoint then
+    if not self:typeMatches(entryPoint.returnType, kNumberType) then
+      self:addError('Entry point must return a number because that\'s what OSes expect.', entryPoint.returnType)
     end
   end
 

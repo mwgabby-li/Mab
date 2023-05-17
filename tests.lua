@@ -340,14 +340,14 @@ function module:testLessonFourEdgeCases()
 end
 
 function module:testNot()
-    local input = 'function -> boolean:' .. entryPointName .. ' { return ! (1.5~=0) }'
-    lu.assertEquals(self:fullTest(input), false)
+    local input = 'function -> number:' .. entryPointName .. ' { if ! (1.5~=0) { return 1 } else { return 0 } }'
+    lu.assertEquals(self:fullTest(input), 0)
   
-    input = 'function -> boolean:' .. entryPointName .. ' { return ! ! (167~=0) }'
-    lu.assertEquals(self:fullTest(input), true)
+    input = 'function -> number:' .. entryPointName .. ' { if ! ! (167~=0){ return 1} else { return 0 } }'
+    lu.assertEquals(self:fullTest(input), 1)
     
-    input = 'function -> boolean:' .. entryPointName .. ' { return!!!(12412.435~=0) }'
-    lu.assertEquals(self:fullTest(input), false)
+    input = 'function -> number:' .. entryPointName .. ' { if!!!(12412.435~=0) { return 1 } else { return 0 }}'
+    lu.assertEquals(self:fullTest(input), 0)
 end
 
 function module:testIf()
@@ -570,7 +570,7 @@ end
 
 function module:testArrays()
   local input =
-[[function -> boolean: entry point {
+[[function -> number: entry point {
   :array = new[2][2] true;
   array[1][1] = false;
 
@@ -579,10 +579,94 @@ function module:testArrays()
   test = test & array[2][1];
   test = test & array[2][2];
   
-  return test
+  if test {
+    return 1
+  } else {
+    return 0
+  }
 }
 ]]
-  lu.assertEquals(self:fullTest(input), true)
+  lu.assertEquals(self:fullTest(input), 1)
+end
+
+function module:testArrayNonNumeralIndexing()
+  local input =
+[[function -> number: entry point {
+  :array = new[2][2 + 2] true;
+  array[1][1] = false;
+
+  :subArray = new[2 + 2] true;
+  
+  array[1] = subArray;
+
+  :test = true;
+  test = test & array[1][2];
+  test = test & array[2][1];
+  test = test & array[2][2];
+  
+  if test {
+    return 1
+  } else {
+    return 0
+  }
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+end
+
+function module:testPassingAndReturningArrays()
+  local input =
+[[function n:[2][2] boolean -> boolean: test11 {
+  return n[1][1]
+}
+
+function -> [2][2] boolean: testReturnArray {
+  :array = new[2][2] true;
+  array[1][1] = true;
+  return array
+}
+
+function -> number: entry point {
+  :array = new[2][2] true;
+  #array[1][1] = false;
+  :result = test11(testReturnArray());
+
+  if result = true {
+    return 1
+  } else {
+    return 0
+  }
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 1)
+
+  input =
+[[function n:[2][2] boolean -> boolean: test11 {
+  return n[1][1]
+}
+
+function -> [2][2] boolean: testReturnArray {
+  :array = new[2][2] true;
+  array[1][1] = false;
+  return array
+}
+
+function -> number: entry point {
+  :array = new[2][2] true;
+  #array[1][1] = false;
+  :result = test11(testReturnArray());
+
+  if result = true {
+    return 1
+  } else {
+    return 0
+  }
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 0)
 end
 
 function module:testEntryPointNameExclude()
@@ -669,9 +753,13 @@ end
 
 function module:testIndirectRecursion()
   local input =
-[[function -> boolean: entry point {
+[[function -> number: entry point {
   global:n = 10;
-  return even()
+  if even() = true {
+    return 1
+  } else {
+    return 0
+  }
 }
 function -> boolean: even {
   if n ~= 0 {
@@ -692,13 +780,17 @@ function -> boolean: odd {
 ]]
 
 
-  lu.assertEquals(self:fullTest(input), true)
+  lu.assertEquals(self:fullTest(input), 1)
 
   input =
 [[
-function -> boolean: entry point {
+function -> number: entry point {
   global:n = 11;
-  return even()
+  if even() = true {
+    return 1
+  } else {
+    return 0
+  }
 }
 function -> boolean: even {
   if n ~= 0 {
@@ -717,13 +809,17 @@ function -> boolean: odd {
   }
 }
 ]]
-  lu.assertEquals(self:fullTest(input), false)
+  lu.assertEquals(self:fullTest(input), 0)
   
 input =
 [[
-function -> boolean: entry point {
+function -> number: entry point {
   global:n = 10;
-  return odd()
+  if odd() = true {
+    return 1
+  } else {
+    return 0
+  }
 }
 function -> boolean: even {
   if n ~= 0 {
@@ -744,13 +840,17 @@ function -> boolean: odd {
 ]]
 
 
-  lu.assertEquals(self:fullTest(input), false)
+  lu.assertEquals(self:fullTest(input), 0)
 
   input =
 [[
-function -> boolean: entry point {
+function -> number: entry point {
   global:n = 11;
-  return odd()
+  if odd() = true {
+    return 1
+  } else {
+    return 0
+  }
 }
 function -> boolean: even {
   if n ~= 0 {
@@ -769,7 +869,7 @@ function -> boolean: odd {
   }
 }
 ]]
-  lu.assertEquals(self:fullTest(input), true)
+  lu.assertEquals(self:fullTest(input), 1)
 end
 
 -- test local variables
@@ -941,11 +1041,11 @@ end
 
 function module:testDuplicateFunctionParameters()
   local input = 
-[[function n:number n:number g:number g:number g:number b:number -> boolean :
+[[function n:number n:number g:number g:number g:number b:number -> number :
   manyCollisions {
 }
 
-function -> boolean:
+function -> number:
   entry point {
   return manyCollisions(1, 1, 2, 2, 2, 3)
 }

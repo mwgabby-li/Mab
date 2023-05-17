@@ -97,7 +97,7 @@ end
 
 if parameters.show.AST then
   print '\nAST:'
-  print(pt.pt(ast, {'version', 'tag', 'scope', 'parameters', 'typeExpression', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
+  print(pt.pt(ast, {'version', 'tag', 'scope', 'parameters', 'type_', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
 end
 
 if parameters.show.graphviz then

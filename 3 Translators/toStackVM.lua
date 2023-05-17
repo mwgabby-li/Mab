@@ -218,15 +218,14 @@ function Translator:codeNewVariable(ast)
     self:codeExpression(ast.assignment)
   -- Default values otherwise!
   else
-    if ast.typeExpression then
-      if ast.typeExpression.value.dimensions then
-        self:addError('TODO: Default values for array types. Add a default value to: "' .. ast.value .. '."', ast)
-      end
-
-      if ast.typeExpression.value.name == 'number' then
+    if ast.type_ then
+      if ast.type_.tag == 'array' then
+        self:addError('Default values required for array types. To-Do: Allow this! For now, add a default value to: "' ..
+                      ast.value .. '."', ast)
+      elseif ast.type_.tag == 'number' then
         self:addCode 'push'
         self:addCode(0)
-      elseif ast.typeExpression.value.name == 'boolean' then
+      elseif ast.type_.tag == 'boolean' then
         self:addCode 'push'
         self:addCode(false)
       else
@@ -412,17 +411,17 @@ function Translator:codeFunction(ast)
     --      We might have more local variables than this? Or maybe it works differently?
     self:addCode('push')
     -- TODO: Doesn't support creating default returns for arrays.
-    if ast.typeExpression.value.dimensions then
+    if ast.returnType.tag == 'array' then
       self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
                     ast.name .. '."', self.functions[ast.name])
     end
 
-    if ast.typeExpression.value.name == 'number' then
+    if ast.returnType.tag == 'number' then
       self:addCode(0)
-    elseif ast.typeExpression.value.name == 'boolean' then
+    elseif ast.returnType.tag == 'boolean' then
       self:addCode(false)
     else
-      self:addError('Internal error: unknown type "'..ast.typeExpression.value.name..'" when generating automatic return value.')
+      self:addError('Internal error: unknown type "'..ast.returnType.tag ..'" when generating automatic return value.')
       self:addCode(0)
     end
     self:addCode('return')
