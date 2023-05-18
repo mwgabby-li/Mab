@@ -417,11 +417,23 @@ function Translator:duplicateParameterCheck(ast)
   end
 end
 
+function Translator:parameterFunctionNameCheck(ast)
+  local parameters = self.functions[ast.name].parameters
+  for i = 1,#parameters do
+    local parameterName = parameters[i].name
+    if self.functions[parameterName] then
+      self:addError('Parameter "'..parameterName..'" collides with a function of the same name:', parameters[i])
+      self:addError('', self.functions[parameterName])
+    end
+  end
+end
+
 function Translator:codeFunction(ast)
   self.currentCode = self.functions[ast.name].code
   self.currentParameters = self.functions[ast.name].parameters
 
   self:duplicateParameterCheck(ast)
+  self:parameterFunctionNameCheck(ast)
 
   self.codingFunction = true
   self:codeStatement(ast.block)
