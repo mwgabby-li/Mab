@@ -591,9 +591,9 @@ function TypeChecker:check(ast)
       self.functions[ast[i].name] = { returnType = returnType, parameters=ast[i].parameters, position=ast[i].position }
     -- Error for a function being defined with two types. Errors in other parts of the compiler for duplicate function names...
     -- TODO: Overloading support, etc. No checks on function parameters and so on...
-    elseif not self:typesMatch(self.functions[ast[i].name].returnType, returnType) then
-      self:addError('Function "' .. ast[i].name .. '" redefined with type "' .. self:toReadable(returnType) ..
-                    ', was "' .. self:toReadable(self.functions[ast[i].name].returnType)..'."')
+    elseif not self:typeMatches(self.functions[ast[i].name].returnType, returnType) then
+      self:addError('Function "' .. ast[i].name .. '" redefined returning type "' .. self:toReadable(returnType) ..
+                    '," was "' .. self:toReadable(self.functions[ast[i].name].returnType)..'."')
     end
 
     -- Check type of default argument expression against last parameter
