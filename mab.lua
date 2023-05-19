@@ -62,19 +62,22 @@ function runPhase(phaseTable, phaseInput, parameters)
   start = os.clock()
   errorReporter, result, extra = phaseTable.action(phaseInput, parameters)
   local success = result and errorReporter:count() == 0
-  print(string.format('%s: %0.2f milliseconds.', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  io.write(string.format('%s: %0.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  io.flush()
 
   mismatchAndFailure, mismatchAndSuccess = common.maybeCreateMismatchMessages(phaseInput, phaseTable)
 
   if not success then
     if mismatchAndFailure then
-      print(mismatchAndFailure)
+      io.stderr:write(mismatchAndFailure..'\n\n')
     end
 
-    errorReporter:outputErrors(parameters.subject)
+    errorReporter:outputErrors(parameters.subject, parameters.inputFile)
   elseif mismatchAndSuccess then
-    print(mismatchAndSuccess)
+    io.stderr:write(mismatchAndSuccess..'\n\n')
   end
+  
+  io.stderr:flush()
 
   return success, result, extra
 end
@@ -89,12 +92,11 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
 end
 
 local parameters = { show = {}, typechecker = true }
-local input_file
 local awaiting_filename = false
 for index, argument in ipairs(arg) do
   if awaiting_filename then
     local status, err = pcall(io.input, arg[index])
-    input_file = arg[index]
+    parameters.inputFile = arg[index]
     if not status then
       print('Could not open file "' .. arg[index] .. '"\n\tError: ' .. err)
       os.exit(1)
@@ -157,15 +159,20 @@ end
 local typeCheckerSuccess = true
 if parameters.typechecker then
   typeCheckerSuccess = runPhase(phases.typeChecker, ast, parameters)
+  if typeCheckerSuccess == false then
+    io.stderr:write('Type checking failed. Will abort after GraphViz (if enabled.)\n')
+    io.stderr:flush()
+  end
 else
   print '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.'
+  io.flush()
 end
 
 if parameters.show.graphviz then
   local success, graphviz = runPhase(phases.graphviz, ast, parameters)
 
   if success then
-    local prefix = input_file or 'temp'
+    local prefix = parameters.inputFile or 'temp'
     local dotFileName = prefix .. '.dot'
     local dotFile = io.open(dotFileName, 'wb')
     dotFile:write(graphviz)
@@ -173,13 +180,18 @@ if parameters.show.graphviz then
     local svgFileName = prefix .. '.svg'
     os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
     os.execute('firefox "'.. svgFileName .. '" &')
+  else
+    io.stderr:write('GraphViz failed.')
+    if typeCheckerSuccess then
+      io.stderr:write ' Continuing...'
+    end
+    io.stderr:write '\n'
   end
 end
 
 -- Bail out from type checking here, so we can run things in order,
 -- but still show GraphViz.
 if not typeCheckerSuccess then
-  io.stderr:write('Type checking failed. Aborting.\n')
   return 1
 end
 

@@ -181,7 +181,7 @@ function common.maybeCreateMismatchMessages(input, phaseTable)
   if phaseTable.version == nil then return end
   
   if input.version ~= phaseTable.version then
-    return 'Errors while '..phaseTable.actionName..
+    return ' Errors while '..phaseTable.actionName..
             '. Note that the '..phaseTable.inputName..' version '..input.version..
             ' mismatches the known compatible version '..phaseTable.version..'.',
            ' Warning! Expected '..phaseTable.inputName..' version '..phaseTable.version..
@@ -303,11 +303,11 @@ function common.ErrorReporter:count()
   return #self.errors
 end
 
-function common.ErrorReporter:outputErrors(input)
+function common.ErrorReporter:outputErrors(input, filename)
   for _, errorTable in ipairs(self.errors) do
     -- backup = false (positions for type errors are precise)
     if errorTable.position then
-      io.stderr:write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
+      io.stderr:write(common.generateErrorMessage(input, errorTable.position, false, filename and filename..':' or 'On line '))
     end
     io.stderr:write(errorTable.message)
     io.stderr:write'\n\n'
