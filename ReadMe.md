@@ -26,7 +26,7 @@ statements.
 
 For example, this code will check if `true` is a boolean, because it must be to be the condition of the ternary
 operator. It will then check to make sure both arms of the ternary match in type (which they don't!) and then
-return the type of the first arm in order to continue checking, whether or not the check passed.
+return the type of the first arm in order to continue checking, whether the check passed.
 
 ```
 :test = true ? 1 : false;
@@ -298,25 +298,17 @@ issue in most cases, but I think there are some programmers who would find the n
 
 Mab supports a robust array of command-line options:
 
-`--tests`: Run test suite. Must be first argument.
-
-`--input`/`-i`: Specify input file, relative to working directory.
-
-`--ast`/`-a`: Print the AST.
-
-`--code`/`-c`: Output the generated code.
-
-`--trace`/`-t`: Output an execution trace, with stack state after each instruction.
-
-`--result`/`-r`: Output the result of the program. (The return value from `entry point`.)
-
-`--echo-input`/`-e`: Output what was sent in to translate.
-
-`--graphviz`/`-g`: Generate a graphviz visualization and open it in Firefox. (Unstable.)
-
-`--pegdebug`/`-p`: Annotate the grammar with PegDebug before translating.
-
-`--type-checker-off`/`-y`: Disable the type checker phase. "Damn the torpedoes, full speed ahead!"
+* `--tests`: Run test suite. Must be first argument.
+* `--input`/`-i`: Specify input file, relative to working directory.
+* `--ast`/`-a`: Print the AST.
+* `--code`/`-c`: Output the generated code.
+* `--trace`/`-t`: Output an execution trace, with stack state after each instruction.
+* `--result`/`-r`: Output the result of the program. (The return value from `entry point`.)
+* `--echo-input`/`-e`: Output what was sent in to translate.
+* `--graphviz`/`-g`: Generate a graphviz visualization and open it in Firefox. (Unstable.)
+* `--pegdebug`/`-p`: Annotate the grammar with PegDebug before translating.
+* `--type-checker-off`/`-y`: Disable the type checker phase. "Damn the torpedoes, full speed ahead!"
+* `--stop-on-first-error`/`-s`: Stop outputting errors after the first.
 
 ## Future
 
@@ -329,7 +321,7 @@ In this section, discuss the future of your language / DSL, such as how it could
 ## Self assessment
 
 INSTRUCTIONS:
-* Self assessment of your project: for each criteria described on the final project specs, choose a score (1, 2, 3) and explain your reason for the score in 1-2 sentences.
+* Self assessment of your project: for each criterion described on the final project specs, choose a score (1, 2, 3) and explain your reason for the score in 1-2 sentences.
 * Have you gone beyond the base requirements? How so?
 
 
@@ -355,7 +347,7 @@ with things like literals defined in a single place for customization.
 ## References
 
 INSTRUCTIONS:
-List any references used in the development of your language besides this courses, including any books, papers, or online resources.
+List any references used in the development of your language besides this course, including any books, papers, or online resources.
 
 Most of my research beyond asking questions on Discord was small Google searches, but here are some relatively relevant
 links.
@@ -377,4 +369,3 @@ The woes of automatic semicolon insertion in JavaScript.
 
 ### [Frink](https://frinklang.org/)
 A programming language that does unit checking.
-
