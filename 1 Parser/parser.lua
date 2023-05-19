@@ -37,14 +37,14 @@ end
 
 local nodeVariable = node('variable', 'position', 'name')
 local nodeAssignment = node('assignment', 'writeTarget', 'position', 'assignment')
-local nodeNewVariable = node('newVariable', 'scope', 'type_', 'position', 'name', 'assignment')
+local nodeNewVariable = node('newVariable', 'position', 'name', 'scope', 'type_', 'assignment')
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'position', 'value')
-local nodeFunction = node('function', 'parameters', 'defaultArgument', 'returnType', 'position', 'name', 'block')
+local nodeFunction = node('function', 'position', 'name', 'parameters', 'defaultArgument', 'returnType', 'block')
 local nodeParameter = node('parameter', 'position', 'name', 'type_')
 local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
 local nodeBlock = node('block', 'body')
@@ -151,7 +151,7 @@ local grammar =
 'program',
 program = endToken * Ct(functionDeclaration^1) * -1,
 
-functionDeclaration = KW'function' * parameters * ((op.assign * expression) + Cc(false)) * sep.functionResult * type_ * sep.newVariable * Cp() * identifier * blockStatement / nodeFunction,
+functionDeclaration = Cp() * identifier * sep.newVariable * delim.openFunctionParameterList^-1 * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList^-1 * sep.functionResult * type_ * blockStatement / nodeFunction,
 parameter = Cp() * identifier * sep.parameter * type_ / nodeParameter,
 parameters = Ct((parameter * (parameter)^0)^-1),
 
@@ -170,7 +170,7 @@ statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             writeTarget * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
             -- New variable
-            (KWc'global' + KWc'local' + Cc'local') * type_ * sep.newVariable * Cp() * identifier * (op.assign * expression)^-1 / nodeNewVariable +
+            Cp() * identifier * sep.newVariable * (KWc'export' + KWc'global' + KWc'local' + Cc'local') * (type_ * (op.assign^-1 * expression)^-1) / nodeNewVariable +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
