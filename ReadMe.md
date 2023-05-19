@@ -24,26 +24,29 @@ Mab uses a type checker and is strongly typed.
 Expressions are all recursively evaluated to types, and checked for compatibility between operands and in parts of
 statements.
 
-For example:
+For example, this code will check if `true` is a boolean, because it must be to be the condition of the ternary
+operator. It will then check to make sure both arms of the ternary match in type (which they don't!) and then
+return the type of the first arm in order to continue checking, whether or not the check passed.
+
 ```
-# This code will check if `true` is a boolean, because it must be to be the condition of the ternary operator.
-# It will then check to make sure both arms of the ternary match in type (which they don't!) and then
-# return the type of the first arm in order to continue checking, whether or not the check passed.
 :test = true ? 1 : false;
 ```
 
 Variables are assigned types, or types are inferred from their assignments.
 Further type inference is not performed.
 
+Inferred to be a number:
 ```
-# Infered to be a number.
 :var = 12;
-
-# Specified as a number, can be assigned a number later.
+```
+Specified as a number, can be assigned a number later:
+```
 number:var;
 var = 15;
+```
 
-# This is not valid; variables must have a type or an initializer.
+This is not valid; variables must have a type or an initializer when first created:
+```
 :var;
 var = true;
 ```
@@ -115,7 +118,7 @@ function matrix:[2][2] number -> boolean:is identity {
 }
 ```
 
-But redundant and useless for variables:
+But currently redundant and useless for variables:
 ```
 function -> number entry point {
     local [2][2] number:matrix = new[2][2] 0;
@@ -333,10 +336,12 @@ INSTRUCTIONS:
 ### Language Completeness: 3/3
 * All exercises have been incorporated into the language, as well as two optional features
 (booleans and the ternary operator) and the type checker.
+* As reflected in **New Features/Changes**, many changes have been made beyond basic project requirements.
 
 ### Code Quality & Report: 3/3
 
-* Code organization is exceptional, with well-named files, organized into directories, and phases ordered by number.
+* Code organization is exceptional, with well-named files, organized into directories, and phases numbered by order of 
+execution.
 * Error handling is user-friendly, with a wide variety of well-written error messages, and in the worst case,
 exceptions in phase execution will be caught as internal errors.
 * The language includes a suite of test cases.
