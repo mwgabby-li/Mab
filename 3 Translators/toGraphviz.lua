@@ -233,7 +233,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
 end
 
 function Translator:nodeFunction(ast)
-  local label = '() ➔ ' .. ast.type_.tag .. ':\n' .. ast.name
+  local label = '() ➔ ' .. ast.returnType.tag .. ':\n' .. ast.name
 
   self:appendNode(ast, false, label, ast.block)
   self:nodeStatement(ast.block)
