@@ -144,15 +144,15 @@ function Translator:codeExpression(ast)
     self:addCode('push')
     self:addCode(ast.value)
   elseif ast.tag == 'variable' then
-    local index = self:findLocalVariable(ast.value)
+    local index = self:findLocalVariable(ast.name)
     if index then
       self:addCode'loadLocal'
       self:addCode(index)
-    elseif self.variables[ast.value] then
+    elseif self.variables[ast.name] then
       self:addCode('load')
-      self:addCode(self:variableToNumber(ast.value))
+      self:addCode(self:variableToNumber(ast.name))
     else
-      self:addError('Trying to load from undefined variable "' .. ast.value .. '."', ast) 
+      self:addError('Trying to load from undefined variable "' .. ast.name .. '."', ast)
     end
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
@@ -215,16 +215,16 @@ function Translator:codeNewVariable(ast)
   if ast.scope == 'local' then
     local numLocals = #self.localVariables
     for i=numLocals,self.blockBases[#self.blockBases],-1 do
-      if self.localVariables[i] == ast.value then
-        self:addError('Variable "' .. ast.value .. '" already defined in this scope.', ast)
+      if self.localVariables[i] == ast.name then
+        self:addError('Variable "' .. ast.name .. '" already defined in this scope.', ast)
       end
     end
-  elseif self.variables[ast.value] ~= nil then
-    self:addError('Re-defining global variable "' .. ast.value .. '."', ast)
+  elseif self.variables[ast.name] ~= nil then
+    self:addError('Re-defining global variable "' .. ast.name .. '."', ast)
   end
 
-  if self.functions[ast.value] then
-    self:addError('Creating a variable "'..ast.value..'" with the same name as a function.', ast) 
+  if self.functions[ast.name] then
+    self:addError('Creating a variable "'..ast.name..'" with the same name as a function.', ast)
   end
 
   -- Both global and local need their expression set up
@@ -235,7 +235,7 @@ function Translator:codeNewVariable(ast)
     if ast.type_ then
       if ast.type_.tag == 'array' then
         self:addError('Default values required for array types. To-Do: Allow this! For now, add a default value to: "' ..
-                      ast.value .. '."', ast)
+                      ast.name .. '."', ast)
       elseif ast.type_.tag == 'number' then
         self:addCode 'push'
         self:addCode(0)
@@ -243,7 +243,7 @@ function Translator:codeNewVariable(ast)
         self:addCode 'push'
         self:addCode(false)
       else
-        self:addError('No type for variable "' .. ast.value .. '."', ast)
+        self:addError('No type for variable "' .. ast.name .. '."', ast)
         self:addCode 'push'
         self:addCode(0)
       end
@@ -251,10 +251,10 @@ function Translator:codeNewVariable(ast)
   end
 
   if ast.scope == 'local' then
-    self.localVariables[#self.localVariables + 1] = ast.value
+    self.localVariables[#self.localVariables + 1] = ast.name
   else
     self:addCode('store')
-    self:addCode(self:variableToNumber(ast.value))
+    self:addCode(self:variableToNumber(ast.name))
   end
 end
 
@@ -262,15 +262,15 @@ function Translator:codeAssignment(ast)
   local writeTarget = ast.writeTarget
   if writeTarget.tag == 'variable' then
     self:codeExpression(ast.assignment)
-    local index = self:findLocalVariable(ast.writeTarget.value)
+    local index = self:findLocalVariable(ast.writeTarget.name)
     if index then
       self:addCode('storeLocal')
       self:addCode(index)
-    elseif self.variables[ast.writeTarget.value] then
+    elseif self.variables[ast.writeTarget.name] then
       self:addCode('store')
-      self:addCode(self:variableToNumber(ast.writeTarget.value))
+      self:addCode(self:variableToNumber(ast.writeTarget.name))
     else
-      self:addError('Assigning to undefined variable "'..ast.writeTarget.value..'."', ast.writeTarget)
+      self:addError('Assigning to undefined variable "'..ast.writeTarget.name..'."', ast.writeTarget)
     end
   elseif writeTarget.tag == 'arrayElement' then
     self:codeExpression(ast.writeTarget.array)

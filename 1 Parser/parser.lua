@@ -35,9 +35,9 @@ end
 --  end
 --end
 
-local nodeVariable = node('variable', 'position', 'value')
+local nodeVariable = node('variable', 'position', 'name')
 local nodeAssignment = node('assignment', 'writeTarget', 'position', 'assignment')
-local nodeNewVariable = node('newVariable', 'scope', 'type_', 'position', 'value', 'assignment')
+local nodeNewVariable = node('newVariable', 'scope', 'type_', 'position', 'name', 'assignment')
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')

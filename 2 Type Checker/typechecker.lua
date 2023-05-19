@@ -321,13 +321,13 @@ function TypeChecker:checkExpression(ast)
   elseif ast.tag == 'functionCall' then
     return self:checkFunctionCall(ast)
   elseif ast.tag == 'variable' then
-    local variableType = self:duplicateVariablesType(ast.value)
+    local variableType = self:duplicateVariablesType(ast.name)
     
     if variableType == nil then
-      self:addError('Attempting to use undefined variable "'..ast.value..'."', ast)
+      self:addError('Attempting to use undefined variable "'..ast.name..'."', ast)
     end
 
-    return variableType, ast.value
+    return variableType, ast.name
   elseif ast.tag == 'newArray' then
     local sizeType = self:checkExpression(ast.size)
     if not self:typeMatches(sizeType, kNumberType) then
@@ -451,7 +451,7 @@ function TypeChecker:checkNewVariable(ast)
   -- Possibilities:
   -- Invalid type specified:
   if not self:typeMatches(specifiedType, kUnknownType) and not self:typeValid(specifiedType) then
-    self:addError('Type of variable "'..ast.value..'" specified, but type is invalid: "'..self:toReadable(specifiedType)..'."', ast)
+    self:addError('Type of variable "'..ast.name..'" specified, but type is invalid: "'..self:toReadable(specifiedType)..'."', ast)
   -- No type specified:
   elseif self:typeMatches(specifiedType, kUnknownType) then
     -- Assignment?
@@ -459,12 +459,12 @@ function TypeChecker:checkNewVariable(ast)
       -- Set the type to the assignment value.
       inferredType = self:checkExpression(ast.assignment)
       if inferredType == nil or self:typeMatches(inferredType, kUnknownType) then
-        self:addError('Cannot determine type of variable "'..ast.value..'" because no type was specified and the assignment has no type.', ast)
+        self:addError('Cannot determine type of variable "'..ast.name..'" because no type was specified and the assignment has no type.', ast)
       end
     -- No assignment?
     else
       -- This is not currently allowed.
-      self:addError('Cannot determine type of variable "'..ast.value..'" because no type was specified and no assignment was made.', ast)
+      self:addError('Cannot determine type of variable "'..ast.name..'" because no type was specified and no assignment was made.', ast)
     end
 
   -- Type specified and assignment.
@@ -483,9 +483,9 @@ function TypeChecker:checkNewVariable(ast)
   end
 
   if ast.scope == 'global' then
-    self.variableTypes[ast.value] = inferredType
+    self.variableTypes[ast.name] = inferredType
   else
-    self.currentBlock.locals[ast.value] = inferredType
+    self.currentBlock.locals[ast.name] = inferredType
   end
 end
 

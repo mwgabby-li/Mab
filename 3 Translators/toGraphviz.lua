@@ -58,7 +58,7 @@ function Translator:nodeExpression(ast)
   elseif ast.tag == 'boolean' then
     self:appendNode(ast, false, tostring(ast.value))
   elseif ast.tag == 'variable' then
-    self:appendNode(ast, false, ast.value)
+    self:appendNode(ast, false, ast.name)
   elseif ast.tag == 'functionCall' then
     self:appendNode(ast, false, ast.name .. '()')
   elseif ast.tag == 'newArray' then
@@ -200,10 +200,10 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:appendNode(ast, false, ast.name .. '()')
   elseif ast.tag == 'newVariable' then
     if ast.assignment then
-      self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.value .. ' = ', ast.assignment)
+      self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.name .. ' = ', ast.assignment)
       self:nodeExpression(ast.assignment)    
     else
-      self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.value)
+      self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.name)
     end
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment)
