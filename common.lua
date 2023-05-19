@@ -121,16 +121,21 @@ function common.generateErrorMessage(input, position, backup, defaultPrefix, bac
     local backedUp = false
     local prefix = defaultPrefix or ''
     if backup then
-      while input:sub(position - 1, position - 1) == '\n' do
-        errorLine = errorLine - 1
-        position = position - 1
-        -- On \r\n systems, we need to backtrack twice since there are two characters in a line ending,
-        -- so we will be at the same place visually as on \n systems.
-        if input:sub(position - 1, position - 1) == '\r' then
-          position = position - 1
+      local character = input:sub(position - 1, position - 1)
+      while character:find('%s') ~= nil do
+        
+        if character == '\n' then
+          errorLine = errorLine - 1
+          -- On \r\n systems, we need to backtrack twice since there are two characters in a line ending,
+          -- so we will be at the same place visually as on \n systems.
+          if input:sub(position - 1, position - 1) == '\r' then
+            position = position - 1
+          end
         end
+        position = position - 1
         backedUp = true
         prefix = backedUpPrefix or (prefix or '')
+        character = input:sub(position - 1, position - 1)
       end
     end
 
