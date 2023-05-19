@@ -12,15 +12,72 @@ local toStackVM = require 'toStackVM'
 local graphviz = require 'toGraphviz'
 local interpreter = require 'stackVM'
 
-local versions = {
-  AST = { TypeChecker = 4059075351,
-          GraphViz = 34989090030,
-          StackVM = 4059075351 },
-  code = { StackVM = 1422448217 },
-}
-
 local pt = require 'External.pt'
 local common = require 'common'
+
+phases = {
+  parser = {
+    action = parser.parse,
+    name = 'Parser',
+    actionName = 'parsing',
+    inputName = 'source code',
+  },
+
+  typeChecker = {
+    action = typeChecker.check,
+    name = 'Type Checker',
+    actionName = 'type checking',
+    inputName = 'AST',
+    version = 0,
+  },
+
+  graphviz = {
+    action = graphviz.translate,
+    name = 'Graphviz AST',
+    actionName = 'generating GraphViz file',
+    inputName = 'AST',
+    version = 0,
+  },
+
+  toStackVM = {
+    action = toStackVM.translate,
+    name = 'Stack VM',
+    actionName = 'generating Stack VM code',
+    inputName = 'AST',
+    version = 0,
+  },
+
+  interpreter = {
+    action = interpreter.execute,
+    name = 'Interpreter',
+    actionName = 'interpreting',
+    inputName = 'Stack VM code',
+    version = 0,
+  },
+}
+
+function runPhase(phaseTable, phaseInput, parameters)
+  local extraBuffer = 13 - #phaseTable.name
+  io.write('\n'..phaseTable.name..'...'..(' '):rep(extraBuffer))
+  start = os.clock()
+  errorReporter, result, extra = phaseTable.action(phaseInput, parameters)
+  local success = result and errorReporter:count() == 0
+  print(string.format('%s: %0.2f milliseconds.', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+
+  mismatchAndFailure, mismatchAndSuccess = common.maybeCreateMismatchMessages(phaseInput, phaseTable)
+
+  if not success then
+    if mismatchAndFailure then
+      print(mismatchAndFailure)
+    end
+
+    errorReporter:outputErrors(parameters.subject)
+  elseif mismatchAndSuccess then
+    print(mismatchAndSuccess)
+  end
+
+  return success, result, extra
+end
 
 if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   print(common.poem(true))
@@ -63,7 +120,7 @@ for index, argument in ipairs(arg) do
   elseif argument:lower() == '--pegdebug' or argument:lower() == '-p' then
     parameters.pegdebug = true
   elseif argument:lower() == '--stop-at-first-error' or argument:lower() == '-s' then
-    parameters.stopAtFirst = true
+    parameters.stopAtFirstError = true
   elseif argument:lower() == '--type-checker-off' or argument:lower() == '-y' then
     parameters.typechecker = false
   else
@@ -79,21 +136,16 @@ end
 
 print(common.poem())
 
-local input = io.read 'a'
+local subject = io.read 'a'
 if parameters.show.input then
   print 'Input:'
-  print(input)
+  print(subject)
 end
-io.write 'Parsing...'
-local start = os.clock()
-local pcallResult, ast, errorMessage = pcall(parser.parse, input, parameters.pegdebug)
-print(string.format('         %s: %0.2f milliseconds.', (pcallResult and ast) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+parameters.subject = subject
 
-if not pcallResult then
-  print("Internal error: " .. ast)
-elseif errorMessage then
-  io.stderr:write('Unable to continue ' .. errorMessage)
-  io.stderr:write('Failed to generate AST from input.\n')
+local success, ast = runPhase(phases.parser, subject, parameters)
+if not success then
+  io.stderr:write('Unable to continue. Failed to generate AST from input.\n')
   return 1
 end
 
@@ -102,28 +154,17 @@ if parameters.show.AST then
   print(pt.pt(ast, {'version', 'tag', 'scope', 'parameters', 'type_', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
 end
 
-local errorReporter = common.ErrorReporter:new()
+local typeCheckerSuccess = true
+if parameters.typechecker then
+  typeCheckerSuccess = runPhase(phases.typeChecker, ast, parameters)
+else
+  print '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.'
+end
 
--- GraphViz is a translator, but run it before type checking so that we can visualize even type-invalid ASTs.
 if parameters.show.graphviz then
-  local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.GraphViz, 'generating GraphViz file', 'AST')
+  local success, graphviz = runPhase(phases.graphviz, ast, parameters)
 
-  io.write '\nGraphviz AST...'
-  start = os.clock()
-  graphviz.translate(ast, errorReporter)
-  print(string.format('    %s: %0.2f milliseconds.', errorReporter:count() == 0 and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-
-  if errorReporter:count() > 0 then
-    if mismatchAndErrors then
-      print(mismatchAndErrors)
-    end
-
-    -- clear errors = true
-    errorReporter:outputErrors(input, parameters.stopAtFirst, true)
-  else
-    if mismatchNoErrors then
-      print(mismatchNoErrors)
-    end
+  if success then
     local prefix = input_file or 'temp'
     local dotFileName = prefix .. '.dot'
     local dotFile = io.open(dotFileName, 'wb')
@@ -135,46 +176,18 @@ if parameters.show.graphviz then
   end
 end
 
-if parameters.typechecker then
-  local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.TypeChecker, 'type checking', 'AST')
-
-  io.write '\nType checking...'
-  start = os.clock()
-  typeChecker.check(ast, errorReporter)
-  print(string.format('   %s: %0.2f milliseconds.', errorReporter:count() == 0 and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-  if errorReporter:count() > 0 then
-    if mismatchAndErrors then
-      print(mismatchAndErrors)
-    end
-
-    -- clear errors = true
-    errorReporter:outputErrors(input, parameters.stopAtFirst, true)
-    return 1
-  elseif mismatchNoErrors then
-    print(mismatchNoErrors)
-  end
-else
-  print '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.'
+-- Bail out from type checking here, so we can run things in order,
+-- but still show GraphViz.
+if not typeCheckerSuccess then
+  io.stderr:write('Type checking failed. Aborting.\n')
+  return 1
 end
 
-io.write '\nTranslating...'
-start = os.clock()
-local code = toStackVM.translate(ast)
-local success = code and errorReporter:count() == 0
-print(string.format('     %s: %0.2f milliseconds.', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-
-local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.StackVM, 'translating to StackVM code', 'AST')
+local success, code = runPhase(phases.toStackVM, ast, parameters)
 
 if not success then
-  if mismatchAndErrors then
-    print(mismatchAndErrors)
-  end
-
-  -- clear errors = true
-  errorReporter:outputErrors(input, parameters.stopAtFirst, true)
+  io.stderr:write('Unable to continue. Failed to generate StackVM code from AST.\n')
   return 1
-elseif mismatchNoErrors then
-  print(mismatchNoErrors)
 end
 
 if parameters.show.code then
@@ -182,30 +195,9 @@ if parameters.show.code then
   print(pt.pt(code))
 end
 
-print '\nExecuting...'
-start = os.clock()
-local trace = nil
-if parameters.show.trace then
-  trace = {}
-end
-local result = interpreter.execute(code, trace, errorReporter)
-local success = code and errorReporter:count() == 0
-print(string.format('         Execution %s: %0.2f milliseconds.', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+local success, result, trace = runPhase(phases.interpreter, code, parameters)
 
-local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(code, versions.code.StackVM, 'executing StackVM code', 'code')
-
-if not success then
-  if mismatchAndErrors then
-    print(mismatchAndErrors)
-  end
-
-  -- clear errors = true
-  errorReporter:outputErrors(input, parameters.stopAtFirst, true)
-elseif mismatchNoErrors then
-  print(mismatchNoErrors)
-end
-
-if parameters.show.trace then
+if trace then
   print '\nExecution trace:'
   for k, v in ipairs(trace) do
     print(k, v)
@@ -226,6 +218,6 @@ if parameters.show.result and result ~= nil then
 end
 
 -- Return 1 to indicate failure.
-if not pcallResult or result == nil or #errors > 0 then
+if not success then
   return 1
 end

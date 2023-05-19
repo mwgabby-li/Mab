@@ -225,9 +225,27 @@ identifier = identifierPattern,
 
 local module = {}
 
-function module.parse(input, pegdebug)
+local ParserErrorReporter = { position = false }
+
+function ParserErrorReporter:addError(position)
+  self.position = position
+end
+
+function ParserErrorReporter:count()
+  return self.position and 1 or 0
+end
+
+function ParserErrorReporter:outputErrors(input)
+  if self.position then
+    io.stderr:write(common.generateErrorMessage(input, self.position, true,
+                              'at line ', 'after line ')..'\n')
+  end
+end
+
+function module.parse(input, parameters)
+  ParserErrorReporter.position = false
   local grammar = grammar
-  if pegdebug then
+  if parameters and parameters.pegdebug then
     grammar = require('External.pegdebug').trace(grammar)
   end
   grammar = lpeg.P(grammar)
@@ -236,10 +254,10 @@ function module.parse(input, pegdebug)
 
   if ast then
     ast.version = common.parserVersionHash()
-    return ast
+    return ParserErrorReporter, ast
   else
-    -- backup = true (if the error is at the beginning of a line, back up to the previous line)
-    return ast, common.generateErrorMessage(input, common.getFurthestMatch(), true, 'at line ', 'after line ')
+    ParserErrorReporter:addError(common:getFurthestMatch())
+    return ParserErrorReporter, false
   end
 end
 

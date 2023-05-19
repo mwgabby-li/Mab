@@ -149,22 +149,21 @@ end
 
 function module:fullTest(input, addEntryPoint)
   input = addEntryPoint and wrapWithEntrypoint(input) or input
-  local ast = module.parse(input)
+  local errorReporter, ast = module.parse(input)
   if ast == nil then
     return 'Parsing failed!'
   end
   
-  errorReporter = common.ErrorReporter:new()
-  module.typeChecker.check(ast, errorReporter)
+  errorReporter = module.typeChecker.check(ast)
   if errorReporter:count() > 0 then
     return 'Type checking failed!'
   end
   
-  local code = module.toStackVM.translate(ast, errorReporter)
+  local errorReporter, code = module.toStackVM.translate(ast)
   if code == nil or errorReporter:count() > 0 then
     return 'Translation failed!'
   end
-  local result, errors = module.interpreter.execute(code, errorReporter)
+  local errorReporter, result = module.interpreter.execute(code)
   if errorReporter:count() > 0 then
     return 'Running failed!'
   end  
@@ -266,10 +265,14 @@ return a;
 end
 
 function module:testKeywordExcludeRules()
-  lu.assertEquals(module.parse(wrapWithEntrypoint'return1'), nil)
-  lu.assertEquals(module.parse(wrapWithEntrypoint':a = 1; returna'), nil)
-  lu.assertEquals(module.parse(wrapWithEntrypoint'return = 1'), nil)
-  lu.assertEquals(module.parse(wrapWithEntrypoint'return return'), nil)
+  local errorReporter, result = module.parse(wrapWithEntrypoint'return1')
+  lu.assertEquals(result, false)
+  errorReporter, result = module.parse(wrapWithEntrypoint':a = 1; returna')
+  lu.assertEquals(result, false)
+  errorReporter, result = module.parse(wrapWithEntrypoint'return = 1')
+  lu.assertEquals(result, false)
+  errorReporter, result = module.parse(wrapWithEntrypoint'return return')
+  lu.assertEquals(result, false)
   
   lu.assertEquals(self:fullTest(':delta x = 1; return delta x', true), 1)
   
@@ -293,34 +296,36 @@ return c;
 end
 
 function module:testLessonFourEdgeCases()
-  local ast = module.parse(wrapWithEntrypoint(':returned = 10; return returned'))
-  local code = module.toStackVM.translate(ast)
+  local errorReporter, ast = module.parse(wrapWithEntrypoint(':returned = 10; return returned'))
+  errorReporter, code = module.toStackVM.translate(ast)
   lu.assertNotEquals(code, nil)
-  local result = module.interpreter.execute(code)
+  errorReporter, result = module.interpreter.execute(code)
   lu.assertEquals(result, 10)
   
-  lu.assertEquals(module.parse(
+  errorReporter, result = module.parse(
     [[
       :x=1;
       returnx
-    ]]), nil)
-  
-  lu.assertEquals(module.parse(
+    ]])
+  lu.assertEquals(result, false)
+  errorReporter, result = module.parse(
     [[
       #{
       bla bla
-    ]]), nil)
+    ]])
+  lu.assertEquals(result, false)
+  errorReporter, result = module.parse(wrapWithEntrypoint'#{##}')
+  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
   
-  lu.assertEquals(module.parse(wrapWithEntrypoint'#{##}')[1].block.body, {tag = 'emptyStatement'})
+  errorReporter, result = module.parse(wrapWithEntrypoint'#{#{#}')
+  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
   
-  lu.assertEquals(module.parse(wrapWithEntrypoint'#{#{#}')[1].block.body, {tag = 'emptyStatement'})
-  
-  lu.assertEquals(module.parse(wrapWithEntrypoint
-    [[
+  errorReporter, result = module.parse(wrapWithEntrypoint[[
       #{
       :x=1
       #}
-    ]])[1].block.body, {tag = 'emptyStatement'})
+    ]])
+  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
   
   lu.assertEquals(self:fullTest(
     [[
@@ -518,11 +523,12 @@ if b > a & 1/2 = 0.5 {
 return b
 ]]
 
-  local ast = module.parse(wrapWithEntrypoint(shortCircuit))
-  local code = module.toStackVM.translate(ast)
+  local errorReporter, ast = module.parse(wrapWithEntrypoint(shortCircuit))
+  local errorReporter, code = module.toStackVM.translate(ast)
   local trace = {}
   lu.assertNotEquals(code, nil)
-  local result = module.interpreter.execute(code, trace)
+  local parameters = {show ={trace = true}}
+  local errorReporter, result, trace = module.interpreter.execute(code, parameters)
   local divide = false
   for i, v in ipairs(trace) do
     if v:gmatch('divide')() then
@@ -541,10 +547,9 @@ if b < a | 1/2 = 0.5 {
 return b
 ]]
 
-  ast = module.parse(wrapWithEntrypoint(shortCircuit2))
-  code = module.toStackVM.translate(ast)
-  trace = {}
-  result = module.interpreter.execute(code, trace)
+  errorReporter, ast = module.parse(wrapWithEntrypoint(shortCircuit2))
+  errorReporter, code = module.toStackVM.translate(ast)
+  errorReporter, result, trace = module.interpreter.execute(code, parameters)
   divide = false
   for i, v in ipairs(trace) do
     if v:gmatch('divide')() then
@@ -717,11 +722,10 @@ function -> number: another function {
 }
 ]]
 
-  local ast = module.parse(input)
+  local errorReporter, ast = module.parse(input)
   lu.assertEquals(type(ast), 'table')
   
-  local errorReporter = common.ErrorReporter:new()
-  local code = module.toStackVM.translate(ast, errorReporter)
+  local errorReporter, code = module.toStackVM.translate(ast, errorReporter)
   lu.assertEquals(errorReporter:count(), 4)
   
   input =
@@ -747,11 +751,10 @@ function -> number: another function {
   return 3
 }
 ]]
-  ast = module.parse(input)
+  errorReporter, ast = module.parse(input)
   lu.assertEquals(type(ast), 'table')
   
-  local errorReporter = common.ErrorReporter:new()
-  code = module.toStackVM.translate(ast, errorReporter)
+  errorReporter, code = module.toStackVM.translate(ast, errorReporter)
   lu.assertEquals(errorReporter:count(), 7)
 end
 
@@ -981,11 +984,10 @@ input =
     };
 }
 ]]
-  local ast = module.parse(input)
+  local errorReporter, ast = module.parse(input)
   lu.assertNotEquals(ast, nil)
 
-  local errorReporter = common.ErrorReporter:new()
-  local code = module.toStackVM.translate(ast, errorReporter)
+  local errorReporter, code = module.toStackVM.translate(ast, errorReporter)
   lu.assertEquals(errorReporter:count(), 2)
 end
 

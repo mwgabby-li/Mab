@@ -626,13 +626,15 @@ function TypeChecker:check(ast)
   end
 end
 
-function module.check(ast, errorReporter)
-  if not errorReporter then
-    error'Type Checker requires an error reporter, or there\'s no point.'
-  end
+function module.check(ast, parameters)
   local typeChecker = TypeChecker:new()
-  typeChecker.errorReporter = errorReporter
-  return errorReporter:pcallAddErrorOnFailure(typeChecker.check, typeChecker, ast)
+  typeChecker.errorReporter = common.ErrorReporter:new()
+  if parameters then
+    typeChecker.errorReporter.stopAtFirstError = parameters.stopAtFirstError
+  end
+  typeChecker.errorReporter:pcallAddErrorOnFailure(typeChecker.check, typeChecker, ast)
+  return typeChecker.errorReporter,
+         typeChecker.errorReporter:count() == 0
 end
 
 return module

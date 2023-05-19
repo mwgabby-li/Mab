@@ -246,15 +246,14 @@ function Translator:translate(ast)
   return self:finalize()
 end
 
-function module.translate(ast, errorReporter)
+function module.translate(ast, parameters)
   local translator = Translator:new()
-  translator.errorReporter = errorReporter
-
-  if errorReporter then
-    return errorReporter:pcallAddErrorOnFailure(translator.translate, translator, ast)
-  else
-    return translator:translate(ast)
+  translator.errorReporter = common.ErrorReporter:new()
+  if parameters then
+    translator.errorReporter.stopAtFirstError = parameters.stopAtFirstError
   end
+  return translator.errorReporter,
+         translator.errorReporter:pcallAddErrorOnFailure(translator.translate, translator, ast)
 end
 
 return module

@@ -314,25 +314,26 @@ function StackVM:execute(code)
   self:run(code)
   
   if self.top ~= 1 then
-    self:addError('Expected stack size of one at the end of the program, but stack size is '..common.toReadableNumber(self.top)..'. Internal error!')
+    self:addError('Internal error: Expected stack size of one at the end of the program, but stack size is '..
+                  common.toReadableNumber(self.top)..'.')
   end
   
   return self.stack[self.top]
 end
 
-function module.execute(code, trace, errorReporter)
+function module.execute(code, parameters)
   local interpreter = StackVM:new()
-  if trace ~= nil then
-    trace.stack = {}
+  interpreter.errorReporter = common.ErrorReporter:new()
+  if parameters then
+    interpreter.errorReporter.stopAtFirstError = parameters.stopAtFirstError
+    if parameters.show.trace ~= nil then
+      interpreter.trace = {stack = {}}
+    end
   end
-  interpreter.trace = trace
-  interpreter.errorReporter = errorReporter
 
-  if errorReporter then
-    return errorReporter:pcallAddErrorOnFailure(interpreter.execute, interpreter, code)
-  else
-    return interpreter:execute(code)
-  end
+  return interpreter.errorReporter,
+         interpreter.errorReporter:pcallAddErrorOnFailure(interpreter.execute, interpreter, code),
+         interpreter.trace
 end
 
 return module

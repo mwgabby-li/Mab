@@ -177,12 +177,14 @@ function common.copyObjectNoSelfReferences(object)
     return result
 end
 
-function common.maybeCreateMismatchMessages(input, expected, action, inputName)
-  if input.version ~= expected then
-    return 'Errors while '..action..
-            '. Note that the '..inputName..' version '..input.version..
-            ' mismatches the known compatible version '..expected..'.',
-           ' Warning! Expected '..inputName..' version '..expected..
+function common.maybeCreateMismatchMessages(input, phaseTable)
+  if phaseTable.version == nil then return end
+  
+  if input.version ~= phaseTable.version then
+    return 'Errors while '..phaseTable.actionName..
+            '. Note that the '..phaseTable.inputName..' version '..input.version..
+            ' mismatches the known compatible version '..phaseTable.version..'.',
+           ' Warning! Expected '..phaseTable.inputName..' version '..phaseTable.version..
             ' but got '..input.version..'.'
   end
 end
@@ -301,23 +303,19 @@ function common.ErrorReporter:count()
   return #self.errors
 end
 
-function common.ErrorReporter:outputErrors(input, stopAtOne, clearErrors)
+function common.ErrorReporter:outputErrors(input)
   for _, errorTable in ipairs(self.errors) do
     -- backup = false (positions for type errors are precise)
     if errorTable.position then
-      io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
+      io.stderr:write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
     end
-    io.write(errorTable.message)
-    io.write'\n\n'
+    io.stderr:write(errorTable.message)
+    io.stderr:write'\n\n'
 
-    if stopAtOne then
+    if self.stopAtFirstError then
       io.write 'Stopping at first error, as requested.\n'
       break
     end
-  end
-
-  if clearErrors then
-    self.errors = {}
   end
 end
 
@@ -325,7 +323,7 @@ function common.ErrorReporter:pcallAddErrorOnFailure(...)
   local result, message = pcall(...)
   if result == false then
     self:addError('Internal error: '..message)
-    return nil
+    return false
   end
 
   return message
