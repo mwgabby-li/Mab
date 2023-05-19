@@ -150,7 +150,7 @@ end
 function module:fullTest(input, addEntryPoint)
   input = addEntryPoint and wrapWithEntrypoint(input) or input
   local errorReporter, ast = module.parse(input)
-  if ast == nil then
+  if ast == false then
     return 'Parsing failed!'
   end
   
@@ -160,7 +160,7 @@ function module:fullTest(input, addEntryPoint)
   end
   
   local errorReporter, code = module.toStackVM.translate(ast)
-  if code == nil or errorReporter:count() > 0 then
+  if code == false or errorReporter:count() > 0 then
     return 'Translation failed!'
   end
   local errorReporter, result = module.interpreter.execute(code)
