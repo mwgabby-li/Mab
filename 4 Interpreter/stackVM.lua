@@ -41,7 +41,6 @@ local StackVM = {}
 
 function StackVM:new(o)
   o = o or {
-    errors = {},
     stack = {},
     top = 0,
     memory = {},
@@ -51,12 +50,10 @@ function StackVM:new(o)
   return o
 end
 
-function StackVM:addError(message)
-  ast = ast or {}
-  self.errors[#self.errors + 1] = {
-    message = message,
-    pc = self.pc,
-  }
+function StackVM:addError(...)
+  if self.errorReporter then
+    self.errorReporter:addError(...)
+  end
 end
 
 function StackVM:traceUnaryOp(operator)
@@ -320,16 +317,22 @@ function StackVM:execute(code)
     self:addError('Expected stack size of one at the end of the program, but stack size is '..common.toReadableNumber(self.top)..'. Internal error!')
   end
   
-  return self.stack[self.top], self.errors
+  return self.stack[self.top]
 end
 
-function module.execute(code, trace)
+function module.execute(code, trace, errorReporter)
   local interpreter = StackVM:new()
   if trace ~= nil then
     trace.stack = {}
   end
   interpreter.trace = trace
-  return interpreter:execute(code)
+  interpreter.errorReporter = errorReporter
+
+  if errorReporter then
+    return errorReporter:pcallAddErrorOnFailure(interpreter.execute, interpreter, code)
+  else
+    return interpreter:execute(code)
+  end
 end
 
 return module

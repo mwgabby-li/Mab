@@ -62,6 +62,8 @@ for index, argument in ipairs(arg) do
     parameters.show.graphviz = true
   elseif argument:lower() == '--pegdebug' or argument:lower() == '-p' then
     parameters.pegdebug = true
+  elseif argument:lower() == '--stop-at-first-error' or argument:lower() == '-s' then
+    parameters.stopAtFirst = true
   elseif argument:lower() == '--type-checker-off' or argument:lower() == '-y' then
     parameters.typechecker = false
   else
@@ -100,29 +102,24 @@ if parameters.show.AST then
   print(pt.pt(ast, {'version', 'tag', 'scope', 'parameters', 'type_', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
 end
 
+local errorReporter = common.ErrorReporter:new()
+
+-- GraphViz is a translator, but run it before type checking so that we can visualize even type-invalid ASTs.
 if parameters.show.graphviz then
   local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.GraphViz, 'generating GraphViz file', 'AST')
 
   io.write '\nGraphviz AST...'
   start = os.clock()
-  local pcallResult, graphviz, errors = pcall(graphviz.translate, ast)
-  print(string.format('    %s: %0.2f milliseconds.', (pcallResult and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-  if not pcallResult or #errors > 0 then
+  graphviz.translate(ast, errorReporter)
+  print(string.format('    %s: %0.2f milliseconds.', errorReporter:count() == 0 and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+
+  if errorReporter:count() > 0 then
     if mismatchAndErrors then
       print(mismatchAndErrors)
     end
-    if result then
-      for _, errorTable in ipairs(errors) do
-        -- backup = false (positions for type errors are precise)
-        if errorTable.position then
-          io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
-        end
-        io.write(errorTable.message)
-        io.write'\n\n'
-      end
-    else
-      print('Internal error: ' .. graphviz)
-    end
+
+    -- clear errors = true
+    errorReporter:outputErrors(input, parameters.stopAtFirst, true)
   else
     if mismatchNoErrors then
       print(mismatchNoErrors)
@@ -143,25 +140,15 @@ if parameters.typechecker then
 
   io.write '\nType checking...'
   start = os.clock()
-  local pcallResult, errors = pcall(typeChecker.check, ast)
-  print(string.format('   %s: %0.2f milliseconds.', (pcallResult and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-  if not pcallResult or #errors > 0 then
+  typeChecker.check(ast, errorReporter)
+  print(string.format('   %s: %0.2f milliseconds.', errorReporter:count() == 0 and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  if errorReporter:count() > 0 then
     if mismatchAndErrors then
       print(mismatchAndErrors)
     end
-    if pcallResult then
-      for _, errorTable in ipairs(errors) do
-        -- backup = false (positions for type errors are precise)
-        if errorTable.position then
-          io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
-        end
-        io.write(errorTable.message)
-        io.write'\n\n'
-      end
-    else
-      print("Internal error: "..errors)
-    end
 
+    -- clear errors = true
+    errorReporter:outputErrors(input, parameters.stopAtFirst, true)
     return 1
   elseif mismatchNoErrors then
     print(mismatchNoErrors)
@@ -172,31 +159,22 @@ end
 
 io.write '\nTranslating...'
 start = os.clock()
-local pcallResult, code, errors = pcall(toStackVM.translate, ast)
-print(string.format('     %s: %0.2f milliseconds.', (pcallResult and code and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+local code = toStackVM.translate(ast)
+local success = code and errorReporter:count() == 0
+print(string.format('     %s: %0.2f milliseconds.', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(ast, versions.AST.StackVM, 'translating to StackVM code', 'AST')
 
-if not pcallResult or not code or #errors > 0 then
+if not success then
   if mismatchAndErrors then
     print(mismatchAndErrors)
   end
 
-  if pcallResult then
-    for _, errorTable in ipairs(errors) do
-      -- backup = false (positions for type errors are precise)
-      if errorTable.position then
-        io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
-      end
-      io.write(errorTable.message)
-      io.write'\n\n'
-    end
-  else
-    print("Internal error: "..code)
-  end
+  -- clear errors = true
+  errorReporter:outputErrors(input, parameters.stopAtFirst, true)
   return 1
 elseif mismatchNoErrors then
-    print(mismatchNoErrors)
+  print(mismatchNoErrors)
 end
 
 if parameters.show.code then
@@ -210,23 +188,19 @@ local trace = nil
 if parameters.show.trace then
   trace = {}
 end
-local pcallResult, result, errors = pcall(interpreter.execute, code, trace)
-print(string.format('         Execution %s: %0.2f milliseconds.', (pcallResult and result ~= nil and #errors == 0) and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+local result = interpreter.execute(code, trace, errorReporter)
+local success = code and errorReporter:count() == 0
+print(string.format('         Execution %s: %0.2f milliseconds.', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
 
 local mismatchAndErrors, mismatchNoErrors = common.maybeCreateMismatchMessages(code, versions.code.StackVM, 'executing StackVM code', 'code')
 
-if not pcallResult or result == nil or #errors > 0 then
+if not success then
   if mismatchAndErrors then
     print(mismatchAndErrors)
   end
-  if pcallResult then
-    for _, errorTable in ipairs(errors) do
-      io.write(errorTable.message)
-      io.write'\n\n'
-    end
-  else
-    print("Internal error: "..result)
-  end
+
+  -- clear errors = true
+  errorReporter:outputErrors(input, parameters.stopAtFirst, true)
 elseif mismatchNoErrors then
   print(mismatchNoErrors)
 end
@@ -246,7 +220,7 @@ if parameters.show.trace then
     end
   end
 end
-if parameters.show.result and pcallResult and result ~= nil then
+if parameters.show.result and result ~= nil then
   print '\nResult:'
   print(result)
 end

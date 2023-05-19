@@ -152,18 +152,16 @@ function TypeChecker:new(o)
     variableTypes = {},
     blocks = {},
     functions = {},
-    errors = {},
   }
   self.__index = self
   setmetatable(o, self)
   return o
 end
 
-function TypeChecker:addError(message, ast)
-  self.errors[#self.errors + 1] = {
-    message = message,
-    position = type(ast) == 'table' and ast.position or ast,
-  }
+function TypeChecker:addError(...)
+  if self.errorReporter then
+    self.errorReporter:addError(...)
+  end
 end
 
 function TypeChecker:createBasicType(tag)
@@ -628,10 +626,13 @@ function TypeChecker:check(ast)
   end
 end
 
-function module.check(ast)
+function module.check(ast, errorReporter)
+  if not errorReporter then
+    error'Type Checker requires an error reporter, or there\'s no point.'
+  end
   local typeChecker = TypeChecker:new()
-  typeChecker:check(ast)
-  return typeChecker.errors
+  typeChecker.errorReporter = errorReporter
+  return errorReporter:pcallAddErrorOnFailure(typeChecker.check, typeChecker, ast)
 end
 
 return module

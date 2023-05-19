@@ -12,19 +12,16 @@ function Translator:new(o)
     statementNodeNames = {},
     ifNodeNames = {},
     file = "",
-    errors = {},
   }
   self.__index = self
   setmetatable(o, self)
   return o
 end
 
-function Translator:addError(message, ast)
-  ast = ast or {}
-  self.errors[#self.errors + 1] = {
-    message = message,
-    position = ast.position,
-  }
+function Translator:addError(...)
+  if self.errorReporter then
+    self.errorReporter:addError(...)
+  end
 end
 
 function Translator:getID(ast)
@@ -246,12 +243,18 @@ function Translator:translate(ast)
   for i = 1,#ast do
     self:nodeFunction(ast[i])
   end
-  return self:finalize(), self.errors
+  return self:finalize()
 end
 
-function module.translate(ast)
+function module.translate(ast, errorReporter)
   local translator = Translator:new()
-  return translator:translate(ast)
+  translator.errorReporter = errorReporter
+
+  if errorReporter then
+    return errorReporter:pcallAddErrorOnFailure(translator.translate, translator, ast)
+  else
+    return translator:translate(ast)
+  end
 end
 
 return module

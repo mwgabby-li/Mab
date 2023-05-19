@@ -30,7 +30,6 @@ local unaryToName = {
 
 function Translator:new(o)
   o = o or {
-    errors = {},
     currentCode = {},
     currentParameters = 0,
     functions = {},
@@ -45,12 +44,10 @@ function Translator:new(o)
   return o
 end
 
-function Translator:addError(message, ast)
-  ast = ast or {}
-  self.errors[#self.errors + 1] = {
-    message = message,
-    position = ast.position,
-  }
+function Translator:addError(...)
+  if self.errorReporter then
+    self.errorReporter:addError(...)
+  end
 end
 
 function Translator:currentInstructionIndex()
@@ -508,15 +505,21 @@ function Translator:translate(ast)
   end
 
   if not entryPoint then
-    return nil, self.errors
+    return nil
   else
-    return entryPoint.code, self.errors
+    return entryPoint.code
   end
 end
 
-function module.translate(ast)
+function module.translate(ast, errorReporter)
   local translator = Translator:new()
-  return translator:translate(ast)
+  translator.errorReporter = errorReporter
+
+  if errorReporter then
+    return errorReporter:pcallAddErrorOnFailure(translator.translate, translator, ast)
+  else
+    return translator:translate(ast)
+  end
 end
 
 return module

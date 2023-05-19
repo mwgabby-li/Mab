@@ -4,8 +4,9 @@ local lu = require 'External.luaunit'
 local astVersion = 1
 local module = {}
 local entryPointName = require('literals').entryPointName
+local common = require 'common'
 
-local identifier = require('common').testGrammar(require 'identifier')
+local identifier = common.testGrammar(require 'identifier')
 function module:testIdentifiers()
     lu.assertEquals(identifier:match('_leading_underscore'), '_leading_underscore')
     lu.assertEquals(identifier:match('this has spaces '), 'this has spaces')
@@ -153,17 +154,18 @@ function module:fullTest(input, addEntryPoint)
     return 'Parsing failed!'
   end
   
-  local errors = module.typeChecker.check(ast)
-  if #errors > 0 then
+  errorReporter = common.ErrorReporter:new()
+  module.typeChecker.check(ast, errorReporter)
+  if errorReporter:count() > 0 then
     return 'Type checking failed!'
   end
   
-  local code, errors = module.toStackVM.translate(ast)
-  if code == nil or #errors > 0 then
+  local code = module.toStackVM.translate(ast, errorReporter)
+  if code == nil or errorReporter:count() > 0 then
     return 'Translation failed!'
   end
-  local result, errors = module.interpreter.execute(code)
-  if #errors ~= 0 then
+  local result, errors = module.interpreter.execute(code, errorReporter)
+  if errorReporter:count() > 0 then
     return 'Running failed!'
   end  
   return result
@@ -718,8 +720,9 @@ function -> number: another function {
   local ast = module.parse(input)
   lu.assertEquals(type(ast), 'table')
   
-  local code, errors = module.toStackVM.translate(ast)
-  lu.assertEquals(#errors, 4)
+  local errorReporter = common.ErrorReporter:new()
+  local code = module.toStackVM.translate(ast, errorReporter)
+  lu.assertEquals(errorReporter:count(), 4)
   
   input =
 [[function -> number: another function {
@@ -747,8 +750,9 @@ function -> number: another function {
   ast = module.parse(input)
   lu.assertEquals(type(ast), 'table')
   
-  code, errors = module.toStackVM.translate(ast)
-  lu.assertEquals(#errors, 7)
+  local errorReporter = common.ErrorReporter:new()
+  code = module.toStackVM.translate(ast, errorReporter)
+  lu.assertEquals(errorReporter:count(), 7)
 end
 
 function module:testIndirectRecursion()
@@ -979,10 +983,10 @@ input =
 ]]
   local ast = module.parse(input)
   lu.assertNotEquals(ast, nil)
-    
-  local code, errors = module.toStackVM.translate(ast)
-  lu.assertNotEquals(errors, nil)
-  lu.assertEquals(#errors, 2)
+
+  local errorReporter = common.ErrorReporter:new()
+  local code = module.toStackVM.translate(ast, errorReporter)
+  lu.assertEquals(errorReporter:count(), 2)
 end
 
 -- test function parameter count mismatch (zero when should be something, number when should be another number, something when should be zero.)

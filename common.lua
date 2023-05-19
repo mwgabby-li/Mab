@@ -265,6 +265,67 @@ function common.hash(string, start)
   return hash
 end
 
+-- Error reporter is separate, even for the type checker phase,
+-- which only exists to generate errors.
+-- This is necessary or we can't get the errors that were output
+-- if an exception is thrown within the phase pcall()s.
+-- And in fact, the Error Reporter itself does these pcall()s.
+common.ErrorReporter = {}
+
+function common.ErrorReporter:new(o)
+  o = o or {
+    errors = {},
+  }
+  self.__index = self
+  setmetatable(o, self)
+  return o
+end
+
+function common.ErrorReporter:addError(message, tableWithPositionOrPositionOrNil)
+  local position = type(tableWithPositionOrPositionOrNil) == 'table' and
+                   tableWithPositionOrPositionOrNil.position or
+                   tableWithPositionOrPositionOrNil
+
+  self.errors[#self.errors + 1] = {
+    message = message,
+    position = position,
+  }
+end
+
+function common.ErrorReporter:count()
+  return #self.errors
+end
+
+function common.ErrorReporter:outputErrors(input, stopAtOne, clearErrors)
+  for _, errorTable in ipairs(self.errors) do
+    -- backup = false (positions for type errors are precise)
+    if errorTable.position then
+      io.write(common.generateErrorMessage(input, errorTable.position, false, 'On line '))
+    end
+    io.write(errorTable.message)
+    io.write'\n\n'
+
+    if stopAtOne then
+      io.write 'Stopping at first error, as requested.\n'
+      break
+    end
+  end
+
+  if clearErrors then
+    self.errors = {}
+  end
+end
+
+function common.ErrorReporter:pcallAddErrorOnFailure(...)
+  local result, message = pcall(...)
+  if result == false then
+    self:addError('Internal error: '..message)
+    return nil
+  end
+
+  return message
+end
+
 -- Calculate these here so that compile timings don't reflect hashing a file.
 common.parserVersionHash()
 common.toStackVMVersionHash()
