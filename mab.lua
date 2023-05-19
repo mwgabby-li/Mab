@@ -23,7 +23,7 @@ local pt = require 'External.pt'
 local common = require 'common'
 
 if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
-  common.poem(true)
+  print(common.poem(true))
   arg[1] = nil
   local lu = require 'External.luaunit'
   testFrontend = require 'tests':init(parser.parse, typeChecker, toStackVM, interpreter)
