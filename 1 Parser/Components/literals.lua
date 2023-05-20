@@ -47,6 +47,7 @@ module.delim.closeFunctionParameterList = ')'
 module.sep.statement = ';'
 module.sep.newVariable = ':'
 module.sep.parameter = ':'
+module.sep.returnResult = ':'
 module.sep.argument = ','
 module.sep.functionResult = '->'
 

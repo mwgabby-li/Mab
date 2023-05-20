@@ -174,7 +174,7 @@ statement = blockStatement +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
-            KW'return' * Cp() * expression / nodeReturn +
+            KW'return' * sep.returnResult^-1 * Cp() * expression / nodeReturn +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
             -- Call keyword is a solution for functions as statements and whitespace in identifiers,
