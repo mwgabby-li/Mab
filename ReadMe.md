@@ -768,6 +768,8 @@ Mab supports a robust array of command-line options:
 * `--pegdebug`/`-p`: Annotate the grammar with PegDebug before translating.
 * `--type-checker-off`/`-y`: Disable the type checker phase. "Damn the torpedoes, full speed ahead!"
 * `--stop-on-first-error`/`-s`: Stop outputting errors after the first.
+* `--verbose`/`-v`: Output detailed information about stage execution.
+* `--unpoetic`/`-u`: Suppress poetry.
 
 ### Automatic AST and Code Versioning
 
