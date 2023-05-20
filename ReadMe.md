@@ -271,7 +271,7 @@ c: a < b ? true : false;
 
 From lowest to highest:
 
-Ternary (`?:`, Comparisons, Binary Not (`!`), Sums, Terms, Unary Not (`-`), 
+Ternary (`?:`), Comparisons, Binary Not (`!`), Sums, Terms, Unary Not (`-`), 
 Exponent (`^`).
 
 Within the groups, operators are evaulated left to right:

@@ -28,7 +28,7 @@ phases = {
     name = 'Type Checker',
     actionName = 'type checking',
     inputName = 'AST',
-    version = 0,
+    version = 3763314777,
   },
 
   graphviz = {
@@ -44,7 +44,7 @@ phases = {
     name = 'Stack VM',
     actionName = 'generating Stack VM code',
     inputName = 'AST',
-    version = 0,
+    version = 3763314777,
   },
 
   interpreter = {
@@ -52,7 +52,7 @@ phases = {
     name = 'Interpreter',
     actionName = 'interpreting',
     inputName = 'Stack VM code',
-    version = 0,
+    version = 218216203,
   },
 }
 
