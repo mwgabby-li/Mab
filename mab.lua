@@ -61,25 +61,30 @@ phases = {
 }
 
 function runPhase(phaseTable, phaseInput, parameters)
-  
-  if not phaseTable.separatedOutput then
-    local extraBuffer = 13 - #phaseTable.name
-    io.write('\n'..phaseTable.name..'...'..(' '):rep(extraBuffer))
-  else
-    io.write('\n'..phaseTable.name..' starting...\n\n')
+
+  if parameters.verbose then
+    if not phaseTable.separatedOutput then
+      local extraBuffer = 13 - #phaseTable.name
+      io.write('\n'..phaseTable.name..'...'..(' '):rep(extraBuffer))
+    else
+      io.write('\n'..phaseTable.name..' starting...\n\n')
+    end
   end
   
   start = os.clock()
   errorReporter, result, extra = phaseTable.action(phaseInput, parameters)
   local success = result and errorReporter:count() == 0
-  if not phaseTable.separatedOutput then
-    io.write(string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-  else
-    local extraBuffer = 11 - #phaseTable.name
-    io.write(string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n', 
-                           success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000))
+
+  if parameters.verbose then
+    if not phaseTable.separatedOutput then
+      io.write(string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+    else
+      local extraBuffer = 11 - #phaseTable.name
+      io.write(string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n',
+              success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000))
+    end
+    io.flush()
   end
-  io.flush()
 
   mismatchAndFailure, mismatchAndSuccess = common.maybeCreateMismatchMessages(phaseInput, phaseTable)
 
@@ -107,43 +112,66 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   os.exit(lu.LuaUnit.run())
 end
 
-local parameters = { show = {}, typechecker = true }
+local parameters = { show = {}, typechecker = true, poetic = true }
 local awaiting_filename = false
-for index, argument in ipairs(arg) do
+
+local function readOption(argument)
   if awaiting_filename then
-    local status, err = pcall(io.input, arg[index])
-    parameters.inputFile = arg[index]
+    local defaultInput = io.input()
+    local status, err = pcall(io.input, argument)
     if not status then
-      print('Could not open file "' .. arg[index] .. '"\n\tError: ' .. err)
+      print('Could not open file "' .. argument .. '"\n\tError: ' .. err)
       os.exit(1)
+    else
+      parameters.inputFile = argument
+      parameters.subject = io.read 'a'
+      io.close()
     end
+    io.input(defaultInput)
     awaiting_filename = false
-  elseif argument:lower() == '--input' or argument:lower() == '-i' then
+  elseif argument == '--input' or argument == '-i' then
     awaiting_filename = true
-  elseif argument:lower() == '--tests' then
+  elseif argument == '--tests' then
     print('-tests must be the first argument if it is being sent in.')
     os.exit(1)
-  elseif argument:lower() == '--ast' or argument:lower() == '-a' then
+  elseif argument == '--ast' or argument == '-a' then
     parameters.show.AST = true
-  elseif argument:lower() == '--code' or argument:lower() == '-c' then
+  elseif argument == '--unpoetic' or argument == '-u' then
+    parameters.poetic = false
+  elseif argument == '--verbose' or argument == '-v' then
+    parameters.verbose = true
+  elseif argument == '--code' or argument == '-c' then
     parameters.show.code = true
-  elseif argument:lower() == '--trace' or argument:lower() == '-t' then
+  elseif argument == '--trace' or argument == '-t' then
     parameters.show.trace = true
-  elseif argument:lower() == '--result' or argument:lower() == '-r' then
+  elseif argument == '--result' or argument == '-r' then
     parameters.show.result = true
-  elseif argument:lower() == '--echo-input' or argument:lower() == '-e' then
+  elseif argument == '--echo-input' or argument == '-e' then
     parameters.show.input = true
-  elseif argument:lower() == '--graphviz' or argument:lower() == '-g' then
+  elseif argument == '--graphviz' or argument == '-g' then
     parameters.show.graphviz = true
-  elseif argument:lower() == '--pegdebug' or argument:lower() == '-p' then
+  elseif argument == '--pegdebug' or argument == '-p' then
     parameters.pegdebug = true
-  elseif argument:lower() == '--stop-at-first-error' or argument:lower() == '-s' then
+  elseif argument == '--stop-at-first-error' or argument == '-s' then
     parameters.stopAtFirstError = true
-  elseif argument:lower() == '--type-checker-off' or argument:lower() == '-y' then
+  elseif argument == '--type-checker-off' or argument == '-y' then
     parameters.typechecker = false
   else
     print('Unknown argument ' .. argument .. '.')
     os.exit(1)
+  end  
+end
+
+for index, argument in ipairs(arg) do
+  if awaiting_filename then
+    readOption(argument)
+  elseif argument:find('^[-][-]') then
+    readOption(argument)
+  else
+    local numOptions =  #argument - 1
+    for i = 1, numOptions do
+      readOption('-'..argument:sub(i+1,i+1))
+    end
   end
 end
 
@@ -152,14 +180,15 @@ if awaiting_filename then
   os.exit(1)
 end
 
-print(common.poem())
+if parameters.verbose or parameters.poetic then
+  print(common.poem())
+end
 
-local subject = io.read 'a'
+local subject = parameters.subject or io.read 'a'
 if parameters.show.input then
   print 'Input:'
   print(subject)
 end
-parameters.subject = subject
 
 local success, ast = runPhase(phases.parser, subject, parameters)
 if not success then
@@ -180,8 +209,8 @@ if parameters.typechecker then
     io.stderr:flush()
   end
 else
-  print '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.'
-  io.flush()
+  io.stderr:write '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.\n'
+  io.stderr:flush()
 end
 
 if parameters.show.graphviz then
