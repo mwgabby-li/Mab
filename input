@@ -1,0 +1,32 @@
+# Draw lines!
+
+
+entry point: -> number {
+
+    display:global new[18][32] 0;
+    display width:32;
+    display height:18;
+
+    points: new[8][2] 1;
+    point count:8;
+    
+    points[1][1] = 10;
+    points[1][2] = 3;
+
+    i: 1;
+    while i <= point count {
+        point: points[i];
+        
+        start point:points[i];
+        end point:points[(i+1)%point count];
+        
+        call set(point[1], point[2], 1);
+
+        i = i + 1;
+    };
+    @display;
+}
+
+set: x:number y:number value:number -> {
+  display[18 - y + 1][x] = value
+}
