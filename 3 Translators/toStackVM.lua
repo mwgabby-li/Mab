@@ -448,6 +448,11 @@ function Translator:codeFunction(ast)
       self:addCode(0)
     elseif ast.returnType.tag == 'boolean' then
       self:addCode(false)
+    elseif ast.returnType.tag == 'unknown' then
+      -- This is valid. Note that a function like this, with no return type,
+      -- is only allowed to be executed as a statement.
+      -- Any other use will cause a type checker error.
+      self:addCode(false)
     else
       self:addError('Internal error: unknown type "'..ast.returnType.tag ..'" when generating automatic return value.')
       self:addCode(0)
