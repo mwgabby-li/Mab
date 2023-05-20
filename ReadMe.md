@@ -802,6 +802,9 @@ A pre-requisite for language adoption. There are many languages out there,
 and expecting people to figure out a language through trial and error is
 not only impractical, but disrespectful of their time.
 
+#### Debugging Tools
+Good debuggers reduce development time and increase software quality.
+
 #### Multiple File Support
 This sort of strongly-typed language is well-suited to larger projects,
 so supporting multiple files is a high priority.
@@ -833,7 +836,11 @@ standard ways of communicating with other languages would be vital.
 #### More Data Types
 Some way of representing and working with strings is vital.
 
-Separating integer and floating point is useful for this type of language, as well.
+Separating integer and floating point is useful.
+
+Sized types are also important for many use cases.
+
+Finally, some sort of compound type, such as tuples with named elements.
 
 #### Standard Library
 Working with a language without a standard library can be impractically
@@ -866,14 +873,20 @@ whether to make changes.
 
 #### Medium
 * Make Language Loopier
+  * `break` and `continue` for loops.
+  * Other types of loops, just `while` is a bit limiting.
+    * `for value in array`, `for index, value in array`.
+
+      Maybe `:` instead of `in`?
+
+      No need to support looping over indices by themselves.
   * `while`/`otherwise` loop.
     * If the loop condition fails immediately, the `otherwise` clause is executed.
-  * Other types of loops, just `while` is a bit limiting.
-  * `break` and `continue` for loops.
 * `goto`.
 * Offset-based array indexing syntax, for people who, when asked to count three apples,
 would say "Zero, one, two. Three apples!"
   * Maybe `array+[0][0]`, `array+[1][1]` as equivalent to `array[1][1]` and `array[2][2]`?
+* Ability to get size of array, since it's static.
 * Language profiles with different rules.
   * Lua style, default `global`.
   * Shadowing on and off.
@@ -916,6 +929,8 @@ would say "Zero, one, two. Three apples!"
   * The second one would involve doing something to assure sane precedence based on
   types.
   * The first would probably involve making the parser aware of valid variables.
+* Report source line on interpreter errors.
+* Full debugger support.
 
 ## Self assessment
 
