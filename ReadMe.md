@@ -856,6 +856,8 @@ in addition to the hash.
 whether to make changes.
   * `~=`, `!`, comments. Others...
 * Add options for unicode symbols for math instead of ASCII.
+* Colon after conditionals instead of open block?
+  * Just seems a little more natural to me...
 
 #### Medium
 * Make Language Loopier
