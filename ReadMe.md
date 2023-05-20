@@ -771,6 +771,9 @@ Mab supports a robust array of command-line options:
 * `--verbose`/`-v`: Output detailed information about stage execution.
 * `--unpoetic`/`-u`: Suppress poetry.
 
+You can use the format `-{option character}` to select multiple options at a time.
+For example, `-vr` will output verbose information and the program return value.
+
 ### Automatic AST and Code Versioning
 
 Changing the AST and code is likely to invalidate later phases of the translation
