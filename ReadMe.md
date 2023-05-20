@@ -230,22 +230,34 @@ b[1][1] = true;
 
 Mab contains the following unary operators:
 
-| Operator           | Type    | Operation |
-|--------------------|---------|-----------|
-| <center>!</center> | Boolean | Not       |
-| <center>+</center> | Numeric | Positive  |
-| <center>-</center> | Numeric | Negate    |
+| Operator             | Operation | Type    |
+|----------------------|-----------|---------|
+| <center>`!`</center> | Not       | Boolean |
+| <center>`+`</center> | Positive  | Numeric |
+| <center>`-`</center> | Negate    | Numeric |
 
 It contains the following numeric binary operators:
 
-| Operator           | Operation      |
-|--------------------|----------------|
-| <center>+</center> | Addition       |
-| <center>-</center> | Subtraction    |
-| <center>*</center> | Multiplication |
-| <center>/</center> | Division       |
-| <center>%</center> | Modulus        |
-| <center>^</center> | Exponent       |
+| Operator             | Operation      |
+|----------------------|----------------|
+| <center>`+`</center> | Addition       |
+| <center>`-`</center> | Subtraction    |
+| <center>`*`</center> | Multiplication |
+| <center>`/`</center> | Division       |
+| <center>`%`</center> | Modulus        |
+| <center>`^`</center> | Exponent       |
+
+And the following boolean binary operators:
+
+| Operator              | Operation    |
+|-----------------------|--------------|
+| <center>`>=`</center> | Greater Than |
+| <center>`>` </center> | Greater      |
+| <center>`<=`</center> | Less Than    |
+| <center>`<` </center> | Less         |
+| <center>`~=`</center> | Not Equal    |
+| <center>`=` </center> | Equal        |
+
 
 ### Ternary Operator
 
@@ -267,27 +279,19 @@ c: a < b ? true : false;
 
 ```
 
-### Operator Precendence
+### Operator Precedence
 
 From lowest to highest:
 
-Ternary (`?:`), Comparisons, Binary Not (`!`), Sums, Terms, Unary Not (`-`), 
-Exponent (`^`).
-
-Within the groups, operators are evaulated left to right:
-
-Comparisons:
-
-`>=`, `>`, `<=`, `<`, `=`, `~=`
-
-Sums:
-
-`+`, `-`
-
-Terms:
-
-`*`, `/`, `%`
-
+| Operator                                     | Name                                  |
+|----------------------------------------------|---------------------------------------|
+| <center>`?:`</center>                        | Ternary                               |
+| <center>`>=` `>` `<=` `<` `~=` `=` </center> | Boolean Comparisons                   |
+| <center>`!` </center>                        | Boolean Not                           |
+| <center>`+`  `-` </center>                   | Addition and Subtraction              |
+| <center>`*` `/` `%` </center>                | Multiplication, Division, and Modulus |
+| <center>`-` </center>                        | Unary Minus                           |
+| <center>`^` </center>                        | Exponent                              |
 
 ### Statement Function Calls
 
@@ -296,7 +300,7 @@ A function whose return value is discarded after being called is a statement.
 Mab requires a special keyword for this case, unlike most other languages:
 
 ```
-'call' identifier '(' {expression {',' expression}} ')'
+'call' identifier '(' { expression { ',' expression } } ')'
 ```
 
 Example of usage. Note that `print()` here has no return type, so it actually can only
@@ -342,6 +346,12 @@ return: a = b;
 
 ### Arrays
 
+Arrays in Mab are indexed from element one, not zero.
+
+Mab is done this way because unifying the count and index of things is
+more natural and less confusing.
+It leads to intuitive properties such as the last element's index being the length of the array.
+
 When creating an array, you use the `new` keyword:
 
 ```
@@ -358,8 +368,6 @@ To access an element for use in expression or assignment:
 ```
 identifier '[' expression ']' {'[' expression ']'}
 ```
-
-
 
 ### Control Structures
 #### If / ElseIf / Else
@@ -844,11 +852,21 @@ but were outside the scope of my free time during the course.
 * Include explicit version number and size for AST and code versions,
 in addition to the hash.
 * Disallow globals in default arguments, or remove default arguments.
+* Do a pass over different keyword and symbol literals and consider
+whether to make changes.
+  * `~=`, `!`, comments. Others...
+* Add options for unicode symbols for math instead of ASCII.
 
 #### Medium
-* `while`/`otherwise` loop.
-  * If the loop condition fails immediately, the `otherwise` clause is executed.
-* Other types of loops, just `while` is a bit limiting.
+* Make Language Loopier
+  * `while`/`otherwise` loop.
+    * If the loop condition fails immediately, the `otherwise` clause is executed.
+  * Other types of loops, just `while` is a bit limiting.
+  * `break` and `continue` for loops.
+* `goto`.
+* Offset-based array indexing syntax, for people who, when asked to count three apples,
+would say "Zero, one, two. Three apples!"
+  * Maybe `array+[0][0]`, `array+[1][1]` as equivalent to `array[1][1]` and `array[2][2]`?
 * Language profiles with different rules.
   * Lua style, default `global`.
   * Shadowing on and off.
@@ -885,7 +903,7 @@ in addition to the hash.
   * This could replace `return`...
 * Mix static and dynamic type checking.
   * See earlier idea of language profiles.
-* Fixups for undefined globals and exports, or whatever concept is used for modules.
+* Fix-ups for undefined globals and exports, or whatever concept is used for modules.
   * Two-pass compilation for all the things!
 * Keywords for boolean operators or shared symbol operators.
   * The second one would involve doing something to assure sane precedence based on
