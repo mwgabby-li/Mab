@@ -153,7 +153,7 @@ program = endToken * Ct(functionDeclaration^1) * -1,
 
 functionDeclaration = Cp() * identifier * sep.newVariable * delim.openFunctionParameterList^-1 * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList^-1 * sep.functionResult * type_ * op.assign^-1 * blockStatement / nodeFunction,
 parameter = Cp() * identifier * sep.parameter * type_ / nodeParameter,
-parameters = Ct((parameter * (parameter)^0)^-1),
+parameters = Ct((parameter * (sep.argument^-1 * parameter)^0)^-1),
 
 statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
 
