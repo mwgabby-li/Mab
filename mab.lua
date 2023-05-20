@@ -52,17 +52,33 @@ phases = {
     name = 'Interpreter',
     actionName = 'interpreting',
     inputName = 'Stack VM code',
+    -- Prints 'starting' and then leaves space
+    -- for the program to output, then prints
+    -- the completion message.
+    separatedOutput = true,
     version = 218216203,
   },
 }
 
 function runPhase(phaseTable, phaseInput, parameters)
-  local extraBuffer = 13 - #phaseTable.name
-  io.write('\n'..phaseTable.name..'...'..(' '):rep(extraBuffer))
+  
+  if not phaseTable.separatedOutput then
+    local extraBuffer = 13 - #phaseTable.name
+    io.write('\n'..phaseTable.name..'...'..(' '):rep(extraBuffer))
+  else
+    io.write('\n'..phaseTable.name..' starting...\n\n')
+  end
+  
   start = os.clock()
   errorReporter, result, extra = phaseTable.action(phaseInput, parameters)
   local success = result and errorReporter:count() == 0
-  io.write(string.format('%s: %0.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  if not phaseTable.separatedOutput then
+    io.write(string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  else
+    local extraBuffer = 11 - #phaseTable.name
+    io.write(string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n', 
+                           success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000))
+  end
   io.flush()
 
   mismatchAndFailure, mismatchAndSuccess = common.maybeCreateMismatchMessages(phaseInput, phaseTable)
