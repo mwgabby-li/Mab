@@ -1190,8 +1190,97 @@ function module:testTernaryOperator()
 end
 
 -- test default argument
-  -- default used
-  -- default not used
-  -- default with no arguments
+function module:testExampleProgram()
+  local input =
+  [[global container: -> {
+      g:global = 12
+  }
+
+  factorial: (n:number) -> number {
+      if n = 0 {
+          return 1
+      } else {
+          return n * factorial(n - 1)
+      }
+  }
+
+  sum: (a:number b:number) -> number = {
+      return a + b
+  }
+
+  # The parethesis are optional:
+  div: a:number b:number -> number {
+      return a / b
+  }
+
+  # This could also be written as " entry point: -> number ."
+  entry point: () -> number {
+      call global container();
+
+      # Fully specified variable
+      a:local number = 2;
+      # Equals is optional...
+      b:= 2;
+      # Other than the name, the same as the two previous.
+      c: 2;
+
+      return factorial( div( sum( a, b ) * c, 2) )
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 24.0);
+end
+
+function module:testDefaultArguments()
+  -- Default with one parameter
+  --  Used:
+  local input =
+  [[default arguments: n:number = 12 * 17 -> number {
+    return n
+  }
+
+  entry point: -> number {
+    return default arguments();
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 12 * 17)
+  --  Not used:
+  input =
+  [[default arguments: n:number = 12 * 17 -> number {
+    return n
+  }
+
+  entry point: -> number {
+    return default arguments(12);
+  }
+  ]]
+  lu.assertEquals(self:fullTest(input), 12)
+
+  -- Default with multiple parameters:
+  --  Used:
+  input =
+  [[default arguments: b:boolean n:number = 12 * 17 -> number {
+    return n
+  }
+
+  entry point: -> number {
+    return default arguments(true);
+  }
+  ]]
+  lu.assertEquals(self:fullTest(input), 12 * 17)
+
+  --  Not used:
+  input =
+  [[default arguments: b:boolean n:number = 12 * 17 -> number {
+    return n
+  }
+
+  entry point: -> number {
+    return default arguments(true, 12);
+  }
+  ]]
+  lu.assertEquals(self:fullTest(input), 12)
+end
 
 return module
