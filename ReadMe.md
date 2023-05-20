@@ -2,8 +2,6 @@
 
 ## Language Syntax
 
-INSTRUCTIONS: In this section, describe the overall syntax of your language.
-
 ### Note on Grammar Notation
 The grammar examples are in Extended Backus-Naur Form,
 [as described here](https://en.wikipedia.org/w/index.php?title=Extended_Backus%E2%80%93Naur_form&oldid=1152630785).
@@ -133,7 +131,7 @@ Types can be either `boolean`, `number`, an array type, or a function type.
 
 A function type is:
 ```
-['('] {identifier ':' type} [')'] -> type
+['('] {identifier ':' type {[,] identifier ':' type }} [')'] -> type
 ```
 
 Currently, function types can only be top-level types, in function definitions,
@@ -165,8 +163,11 @@ is identity: matrix:[2][2] number -> boolean {
 
 An example of some functions and variables in this syntax:
 ```
-global container: -> number {
-    g:global = 12
+# This function has no input or return types.
+# It can only be called with the `call` keyword, any other use would be a type checker error.
+global container: -> {
+    g:global = 12;
+    @g;
 }
 
 factorial: (n:number) -> number {
@@ -181,13 +182,15 @@ sum: (a:number b:number) -> number = {
     return a + b
 }
 
-# The parethesis are optional:
-div: a:number b:number -> number {
+# The parethesis are optional, and commas can also be added if desired:
+div: a:number, b:number -> number {
     return a / b
 }
 
 # This could also be written as " entry point: -> number ."
 entry point: () -> number {
+    call global container();
+
     # Fully specified variable
     a:local number = 2;
     # Equals is optional...
@@ -359,9 +362,53 @@ identifier '[' expression ']' {'[' expression ']'}
 
 
 ### Control Structures
-#### If/Else
+#### If / ElseIf / Else
+
+These conditional control structures are typical. The syntax is as follows:
+
+```
+'if' expression '{' {statement} '}',
+{'elseif' expression '{' {statement} '}'},
+['else' '{' {statement} '}']
+```
+The expressions must evaluate to booleans.
+
+An example of usage:
+```
+a: 12;
+b: 10;
+
+# Output the lesser of the two:
+if a < b {
+    @a;
+} elseif a > b {
+    @b;
+# If equal, output the sum:
+} else {
+    @a + b;
+}
+```
 
 #### While
+
+The while loop is also typical. The syntax is as follows:
+
+```
+'while' expression '{' {statement} '}'
+```
+
+An example of usage:
+```
+a: 1;
+b: 10;
+
+# This will print the numbers 1 through 10 inclusive:
+while a <= b {
+    @a;
+    a = a + 1;
+}
+
+```
 
 ### Print
 
@@ -389,20 +436,38 @@ The output from the example above is:
 
 ### Comments
 
+Comments are denoted by `#` and continue to the end of the line.
+
+Block comments are denoted by `#{` and `#}` and can span multiple lines.
+Nesting block comments is not supported.
+
+Example of usage:
+```
+# This is a comment
+
+# And a block comment:
+#{
+    This is a block comment.
+    It can span multiple lines.
+    
+    # This code will not be executed, because it is commented out in this block comment:
+    a: 10;
+    @a;
+#}
+```
 
 ## New Features/Changes
-
-INSTRUCTIONS: In this section, describe the new features or changes that you have added to the programming language. This should include:
-* Detailed explanation of each feature/change
-* Examples of how they can be used
-* Any trade-offs or limitations you are aware of
-
 
 ### Type Specification, Unified Types
 
 As described in
 **[Function and Variable Definition](#function-and-variable-definition).**
 This differs significantly from Selene.
+
+#### Limitations
+
+This syntax was designed to support first-class and anonymous functions,
+but they have not been implemented.
 
 ### Type Checker/Strongly Typed
 
@@ -520,6 +585,14 @@ entry point: -> number {
 Notably, array types are required to have initializers because default values are not
 supported for them, making type specifiers even more useless.
 
+#### Limitations
+
+Further type inference would be nice. Rust is a great example of very robust automatic inference.
+
+Types can be a bit clunky as it is right now.
+
+Generics would also be a fun goal.
+
 ### Robust Error Support
 
 Error messages indicate the line number, and show it along with surrounding context
@@ -528,6 +601,12 @@ lines with an indication of the exact character where the error occurs.
 In addition, the output includes `filename:line number`, allowing some editors,
 such as ZeroBrane Studio, to open the file when the error line is double-clicked in
 the log.
+
+#### Limitations
+Some errors crash various phases, and even if they are caught, they can still be cryptic.
+
+One approach to solve this would be to have a phase that does robust verification of the AST
+for correctness to verify preconditions before further phase processing.
 
 ### Booleans
 
@@ -703,12 +782,6 @@ its hash after it has been verified to be compatible with the updates.
 
 ## Future
 
-INSTRUCTIONS: 
-In this section, discuss the future of your language / DSL, such as how it could be deployed (if applicable), features, etc.
-
-* What would be needed to get this project ready for production?
-* How would you extend this project to do something more? Are there other features you’d like? How would you go about adding them?
-
 ### Make Mab Production-Ready
 
 #### Extensive Documentation and Learning Resources
@@ -724,6 +797,15 @@ so supporting multiple files is a high priority.
 Files, streams, program arguments, more robust printing, etc.
 A programming language that you can't communicate with without changing source code
 is clumsy at best.
+
+#### Ahead-of-Time Compiled
+Speed is important for me. I want a language that is performant enough to make games.
+
+#### Safety Features
+Safety is no longer optional. The world runs on software. Major business and
+government organizations are advocating use of only memory-safe languages.
+
+Even games can be attack vectors. Safety is needed for all software.
 
 #### Foreign Function Interface
 In order to work with all the hardware and software out there,
@@ -747,15 +829,6 @@ time-consuming.
 #### Consider Explicitly Supporting a Paradigm
 Something like object-oriented programming, etc.
 
-#### Ahead-of-Time Compiled
-Speed is important for me. I want a language that is performant enough to make games.
-
-#### Safety Features
-Safety is no longer optional. The world runs on software. Major business and
-government organizations are advocating use of only memory-safe languages.
-
-Even games can be attack vectors. Safety is needed for all software.
-
 #### Multiprocessing Support
 Even mobiles have many cores. This must be a first-class language feature,
 especially for a performance-focused statically typed language like Mab.
@@ -774,6 +847,7 @@ in addition to the hash.
 
 #### Medium
 * `while`/`otherwise` loop.
+  * If the loop condition fails immediately, the `otherwise` clause is executed.
 * Other types of loops, just `while` is a bit limiting.
 * Language profiles with different rules.
   * Lua style, default `global`.
@@ -792,6 +866,7 @@ in addition to the hash.
 * Support trailing base notation for numbers, rather than prefix.
   * `1000 b2`, for example.
 * Report differences in AST based on hash of parser bytecode rather than text hash.
+  * Text hash is sensitive to formatting, comments, and other irrelevant modifications.
   * `string.dump()` seems promising?
 
 #### Hard
@@ -819,11 +894,6 @@ in addition to the hash.
 
 ## Self assessment
 
-INSTRUCTIONS:
-* Self assessment of your project: for each criterion described on the final project specs, choose a score (1, 2, 3) and explain your reason for the score in 1-2 sentences.
-* Have you gone beyond the base requirements? How so?
-
-
 ### Language Completeness: 3/3
 * All exercises have been incorporated into the language, as well as two optional
 features (booleans and the ternary operator) and the type checker.
@@ -846,10 +916,6 @@ parentheses and commas are optional.
 with things like literals defined in a single place for customization.
 
 ## References
-
-INSTRUCTIONS:
-List any references used in the development of your language besides this course, including any books, papers, or online resources.
-
 Most of my research beyond asking questions on Discord was small Google searches,
 but here are some relatively relevant links.
 
