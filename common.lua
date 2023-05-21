@@ -184,7 +184,7 @@ function common.maybeCreateMismatchMessages(input, phaseTable)
     return ' Errors while '..phaseTable.actionName..
             '. Note that the '..phaseTable.inputName..' version '..input.version..
             ' mismatches the known compatible version '..phaseTable.version..'.',
-           ' Warning! Expected '..phaseTable.inputName..' version '..phaseTable.version..
+           ' Warning! '..phaseTable.name..' expected '..phaseTable.inputName..' version '..phaseTable.version..
             ' but got '..input.version..'.'
   end
 end
