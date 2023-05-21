@@ -48,11 +48,11 @@ TypeChecker.typeCompatibleBinaryOps = {
 
 TypeChecker.typeCompatibleUnaryOps = {
   boolean = {
-    [l_op.positive] = true,
     [l_op.not_] = true,
   },
   
   number = {
+    [l_op.positive] = true,
     [l_op.negate] = true,
     -- To-Do: Bit manipulation?
     --[[
@@ -365,6 +365,13 @@ function TypeChecker:checkExpression(ast)
     end
 
     local arrayType, variableName = self:checkExpression(ast.array)
+
+    if arrayType.tag ~= 'array' then
+      self:addError('Attempting to index into "'..variableName..'," which is a "'..
+                    arrayType.tag..'," not an array.', ast.array)
+      -- EARLY RETURN, can't recover.
+      return resultType, variableName
+    end
 
     local newDimensions = cloneDimensions(arrayType.dimensions)
     newDimensions[#newDimensions] = nil
