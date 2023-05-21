@@ -956,6 +956,7 @@ and code versions, and other unique syntax constructs such as parameter lists wh
 parentheses and commas are optional.
 * Language is broken into different phases to allow localized changes, and is otherwise modular,
 with things like literals defined in a single place for customization.
+* The example program is reasonably complex and demonstrates the power of the language.
 
 ## References
 Most of my research beyond asking questions on Discord was small Google searches,
