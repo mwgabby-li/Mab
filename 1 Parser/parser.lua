@@ -237,13 +237,19 @@ end
 
 function ParserErrorReporter:outputErrors(input)
   if self.position then
+    -- For support to jump to error messages, put the filename, if any, on the beginning of the line.
+    -- It would be nice to say "at" and "after," but jumping is more important.
+    local defaultPrefix, backedUpPrefix = self.filename and
+                                          self.filename..':', self.filename..':' or
+                                          'at line ', 'after line '
     io.stderr:write(common.generateErrorMessage(input, self.position, true,
-                              'at line ', 'after line ')..'\n')
+                                                defaultPrefix, backedUpPrefix)..'\n')
   end
 end
 
 function module.parse(input, parameters)
   ParserErrorReporter.position = false
+  ParserErrorReporter.filename = parameters.inputFile
   local grammar = grammar
   if parameters and parameters.pegdebug then
     grammar = require('External.pegdebug').trace(grammar)
