@@ -883,6 +883,7 @@ whether to make changes.
   * `while`/`otherwise` loop.
     * If the loop condition fails immediately, the `otherwise` clause is executed.
 * `goto`.
+* Way of returning nothing, for functions that have no return type.
 * Offset-based array indexing syntax, for people who, when asked to count three apples,
 would say "Zero, one, two. Three apples!"
   * Maybe `array+[0][0]`, `array+[1][1]` as equivalent to `array[1][1]` and `array[2][2]`?
@@ -903,6 +904,7 @@ would say "Zero, one, two. Three apples!"
   in a location that an identifier is allowed could work for this.
 * Support trailing base notation for numbers, rather than prefix.
   * `1000 b2`, for example.
+* Enumerations.
 * Report differences in AST based on hash of parser bytecode rather than text hash.
   * Text hash is sensitive to formatting, comments, and other irrelevant modifications.
   * `string.dump()` seems promising?
