@@ -348,8 +348,11 @@ function TypeChecker:checkExpression(ast)
     local newDimensions = {size}
     local elementType
     if initType.dimensions then
-      newDimensions = cloneDimensions(initType.dimensions)
-      newDimensions[#newDimensions + 1] = size
+      -- Copy dimensions first to last into new dimensions:
+      local clonedDimensions = cloneDimensions(initType.dimensions)
+      for i=1,#clonedDimensions do
+        newDimensions[#newDimensions + 1] = clonedDimensions[i]
+      end
       elementType = initType.elementType
     else
       elementType = initType
@@ -374,7 +377,15 @@ function TypeChecker:checkExpression(ast)
     end
 
     local newDimensions = cloneDimensions(arrayType.dimensions)
+
+    -- The array index removes the first dimensions,
+    -- so we have to move everything over.
+    for i=1,#newDimensions - 1 do
+      newDimensions[i] = newDimensions[i+1]
+    end
+    -- Then nil out the last element so we're one less dimension.
     newDimensions[#newDimensions] = nil
+
     local resultType
     if next(newDimensions) == nil then
       resultType = self:cloneType(arrayType.elementType)
