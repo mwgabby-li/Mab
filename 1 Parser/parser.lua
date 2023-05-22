@@ -36,7 +36,7 @@ end
 --end
 
 local nodeVariable = node('variable', 'position', 'name')
-local nodeAssignment = node('assignment', 'writeTarget', 'position', 'assignment')
+local nodeAssignment = node('assignment', 'target', 'position', 'assignment')
 local nodeNewVariable = node('newVariable', 'position', 'name', 'scope', 'type_', 'assignment')
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
@@ -45,7 +45,7 @@ local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'position', 'value')
 local nodeParameter = node('parameter', 'position', 'name', 'type_')
-local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
+local nodeFunctionCall = node('functionCall', 'target', 'position', 'arguments')
 local nodeBlock = node('block', 'body')
 local nodeTernary = node('ternary', 'testPosition', 'test', 'position', 'truePosition', 'trueExpression', 'falsePosition', 'falseExpression')
 local nodeFunctionType = node('function', 'parameters', 'defaultArgument', 'position', 'resultType')
@@ -131,7 +131,7 @@ local variable = V'variable'
 local identifier = V'identifier'
 local functionDeclaration = V'functionDeclaration'
 -- Something that can be written to, i.e. assigned to. AKA 'left-hand side'
-local writeTarget = V'writeTarget'
+local target = V'target'
 -- Inputs specified in the function type declaration.
 local parameter = V'parameter'
 local parameters = V'parameters'
@@ -165,15 +165,15 @@ blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.clos
 elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
 variable = Cp() * identifier / nodeVariable,
-writeTarget = Ct(variable * (delim.openArray * Cp() * expression * delim.closeArray)^0) / foldArrayElement,
-functionCall = identifier * Cp() * delim.openFunctionParameterList * arguments * delim.closeFunctionParameterList / nodeFunctionCall,
+target = Ct(variable * (delim.openArray * Cp() * expression * delim.closeArray)^0) / foldArrayElement,
+functionCall = target * Cp() * delim.openFunctionParameterList * arguments * delim.closeFunctionParameterList / nodeFunctionCall,
 arguments = Ct((expression * (sep.argument * expression)^0)^-1),
 
 newVariable = Cp() * identifier * sep.newVariable * (KWc'export' + KWc'global' + KWc'local' + Cc'unspecified') * type_ * (op.assign^-1 * (expression + blockStatement))^-1 / nodeNewVariable,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
-            writeTarget * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
+            target * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
             -- New variable
             newVariable +
             -- If
@@ -191,7 +191,7 @@ statement = blockStatement +
 booleanType = Cp() * KW'boolean' / node('boolean', 'position'),
 numberType = Cp() * KW'number' / node('number', 'position'),
 omittedType = Cp() / node('unknown', 'position'),
-arrayType = Ct((delim.openArray * expression * delim.closeArray)^1) * (booleanType + numberType + omittedType) / makeArrayType,
+arrayType = Ct((delim.openArray * expression * delim.closeArray)^1) * (functionType + booleanType + numberType + omittedType) / makeArrayType,
 
 functionType = ((delim.openFunctionParameterList * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList) + Cc{} * Cc(false)) * Cp() * sep.functionResult * type_ / nodeFunctionType,
 
@@ -201,11 +201,11 @@ boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBool
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +
-          -- Function call must be before writeTarget,
-          -- or the function call's identifier will be read as a writeTarget variable,
+          -- Function call must be before target,
+          -- or the function call's identifier will be read as a target variable,
           -- and we'll get a syntax error about the open parenthesis.
           functionCall +
-          writeTarget +
+          target +
           Cp() * numeral / nodeNumeral +
           -- Literal booleans
           boolean +

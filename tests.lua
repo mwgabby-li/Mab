@@ -1402,4 +1402,43 @@ entry point: -> number {
   lu.assertEquals(self:fullTest(input), 10)
 end
 
+function module:testArrayFunctionCallAndAssignment()
+  local input =
+[[to number: -> number {
+  return 33;
+};
+
+to 12: -> number {
+  return 12;
+};
+
+entry point: -> number {
+
+    array: new[10][2] to number;
+    
+    i: 1;
+    while i <= 10 {
+      array[i][1] = to 12;
+    
+      i = i + 1;
+    };
+    
+    sum: 0;
+    
+    i = 1;
+    while i <= 10 {
+      j: 1;
+      while j <= 2 {
+        sum = sum + array[i][j]();
+        j = j + 1;
+      };
+      i = i + 1;
+    };
+    
+  return sum;
+}]]
+
+  lu.assertEquals(self:fullTest(input), 450)
+end
+
 return module

@@ -60,7 +60,7 @@ function Translator:nodeExpression(ast)
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.name)
   elseif ast.tag == 'functionCall' then
-    self:appendNode(ast, false, ast.name .. '()')
+    self:appendNode(ast, false, ast.target.name .. '()')
   elseif ast.tag == 'newArray' then
     self:appendNode(ast, false, 'new[...]', ast.size, ast.initialValue )
     self:nodeExpression(ast.size)
@@ -197,7 +197,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:appendNode(ast, false, 'Return', ast.sentence)
     self:nodeExpression(ast.sentence)
   elseif ast.tag == 'functionCall' then
-    self:appendNode(ast, false, ast.name .. '()')
+    self:appendNode(ast, false, ast.target.name .. '()')
   elseif ast.tag == 'newVariable' then
     if ast.assignment then
       self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.name .. ' = ', ast.assignment)
@@ -207,8 +207,8 @@ function Translator:nodeStatement(ast, depth, fromIf)
     end
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment)
-    self:appendNode(ast, false, '=', ast.writeTarget, ast.assignment)
-    self:nodeExpression(ast.writeTarget)
+    self:appendNode(ast, false, '=', ast.target, ast.assignment)
+    self:nodeExpression(ast.target)
   elseif ast.tag == 'if' then
     self:addNodeName(ast, self.ifNodeNames, depth)
     
@@ -233,7 +233,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
 end
 
 function Translator:nodeFunction(ast)
-  local label = '() ➔ ' .. ast.returnType.tag .. ':\n' .. ast.name
+  local label = '() ➔ ' .. ast.returnType.tag .. ':\n' .. ast.target.name
 
   self:appendNode(ast, false, label, ast.block)
   self:nodeStatement(ast.block)

@@ -199,15 +199,14 @@ An array type is:
 ```
 '[' numeral ']' {'[' numeral ']'} type
 ```
-The type in the array type can be a boolean or a number, but not a function or an
-array.
+The type in the array type can be a boolean, a number, or a function type.
 
 Or alternatively and equivalently, but probably more confusingly,
 you can consider the array type definition to be:
 ```
 '[' numeral ']' type
 ```
-Where type can be a boolean, number, or another array type.
+Where type can be a boolean, a number, a function type, or another array type.
 
 The end result is something like this, where `[2][2] number` is an array type:
 

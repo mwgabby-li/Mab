@@ -331,7 +331,7 @@ function TypeChecker:toReadable(type_)
 end
 
 function TypeChecker:checkFunctionCall(ast)
-  local functionType = self:duplicateVariablesType(ast.name)
+  local functionType, rootName = self:checkExpression(ast.target)
 
   if #ast.arguments ~= #functionType.parameters then
     -- Don't try type checking, this is another phase's error.
@@ -343,7 +343,7 @@ function TypeChecker:checkFunctionCall(ast)
     local parameterType = parameter.type_
     local argumentType = self:checkExpression(ast.arguments[i])
     if not self:typeMatches(parameterType, argumentType) then
-      self:addError('Argument '..common.toReadableNumber(i)..' to function "' .. ast.name .. '" evaluates to type "'..
+      self:addError('Argument '..common.toReadableNumber(i)..' to function called via "' .. rootName.. '" evaluates to type "'..
                     self:toReadable(argumentType)..'," but parameter "'..parameter.name..'" is type "'..
                     self:toReadable(parameterType)..'."', ast.arguments[i])
     end
@@ -580,6 +580,12 @@ function TypeChecker:checkNewVariable(ast)
     -- No action.
   end
 
+  -- If this is a function type, and was inferred,
+  -- we won't be able to code calls
+  -- in the later translator unless it's stored here,
+  -- so just overwrite the type in the AST.
+  ast.type_ = inferredType
+
   local scope = self:inferScope(ast)
 
   -- Unspecified scopes
@@ -626,24 +632,24 @@ function TypeChecker:checkStatement(ast)
     -- (e.g. given a two-dimensional array of numbers of 4x4, 'a,'
     --  'a[1][2]' is the target, the type is {name='number', dimensions={4,4}},
     --  and the root name is 'a.')
-    local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget)
+    local targetType, targetRootName = self:checkExpression(ast.target)
 
     -- Get the type of the source of the assignment
     local expressionType, etRootName = self:checkExpression(ast.assignment)
   
-    if not self:typeMatches(writeTargetType, expressionType) then
-      local wttValid = self:typeValid(writeTargetType)
+    if not self:typeMatches(targetType, expressionType) then
+      local wttValid = self:typeValid(targetType)
       local etValid = self:typeValid(expressionType)
       
       if not wttValid and not etValid then
         local etMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
         self:addError('Sorry, cannot assign '..etMessage..
-                      self:toReadable(writeTargetType)..
-                      '."\nThe invalid type of "'..writeTargetRootName..'," the assignment target, also prevents this: "'..
+                      self:toReadable(targetType)..
+                      '."\nThe invalid type of "'..targetRootName..'," the assignment target, also prevents this: "'..
                       self:toReadable(expressionType)..'."', ast)
       elseif not wttValid then
-        self:addError('Sorry, cannot assign to "'..writeTargetRootName..'" because its type is invalid: "' ..
-                      self:toReadable(writeTargetType) .. '."', ast)
+        self:addError('Sorry, cannot assign to "'..targetRootName..'" because its type is invalid: "' ..
+                      self:toReadable(targetType) .. '."', ast)
       elseif not etValid then
         local endOfMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
         
@@ -651,7 +657,7 @@ function TypeChecker:checkStatement(ast)
                       self:toReadable(expressionType) .. '."', ast)
       elseif wttValid and etValid then
         self:addError('Attempted to change type from "' ..
-                      self:toReadable(writeTargetType) .. '" to "' ..
+                      self:toReadable(targetType) .. '" to "' ..
                       self:toReadable(expressionType) .. '." Disallowed, sorry!', ast)
       end
     end

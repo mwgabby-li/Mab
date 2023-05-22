@@ -106,52 +106,60 @@ function Translator:findLocalVariable(variable)
 end
 
 function Translator:codeFunctionCall(ast)
-  local indexOrNumber, functionCodeReference = self:findLocalVariable(ast.name)
-  local isGlobal = false
-  if not functionCodeReference then
-    indexOrNumber, functionCodeReference = self:variableToNumber(ast)
-    isGlobal = true
+  local arguments = ast.arguments
+
+  -- It's OK to drill down to the variable name here,
+  -- because if things didn't match, the type checker
+  -- would have rejected it for us.
+  local target = ast.target
+  while target.tag == 'arrayElement' do
+    target = target.array
   end
   
+  local indexOrNumber, functionCodeReference = self:findLocalVariable(target.name)
+  local isGlobal = false
+  if not functionCodeReference then
+    indexOrNumber, functionCodeReference = self:variableToNumber(target)
+    isGlobal = true
+  end
+
   if not functionCodeReference then
     self:addError('Cannot call function, "'..ast.name..'" is undefined.', ast)
-  else
-    local arguments = ast.arguments
-    local functionType = functionCodeReference.type_
-    local parameters = functionType.parameters
-    
-    if #parameters == #arguments then
-      -- Push arguments on the stack for the function
-      for i=1,#arguments do
-        self:codeExpression(arguments[i])
-      end
-    elseif functionType.defaultArgument and #parameters == #arguments + 1 then
-      -- Push arguments on the stack for the function
-      for i=1,#arguments do
-        self:codeExpression(arguments[i])
-      end
-      self:codeExpression(functionType.defaultArgument)
-    else
-      local pcount = #functionType.parameters
-      local acount = #ast.arguments
-      self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pcount, 'parameter')..
-                    ' but was sent '..common.toReadableNumber(acount, 'argument')..'.', ast)
-      -- Try to do what they asked, I guess...
-      for i=1,#arguments do
-        self:codeExpression(arguments[i])
-      end
-    end
-
-    if not isGlobal then
-      self:codeLoadVariable(ast, indexOrNumber)
-    else
-      self:codeLoadVariable(ast, nil, indexOrNumber)
-    end
-
-    self:addCode('callFunction')
-    -- Code is from the stack.
-    -- Function's return code will do the argument popping.
+    return
   end
+
+  local functionType = functionCodeReference.type_
+  if functionType.tag == 'array' then
+    functionType = functionType.elementType
+  end
+  local parameters = functionType.parameters
+  
+  if #parameters == #arguments then
+    -- Push arguments on the stack for the function
+    for i=1,#arguments do
+      self:codeExpression(arguments[i])
+    end
+  elseif functionType.defaultArgument and #parameters == #arguments + 1 then
+    -- Push arguments on the stack for the function
+    for i=1,#arguments do
+      self:codeExpression(arguments[i])
+    end
+    self:codeExpression(functionType.defaultArgument)
+  else
+    local pcount = #functionType.parameters
+    local acount = #ast.arguments
+    self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pcount, 'parameter')..
+                  ' but was sent '..common.toReadableNumber(acount, 'argument')..'.', ast)
+    -- Try to do what they asked, I guess...
+    for i=1,#arguments do
+      self:codeExpression(arguments[i])
+    end
+  end
+
+  self:codeExpression(ast.target)
+  self:addCode('callFunction')
+  -- Code is from the stack.
+  -- Function's return code will do the argument popping.
 end
 
 function Translator:codeLoadVariable(ast, localIndex, globalNumber)
@@ -336,22 +344,22 @@ function Translator:codeNewVariable(ast)
 end
 
 function Translator:codeAssignment(ast)
-  local writeTarget = ast.writeTarget
-  if writeTarget.tag == 'variable' then
+  local target = ast.target
+  if target.tag == 'variable' then
     self:codeExpression(ast.assignment)
-    local index = self:findLocalVariable(ast.writeTarget.name)
+    local index = self:findLocalVariable(ast.target.name)
     if index then
       self:addCode('storeLocal')
       self:addCode(index)
-    elseif self.variables[ast.writeTarget.name] then
+    elseif self.variables[ast.target.name] then
       self:addCode('store')
-      self:addCode(self:variableToNumber(ast.writeTarget))
+      self:addCode(self:variableToNumber(ast.target))
     else
-      self:addError('Assigning to undefined variable "'..ast.writeTarget.name..'."', ast.writeTarget)
+      self:addError('Assigning to undefined variable "'..ast.target.name..'."', ast.target)
     end
-  elseif writeTarget.tag == 'arrayElement' then
-    self:codeExpression(ast.writeTarget.array)
-    self:codeExpression(ast.writeTarget.index)
+  elseif target.tag == 'arrayElement' then
+    self:codeExpression(ast.target.array)
+    self:codeExpression(ast.target.index)
     self:codeExpression(ast.assignment)
     self:addCode('setArray')
   else
