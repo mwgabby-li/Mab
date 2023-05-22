@@ -205,7 +205,7 @@ local typeCheckerSuccess = true
 if parameters.typechecker then
   typeCheckerSuccess = runPhase(phases.typeChecker, ast, parameters)
   if typeCheckerSuccess == false then
-    io.stderr:write('Type checking failed. Will abort after GraphViz (if enabled.)\n')
+    io.stderr:write('Type checking failed.'..(parameters.show.graphvis and ' Will abort after GraphViz' or '')..'\n')
     io.stderr:flush()
   end
 else
