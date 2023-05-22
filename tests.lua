@@ -626,13 +626,13 @@ function module:testPassingAndReturningArrays()
   local input =
 [[test11: (n:[2][2] boolean) -> boolean {
   return n[1][1]
-}
+};
 
 testReturnArray: () -> [2][2] boolean {
   array: new[2][2] true;
   array[1][1] = true;
   return array
-}
+};
 
 entry point: () -> number {
   array: new[2][2] true;
@@ -652,13 +652,13 @@ entry point: () -> number {
   input =
 [[test11: (n:[2][2] boolean) -> boolean {
   return n[1][1]
-}
+};
 
 testReturnArray: () -> [2][2] boolean {
   array: new[2][2] true;
   array[1][1] = false;
   return array
-}
+};
 
 entry point: () -> number {
   array: new[2][2] true;
@@ -681,7 +681,7 @@ function module:testFunctionCall()
 [[
 another function: () -> number {
   return 12
-}
+};
 
 entry point: () -> number {
   return 24 + another function();
@@ -695,18 +695,18 @@ function module:testDuplicateFunctions()
   local input =
 [[another function: () -> number {
   return 33
-}
+};
 
 another function: () -> number {
   return 42
-}
+};
 
 entry point: () -> number {
   a: 1;
   
   a = 23 + another function();
   return a
-}
+};
 
 another function: () -> number {
   return 3
@@ -722,20 +722,20 @@ another function: () -> number {
   input =
 [[another function: () -> number {
   return 33
-}
+};
 
 another function: () -> number {
   return 42
-}
+};
 
 entry point: () -> number {
   a: 1;
   
   a = 23 + another function();
   return a
-}
+};
 entry point: () -> number {
-}
+};
 
 
 another function: () -> number {
@@ -758,7 +758,7 @@ function module:testIndirectRecursion()
   } else {
     return 0
   }
-}
+};
 even: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -766,7 +766,7 @@ even: () -> boolean {
   } else {
     return true
   }
-}
+};
 odd: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -789,7 +789,7 @@ entry point: () -> number {
   } else {
     return 0
   }
-}
+};
 even: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -797,7 +797,7 @@ even: () -> boolean {
   } else {
     return true
   }
-}
+};
 odd: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -818,7 +818,7 @@ entry point: () -> number {
   } else {
     return 0
   }
-}
+};
 even: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -826,7 +826,7 @@ even: () -> boolean {
   } else {
     return true
   }
-}
+};
 odd: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -849,7 +849,7 @@ entry point: () -> number {
   } else {
     return 0
   }
-}
+};
 even: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -857,7 +857,7 @@ even: () -> boolean {
   } else {
     return true
   }
-}
+};
 odd: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -901,7 +901,7 @@ function module:testMixingGlobalsAndLocals()
   local input =
 [[helper: () -> number {
   return 10
-}
+};
 
 entry point: () -> number {
   x:number = 10;
@@ -986,7 +986,7 @@ function module:testWrongFunctionArgumentTypes()
   local input =
 [[test: (n:number) -> number {
   return n
-}
+};
 entry point: -> number {
   call test(true)
 }
@@ -1001,7 +1001,7 @@ function module:testParameterArgumentCountMismatch()
   local input =
 [[test: (n:number) -> number {
   return n
-}
+};
 
 entry point: () -> number {
   return test(2)
@@ -1014,7 +1014,7 @@ entry point: () -> number {
   input =
 [[test: (n:number) -> number {
   return n
-}
+};
 
 entry point: () -> number {
   return test()
@@ -1027,7 +1027,7 @@ entry point: () -> number {
   input =
 [[test: (n:number n2:number) -> number {
   return n
-}
+};
 
 entry point: () -> number {
   return test(2)
@@ -1039,7 +1039,7 @@ entry point: () -> number {
   -- Sent one, should not have sent any
   input =
 [[test: () -> number {
-}
+};
 
 entry point: () -> number {
   return test(2)
@@ -1053,7 +1053,7 @@ function module:testDuplicateFunctionParameters()
   local input = 
 [[manyCollisions: (n:number n:number g:number g:number g:number b:number) -> number
    {
-}
+};
 
 entry point: () -> number {
   return manyCollisions(1, 1, 2, 2, 2, 3)
@@ -1071,7 +1071,7 @@ function module:testFactorial()
   };
   
   return n * factorial(n - 1)
-}
+};
 
 entry point: () -> number {
   return factorial(10)
@@ -1096,7 +1096,7 @@ function module:testFunctionParameters()
   local input =
 [[sum: (a:number b:number) -> number {
   return a + b
-}
+};
 entry point: () -> number {
   return sum(65,24)
 }
@@ -1106,7 +1106,7 @@ entry point: () -> number {
   local input = 
 [[sum: (a:number b:number) -> number {
   return a + b
-}
+};
 entry point: () -> number {
   a:number = 10;
   b:number = 24;
@@ -1198,7 +1198,7 @@ function module:testExampleProgram()
   local input =
   [[global container: -> {
       g:global = 12
-  }
+  };
 
   factorial: (n:number) -> number {
       if n = 0 {
@@ -1206,16 +1206,16 @@ function module:testExampleProgram()
       } else {
           return n * factorial(n - 1)
       }
-  }
+  };
 
   sum: (a:number b:number) -> number = {
       return a + b
-  }
+  };
 
   # Commas can be included:
   div: (a:number, b:number) -> number {
       return a / b
-  }
+  };
 
   # This could also be written as " entry point: -> number ."
   entry point: () -> number {
@@ -1241,7 +1241,7 @@ function module:testDefaultArguments()
   local input =
   [[default arguments: (n:number = 12 * 17) -> number {
     return n
-  }
+  };
 
   entry point: -> number {
     return default arguments();
@@ -1253,7 +1253,7 @@ function module:testDefaultArguments()
   input =
   [[default arguments: (n:number = 12 * 17) -> number {
     return n
-  }
+  };
 
   entry point: -> number {
     return default arguments(12);
@@ -1266,7 +1266,7 @@ function module:testDefaultArguments()
   input =
   [[default arguments: (b:boolean n:number = 12 * 17) -> number {
     return n
-  }
+  };
 
   entry point: -> number {
     return default arguments(true);
@@ -1278,7 +1278,7 @@ function module:testDefaultArguments()
   input =
   [[default arguments: (b:boolean n:number = 12 * 17) -> number {
     return n
-  }
+  };
 
   entry point: -> number {
     return default arguments(true, 12);
@@ -1291,10 +1291,10 @@ function module:testMismatchedFunctionAssignments()
   -- Mismatched parameter types
   local input =
   [[test: (b:boolean n:number) -> number {
-  }
+  };
 
   test2: -> number {
-  }
+  };
 
   entry point: -> number {
     test = test2
@@ -1305,10 +1305,10 @@ function module:testMismatchedFunctionAssignments()
   -- Mismatched result types
   input =
   [[test: (b:boolean n:number) -> number {
-  }
+  };
 
   test2: -> boolean {
-  }
+  };
 
   entry point: -> number {
     test = test2
@@ -1321,13 +1321,13 @@ function module:testMismatchedFunctionAssignments()
   input =
   [[
 testMismatches:           (b:boolean, n:number, func: (n:number) ->) -> number {
-}
+};
 
 testMismatchedParameter:  (b:boolean, n:boolean, func: (n:number) ->) -> number {
-}
+};
 
 testMismatchedResultType: (b:boolean, n:number, func: (n:number) ->) -> boolean {
-}
+};
 
 entry point: -> number {
   testMismatches = testMismatchedParameter
@@ -1338,13 +1338,13 @@ entry point: -> number {
   input =
   [[
 testMismatches:           (b:boolean, n:number, func: (n:number) ->) -> number {
-}
+};
 
 testMismatchedParameter:  (b:boolean, n:boolean, func: (n:number) ->) -> number {
-}
+};
 
 testMismatchedResultType: (b:boolean, n:number, func: (n:number) ->) -> boolean {
-}
+};
 
 entry point: -> number {
   testMismatches = testMismatchedResultType
@@ -1374,7 +1374,7 @@ function module:testFunctionAssignment()
   local input =
   [[test: -> number {
     return 33
-  }
+  };
 
   entry point: -> number {
     test2: -> number = test;
@@ -1387,11 +1387,11 @@ function module:testFunctionAssignment()
 
   -- Test function assignment of existing function
   input =
-  [[test return anything: -> number {}
+  [[test return anything: -> number {};
 
 test return 10: -> number {
   return 10;
-}
+};
 
 entry point: -> number {
   test return anything = test return 10;

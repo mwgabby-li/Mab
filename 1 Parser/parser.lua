@@ -146,12 +146,14 @@ local arrayType = V'arrayType'
 local ternaryExpr = V'ternaryExpr'
 local newVariable = V'newVariable'
 local functionType = V'functionType'
+local newVariableList = V'newVariableList'
 
 local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
 'program',
-program = endToken * Ct(newVariable^1) * -1,
+program = endToken * Ct(newVariableList)^-1 * -1,
+newVariableList = (newVariable^-1 * (sep.statement * newVariableList)^-1),
 
 parameter = Cp() * identifier * sep.parameter * type_ / nodeParameter,
 parameters = Ct((parameter * (sep.argument^-1 * parameter)^0)^-1),

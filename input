@@ -1,13 +1,13 @@
 # Draws filled polygons! As long as they're simple, and they are entirely within the buffer.
 
 # Global values for tracing
-empty value: 0
-trace value: 1
-filled value: 7
+empty value: 0;
+trace value: 1;
+filled value: 7;
 
-display: new[18][32] empty value
-display width: 32
-display height: 18
+display: new[18][32] empty value;
+display width: 32;
+display height: 18;
 
 entry point: -> number {
     points: new[24][2] 1;
@@ -69,7 +69,7 @@ entry point: -> number {
     call finalize();
     
     @display;
-}
+};
 
 # Draws a closed polygon. Connects the last point with the first point again at the end.
 closed polygon: (points:[24][2] number, point count:number, value to draw:number) -> {
@@ -85,7 +85,7 @@ closed polygon: (points:[24][2] number, point count:number, value to draw:number
         i = i + 1;
     };
     
-}
+};
 
 # Draws a line using the idea of the Bresenham algorithm, but not optimized.
 line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
@@ -156,7 +156,7 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
       };
     }
   }
-}
+};
 
 # Scans over the buffer and fills with the in-out rule.
 fill: -> {
@@ -199,7 +199,7 @@ fill: -> {
       entered = false;
       y = y + 1;
     };
-}
+};
 
 # Replaces the 'trace' value with the 'filled' value so that the image
 # has the same fill color even at the edges.
@@ -216,7 +216,7 @@ finalize: -> {
       };
       y = y + 1;
     }
-}
+};
 
 # Searches the six positions around a point for any 1 values:
 # 1 3 5
@@ -277,12 +277,12 @@ get enter state: (x:number y:number) -> number {
   };
   
   return 0;
-}
+};
 
 get: (x:number y:number) -> number {
   return display[18 - y + 1][x];
-}
+};
 
 set: (x:number y:number value:number) -> {
   display[18 - y + 1][x] = value
-}
+};
