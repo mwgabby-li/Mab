@@ -167,11 +167,15 @@ for index, argument in ipairs(arg) do
     readOption(argument)
   elseif argument:find('^[-][-]') then
     readOption(argument)
-  else
+  elseif argument:find('^[-]') then
     local numOptions =  #argument - 1
     for i = 1, numOptions do
       readOption('-'..argument:sub(i+1,i+1))
     end
+  -- Let's assume this is a filename.
+  else
+    awaiting_filename = true
+    readOption(argument)
   end
 end
 

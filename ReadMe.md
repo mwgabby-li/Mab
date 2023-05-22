@@ -2,19 +2,26 @@
 
 ## Instructions for Testing Input Program and Test Suite
 
-Requires LPeg available to Lua, tested with Lua 5.3 and 5.4.
+Requires Lua and LPeg available to Lua, tested with Lua 5.3 and 5.4.
 
 To test the input program, clone the repository, and invoke it like this:
 
-`lua mab.lua -vi input`
+```
+lua mab.lua -v input
+```
+
 
 To run the test suite:
 
-`lua mab.lua --tests`
+```
+lua mab.lua --tests
+```
 
-You can also invoke Mab like this if you have marked it as executable in Linux:
+You can also invoke Mab like this if it's marked executable (which it should be on Linux):
 
-`./mab.lua -vi input`
+```
+./mab.lua -v input
+```
 
 ## Language Syntax
 
@@ -855,6 +862,28 @@ Mab supports a robust array of command-line options:
 
 You can use the format `-{option character}` to select multiple options at a time.
 For example, `-vr` will output verbose information and the program return value.
+
+You can also send in a filename directly and Mab will execute it, as long as it doesn't start with a dash.
+If it *does*, use the `-i` option.
+
+Example:
+```
+./mab.lua program.mab
+```
+Verbose settings:
+```
+./mab.lua --verbose program.mab
+```
+
+Explicit filename:
+```
+./mab.lua -i program.mab
+```
+
+Short options:
+```
+./mab.lua -vr program.mab
+```
 
 ### Automatic AST and Code Versioning
 
