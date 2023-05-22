@@ -162,16 +162,21 @@ factorial: (n:number) -> number {
 
 entry point: () -> number {
     return factorial(5)
-}
+} # < The final definition's semicolon is optional.
 ```
+
+#### The Entry Point
+
+Mab programs must contain a function named `entry point` that takes no arguments and
+returns a number.\
+This entry point will be executed when the program starts.
 
 ### Scope
 
 Scope is `global` or `local`. If no scope is specified,
 `global` is assumed at top-level and `local` otherwise.
 
-`global` variables are accessible everywhere in the file after the function
-where they are defined.
+`global` variables are accessible everywhere in the file after the location they are defined.
 
 ### Type 
 
@@ -646,6 +651,16 @@ mismatched array: [3] true;
 array[2] = mismatched array;
 ```
 
+> *Note*
+> 
+> Because array types are statically typed in size, only literal numbers
+> may be used to initialize their sizes with `new`.
+> 
+> A future Mab goal is to support something like constant variables and expressions here.
+> 
+> The grammar can accept expressions, and the expressions could be coded—and were in earlier versions of Mab—but
+> the type checker will reject array sizes that are not literals at the moment.
+
 Array types can be specified, which is necessary for functions since the language is
 strongly typed and has no support for anything like automatic generics:
 ```
@@ -977,7 +992,7 @@ in addition to the hash.
 * Do a pass over different keyword and symbol literals and consider
 whether to make changes.
   * `~=`, `!`, comments. Others...
-* Add options for unicode symbols for math instead of ASCII.
+* Add options for unicode symbols for math and types instead of ASCII.
 * Colon after conditionals instead of open block?
   * Just seems a little more natural to me...
 
