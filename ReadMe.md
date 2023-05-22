@@ -72,13 +72,11 @@ exponent:
 .01e-3
 ```
 
-
-
 ### Function and Variable Definition
 
-In Mab, variable definitions and function definitions share a unified syntax:
+In Mab, as functions are first-class, variable definitions and function definitions are fundamentally identical:
 ```
-identifier ':' scope, type ['='] value
+identifier ':' scope, type [['='] value]
 ```
 
 `value` is either an expression, or a block.
@@ -87,6 +85,9 @@ The equals sign is optional, and may be omitted. However, it can be more natural
 include after scope or type keywords to make it clearer that it's an assignment.
 In certain cases, such as assigning to variables that start with scope or type
 keywords, it can be included to disambiguate.
+
+Variables with types specified do not need assignments, other than array types, which are required to have them.\
+This is a consequence of not supporting default values for array types.
 
 More or less natural:
 ```
@@ -101,26 +102,50 @@ Disambiguation:
 ```
 global style: false;
 
-# This will fail, because it will be read as "failed style: global (style),"
-# that is, a global variable named 'failed style' being assigned the value of
-# another variable named 'style,' which doesn't exist.
+# This will fail, because it will be
+# read as:
+#  "failed style: global (style),"
+# that is, a global variable named 
+# 'failed style' being assigned the
+# value of  another variable named
+# 'style,' which doesn't exist.
 failed style: global style;
 
-# This will work, because the equals sign disambiguates.
+# This will work, because the equals
+# sign disambiguates.
 successful style := global style;
-
 ```
-
-Currently, function types may only be placed at the top level, outside of blocks,
-in function definitions, and not within function parameter lists or in
-function return types, as  Mab does not yet have first-class functions.
 
 The `identifier` is the name of the variable or function. `scope` and `type` are
 described in following sections.
 
+### Top-Level
+
+A Mab program is a series of new variable statements separated by semicolons.
+
+All variables at the top level are global by default, and particularly functions must be global.
+It's currently an error to specify a top-level function as anything else.
+
+Unfortunately, this means that yes, you do need semicolons after function blocks:
+
+```
+factorial: (n:number) -> number {
+    if n = 0 {
+        return 1
+    } else {
+        return n * factorial(n - 1)
+    }
+}; # < Don't forget this semicolon!
+
+entry point: () -> number {
+    return factorial(5)
+}
+```
+
 ### Scope
 
-Scope is `global` or `local`. If no scope is specified, `local` is assumed.
+Scope is `global` or `local`. If no scope is specified,
+`global` is assumed at top-level and `local` otherwise.
 
 `global` variables are accessible everywhere in the file after the function
 where they are defined.
@@ -131,11 +156,21 @@ Types can be either `boolean`, `number`, an array type, or a function type.
 
 A function type is:
 ```
-['('] {identifier ':' type {[,] identifier ':' type }} [')'] -> type
+['(' {identifier ':' type {[,] identifier ':' type }} ')'] -> [type]
+```
+As indicated above, type of none for the input is also allowed:
+```
+ -> number
 ```
 
-Currently, function types can only be top-level types, in function definitions,
-as Mab does not yet support first-class functions.
+Or empty:
+```
+() ->
+```
+And the output type can also be none:
+```
+->
+```
 
 An array type is:
 ```
@@ -163,12 +198,15 @@ is identity: matrix:[2][2] number -> boolean {
 
 An example of some functions and variables in this syntax:
 ```
-# This function has no input or return types.
-# It can only be called with the `call` keyword, any other use would be a type checker error.
+# This function has no input or
+# return types.
+# It can only be called with the
+# `call` keyword, any other use
+# would be a type checker error.
 global container: -> {
     g:global = 12;
     @g;
-}
+};
 
 factorial: (n:number) -> number {
     if n = 0 {
@@ -176,18 +214,20 @@ factorial: (n:number) -> number {
     } else {
         return n * factorial(n - 1)
     }
-}
+};
 
 sum: (a:number b:number) -> number = {
     return a + b
-}
+};
 
-# The parethesis are optional, and commas can also be added if desired:
-div: a:number, b:number -> number {
+# Commas can also be added if
+# desired:
+div: (a:number, b:number) -> number {
     return a / b
-}
+};
 
-# This could also be written as " entry point: -> number ."
+# This could also be written as
+#   entry point: -> number
 entry point: () -> number {
     call global container();
 
@@ -195,10 +235,11 @@ entry point: () -> number {
     a:local number = 2;
     # Equals is optional...
     b:= 2;
-    # Other than the name, the same as the two previous.
+    # Other than the name, the same
+    # as the two previous.
     c: 2;
 
-    return factorial( div( sum( a, b ) * c, 2) )
+    return factorial( div( sum( a, b ) * c, 2 ) )
 }
 ```
 
@@ -213,7 +254,8 @@ identifier {'[' expression ']'} '=' expression
 ```
 
 The middle part is the array index syntax. Note that each array index must evaluate 
-to a number.
+to a number. (But it is not necessary for them to be *literal* numbers,
+again, just a thing that *evaluates* to a number.)
 
 A couple of basic assignment examples:
 ```
@@ -227,6 +269,24 @@ b[1][1] = true;
 ```
 
 ### Unary and Binary Operators
+
+In Mab, using an operator with a mismatched type is an error.\
+Particularly, using a boolean operator with a number is an error.
+
+If you're familiar with C or C++, you might tend to do this:
+```
+if a {
+    # ...
+};
+```
+But that's an error.
+
+This is probably what you want:
+```
+if a ~= 0 {
+    # ...
+};
+```
 
 Mab contains the following unary operators:
 
@@ -276,7 +336,6 @@ a: 10;
 b: 12;
 
 c: a < b ? true : false;
-
 ```
 
 ### Operator Precedence
@@ -337,7 +396,11 @@ The optional colon can be used to prevent this.
 a: true;
 b: false;
 
-# This will be read as "(return a) = b;"
+# This will be read as:
+#   (return a) = b;
+# (Note that the parentheses above
+   are for clarification,
+   they aren't supported.)
 return a = b;
 
 # You can correct this with the optional colon:
@@ -375,9 +438,9 @@ identifier '[' expression ']' {'[' expression ']'}
 These conditional control structures are typical. The syntax is as follows:
 
 ```
-'if' expression '{' {statement} '}',
-{'elseif' expression '{' {statement} '}'},
-['else' '{' {statement} '}']
+'if' expression '{' {statement list} '}',
+{'elseif' expression '{' {statement list} '}'},
+['else' '{' {statement list} '}']
 ```
 The expressions must evaluate to booleans.
 
@@ -402,7 +465,7 @@ if a < b {
 The while loop is also typical. The syntax is as follows:
 
 ```
-'while' expression '{' {statement} '}'
+'while' expression '{' {statement list} '}'
 ```
 
 An example of usage:
@@ -410,12 +473,12 @@ An example of usage:
 a: 1;
 b: 10;
 
-# This will print the numbers 1 through 10 inclusive:
+# This will print the numbers
+# 1 through 10 inclusive:
 while a <= b {
     @a;
     a = a + 1;
 }
-
 ```
 
 ### Print
@@ -430,7 +493,7 @@ entry point: -> number {
     a: new [2][2] true;
     a[1][1] = false;
     @a
-}
+};
 ```
 
 The output from the example above is:
@@ -457,8 +520,10 @@ Example of usage:
 #{
     This is a block comment.
     It can span multiple lines.
-    
-    # This code will not be executed, because it is commented out in this block comment:
+
+    # This code will not be executed
+    # because it is commented out in
+    # this block comment:
     a: 10;
     @a;
 #}
@@ -471,11 +536,6 @@ Example of usage:
 As described in
 **[Function and Variable Definition](#function-and-variable-definition).**
 This differs significantly from Selene.
-
-#### Limitations
-
-This syntax was designed to support first-class and anonymous functions,
-but they have not been implemented.
 
 ### Type Checker/Strongly Typed
 
@@ -518,23 +578,25 @@ Conditionals only accept expressions that evaluate to booleans:
 # Valid code
 this is a boolean: true;
 if this is a boolean {
-    # The type checker is... pleased!
-}
+    # The type checker is...
+    #   pleased!
+};
 
-# Invalid code, will fail type check phase
+# Fails the type check:
 this is a number: 12;
 if this is a number {
     # Sadness and tears.
-}
+};
 ```
 
 Boolean operators may only be used with boolean types:
 ```
 number: 12;
-another number: 15;
+another one: 15;
 
-# This'll throw an error in the type checker.
-a boolean: number & another number;
+# Fails type check!
+#   Can't use & with numbers.
+a boolean: number & another one;
 ```
 
 However, logical operators will cause a type conversion of the expression to a boolean, 
@@ -549,46 +611,49 @@ Arrays are also typed in both their number of dimensions and the size of each di
 array: = new[2][2] true;
 subarray: = new[2] false;
 
-# We can assign here because array[1] is a 2-element array of booleans, the same as subarray.
+# We can assign here because
+# array[1] is a 2-element array of
+# booleans, the same as subarray.
 array[1] = subarray;
 
 mismatched array: [3] true;
 
-# This will fail in the type checker because the array sizes are different:
+# This will fail in the type checker
+# because the array sizes are
+# different:
 array[2] = mismatched array;
-
 ```
 
 Array types can be specified, which is necessary for functions since the language is
 strongly typed and has no support for anything like automatic generics:
 ```
 is identity: matrix:[2][2] number -> boolean {
-    i: 1;
-    while i <= 2 {
-        j: 1;
-        while j <= 2 {
-            if i = j & matrix[i][j] ~= 1 {
-                return false
-            }
-            elseif i ~= j & matrix[i][j] ~= 0 {
-                return false;
-            }
-        }
-    }
-    return true;
+  i: 1;
+  while i <= 2 {
+    j: 1;
+    while j <= 2 {
+      if i = j & matrix[i][j] ~= 1 {
+        return false
+      };
+      elseif i ~= j & matrix[i][j] ~= 0 {
+        return false;
+      };
+    };
+  };
+  return true;
 }
 ```
 
 But currently redundant and useless for variables:
 ```
 entry point: -> number {
-    matrix:local [2][2] number:matrix = new[2][2] 0;
-    # Same as :matrix = new[2][2] 0;
-    
+    matrix:[2][2] number = new[2][2] 0;
+    # Same as matrix: new[2][2] 0;
+
     matrix[1][1] = 1;
     matrix[2][2] = 1;
-    return is identity(matrix)
-}
+    return is identity(matrix);
+};
 ```
 Notably, array types are required to have initializers because default values are not
 supported for them, making type specifiers even more useless.
@@ -631,7 +696,7 @@ The ternary operator has the same syntax as the C/C++ version:
 ### Two-Pass Compilation
 
 Rather than support forward declarations, Mab scans the entire AST up-front and
-collects all functions before proceeding.
+collects all top-level functions before proceeding, and sets them as global.
 
 This is a slightly different approach to fulfilling the goals of the forward
 declaration exercise, as it also allows for indirect recursion.
@@ -668,18 +733,19 @@ odd: -> boolean {
 If I want to support modules, I'll need a new feature, as opposed to forward
 declarations, which can be used for that with only slight modifications.
 
-### More Name Collision Support
+### Name Collision Support
 
 The exercises call for detecting collisions between global variables and functions, 
 and parameters with the same name, and locals in the same scope sharing a name.
 
-In addition to this, I prevent local variables with the same name as functions and
-parameters with the same name as functions.
+After moving to first-class functions, I didn't update and removed the code that checked for collisions between
+functions and locals, as doing so seemed against the spirit of first-class functions. 
 
 #### Limitations
 
 If a local is given the same name as a global, the global will always be shadowed,
-even if the global is created *after* the local, which is a bit odd.
+even if the global is created *after* the local, which is a bit odd.\
+I think this is inherent to globals, but it seems unusual.
 
 For example, the following function will return 12, rather than generating a type
 mismatch error:
@@ -884,6 +950,7 @@ whether to make changes.
     * If the loop condition fails immediately, the `otherwise` clause is executed.
 * `goto`.
 * Way of returning nothing, for functions that have no return type.
+  * `exit` statement?
 * Offset-based array indexing syntax, for people who, when asked to count three apples,
 would say "Zero, one, two. Three apples!"
   * Maybe `array+[0][0]`, `array+[1][1]` as equivalent to `array[1][1]` and `array[2][2]`?
@@ -905,15 +972,12 @@ would say "Zero, one, two. Three apples!"
 * Support trailing base notation for numbers, rather than prefix.
   * `1000 b2`, for example.
 * Enumerations.
-* Report differences in AST based on hash of parser bytecode rather than text hash.
-  * Text hash is sensitive to formatting, comments, and other irrelevant modifications.
-  * `string.dump()` seems promising?
+* For version hashing, strip irrelevant information like comments and whitespace out of the file first.
+  * Considered using hash of Lua bytecode, but it's not portable and not stable across versions.
 * Type aliases: numeral:type number; true or false:type boolean.
-  * Interesting problem, now maybe function parameter lists will need to have commas.
+  * Interesting problem, if I do this, maybe function parameter lists will need to have commas.
 
 #### Hard
-* First-class functions.
-  * Mab's syntax was designed around doing this.
 * Proper tail recursion.
   * With keyword, so it can be verified with an error that it's working.
 * Much more robust type inference.
@@ -943,6 +1007,7 @@ would say "Zero, one, two. Three apples!"
 features (booleans and the ternary operator) and the type checker.
 * As reflected in **[New Features/Changes](#new-featureschanges)**, many changes have 
 been made beyond basic project requirements.
+* The language supports basic first-class functions.
 
 ### Code Quality & Report: 3/3
 
@@ -954,8 +1019,7 @@ and in the worst case, exceptions in phase execution will be caught as internal 
 
 ### Originality & Scope: 3/3
 * Mab has several experiments, including spaces in variable names, autogenerated AST
-and code versions, and other unique syntax constructs such as parameter lists where
-parentheses and commas are optional.
+and code versions, and other unique syntax constructs such as parameter lists where commas are optional.
 * Language is broken into different phases to allow localized changes, and is otherwise modular,
 with things like literals defined in a single place for customization.
 * The example program is reasonably complex and demonstrates the power of the language.
@@ -966,6 +1030,9 @@ but here are some relatively relevant links.
 
 ### [syntax across languages](http://rigaux.org/language-study/syntax-across-languages.html)
 I used this to get some ideas for function syntax.
+
+### [Frink](https://frinklang.org/)
+A programming language that does unit checking.
 
 ### [OCaml Book: Recursive Functions](https://ocamlbook.org/recursive-functions/#recursive-binding-syntax)
 Hugo mentioned OCaml's keywords for recursion, I was curious and looked it up here.
@@ -979,5 +1046,10 @@ An interesting bug with a discussion related to type inference.
 ### [JavaScript: How Line Breaks and Missing Semicolons Can Break Your Code](https://javascript.plainenglish.io/javascript-how-line-breaks-and-missing-semicolons-can-break-your-code-58e031e7f235)
 The woes of automatic semicolon insertion in JavaScript.
 
-### [Frink](https://frinklang.org/)
-A programming language that does unit checking.
+### [Lamdba Lifting](https://en.wikipedia.org/wiki/Lambda_lifting)
+Hugo mentioned this, and I read it while trying to figure out how to support first-class functions,
+though I ended up going with the solution of making them globals at the top level.
+
+### [Crafting Interpreters: Closures](https://craftinginterpreters.com/functions.html#local-functions-and-closures)
+I read this while trying to figure out first-class functions.
+I will come back to it if I want to support closures later!
