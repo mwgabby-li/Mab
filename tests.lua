@@ -315,17 +315,17 @@ function module:testLessonFourEdgeCases()
     ]])
   lu.assertEquals(result, false)
   errorReporter, result = module.parse(wrapWithEntrypoint'#{##}')
-  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
+  lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
   
   errorReporter, result = module.parse(wrapWithEntrypoint'#{#{#}')
-  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
+  lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
   
   errorReporter, result = module.parse(wrapWithEntrypoint[[
       #{
       :x=1
       #}
     ]])
-  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
+  lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
   
   lu.assertEquals(self:fullTest(
     [[
@@ -626,13 +626,13 @@ function module:testPassingAndReturningArrays()
   local input =
 [[test11: (n:[2][2] boolean) -> boolean {
   return n[1][1]
-}
+};
 
 testReturnArray: () -> [2][2] boolean {
   array: new[2][2] true;
   array[1][1] = true;
   return array
-}
+};
 
 entry point: () -> number {
   array: new[2][2] true;
@@ -652,13 +652,13 @@ entry point: () -> number {
   input =
 [[test11: (n:[2][2] boolean) -> boolean {
   return n[1][1]
-}
+};
 
 testReturnArray: () -> [2][2] boolean {
   array: new[2][2] true;
   array[1][1] = false;
   return array
-}
+};
 
 entry point: () -> number {
   array: new[2][2] true;
@@ -676,21 +676,12 @@ entry point: () -> number {
   lu.assertEquals(self:fullTest(input), 0)
 end
 
-function module:testEntryPointNameExclude()
-  local input =
-[[entry point: () -> number {
-  entry point: 12
-}
-]]
-  lu.assertEquals(self:fullTest(input), 'Translation failed!')
-end
-
 function module:testFunctionCall()
   local input =
 [[
 another function: () -> number {
   return 12
-}
+};
 
 entry point: () -> number {
   return 24 + another function();
@@ -704,18 +695,18 @@ function module:testDuplicateFunctions()
   local input =
 [[another function: () -> number {
   return 33
-}
+};
 
 another function: () -> number {
   return 42
-}
+};
 
 entry point: () -> number {
   a: 1;
   
   a = 23 + another function();
   return a
-}
+};
 
 another function: () -> number {
   return 3
@@ -731,20 +722,20 @@ another function: () -> number {
   input =
 [[another function: () -> number {
   return 33
-}
+};
 
 another function: () -> number {
   return 42
-}
+};
 
 entry point: () -> number {
   a: 1;
   
   a = 23 + another function();
   return a
-}
+};
 entry point: () -> number {
-}
+};
 
 
 another function: () -> number {
@@ -767,7 +758,7 @@ function module:testIndirectRecursion()
   } else {
     return 0
   }
-}
+};
 even: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -775,7 +766,7 @@ even: () -> boolean {
   } else {
     return true
   }
-}
+};
 odd: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -798,7 +789,7 @@ entry point: () -> number {
   } else {
     return 0
   }
-}
+};
 even: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -806,7 +797,7 @@ even: () -> boolean {
   } else {
     return true
   }
-}
+};
 odd: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -827,7 +818,7 @@ entry point: () -> number {
   } else {
     return 0
   }
-}
+};
 even: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -835,7 +826,7 @@ even: () -> boolean {
   } else {
     return true
   }
-}
+};
 odd: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -858,7 +849,7 @@ entry point: () -> number {
   } else {
     return 0
   }
-}
+};
 even: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -866,7 +857,7 @@ even: () -> boolean {
   } else {
     return true
   }
-}
+};
 odd: () -> boolean {
   if n ~= 0 {
     n = n - 1;
@@ -910,7 +901,7 @@ function module:testMixingGlobalsAndLocals()
   local input =
 [[helper: () -> number {
   return 10
-}
+};
 
 entry point: () -> number {
   x:number = 10;
@@ -991,13 +982,26 @@ input =
   lu.assertEquals(errorReporter:count(), 2)
 end
 
+function module:testWrongFunctionArgumentTypes()
+  local input =
+[[test: (n:number) -> number {
+  return n
+};
+entry point: -> number {
+  call test(true)
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+end
+
 -- test function parameter count mismatch (zero when should be something, number when should be another number, something when should be zero.)
 function module:testParameterArgumentCountMismatch()
   -- Matching
   local input =
 [[test: (n:number) -> number {
   return n
-}
+};
 
 entry point: () -> number {
   return test(2)
@@ -1010,7 +1014,7 @@ entry point: () -> number {
   input =
 [[test: (n:number) -> number {
   return n
-}
+};
 
 entry point: () -> number {
   return test()
@@ -1023,7 +1027,7 @@ entry point: () -> number {
   input =
 [[test: (n:number n2:number) -> number {
   return n
-}
+};
 
 entry point: () -> number {
   return test(2)
@@ -1035,7 +1039,7 @@ entry point: () -> number {
   -- Sent one, should not have sent any
   input =
 [[test: () -> number {
-}
+};
 
 entry point: () -> number {
   return test(2)
@@ -1049,7 +1053,7 @@ function module:testDuplicateFunctionParameters()
   local input = 
 [[manyCollisions: (n:number n:number g:number g:number g:number b:number) -> number
    {
-}
+};
 
 entry point: () -> number {
   return manyCollisions(1, 1, 2, 2, 2, 3)
@@ -1067,7 +1071,7 @@ function module:testFactorial()
   };
   
   return n * factorial(n - 1)
-}
+};
 
 entry point: () -> number {
   return factorial(10)
@@ -1092,7 +1096,7 @@ function module:testFunctionParameters()
   local input =
 [[sum: (a:number b:number) -> number {
   return a + b
-}
+};
 entry point: () -> number {
   return sum(65,24)
 }
@@ -1102,7 +1106,7 @@ entry point: () -> number {
   local input = 
 [[sum: (a:number b:number) -> number {
   return a + b
-}
+};
 entry point: () -> number {
   a:number = 10;
   b:number = 24;
@@ -1194,7 +1198,7 @@ function module:testExampleProgram()
   local input =
   [[global container: -> {
       g:global = 12
-  }
+  };
 
   factorial: (n:number) -> number {
       if n = 0 {
@@ -1202,16 +1206,16 @@ function module:testExampleProgram()
       } else {
           return n * factorial(n - 1)
       }
-  }
+  };
 
   sum: (a:number b:number) -> number = {
       return a + b
-  }
+  };
 
-  # The parethesis are optional:
-  div: a:number b:number -> number {
+  # Commas can be included:
+  div: (a:number, b:number) -> number {
       return a / b
-  }
+  };
 
   # This could also be written as " entry point: -> number ."
   entry point: () -> number {
@@ -1235,9 +1239,9 @@ function module:testDefaultArguments()
   -- Default with one parameter
   --  Used:
   local input =
-  [[default arguments: n:number = 12 * 17 -> number {
+  [[default arguments: (n:number = 12 * 17) -> number {
     return n
-  }
+  };
 
   entry point: -> number {
     return default arguments();
@@ -1247,9 +1251,9 @@ function module:testDefaultArguments()
   lu.assertEquals(self:fullTest(input), 12 * 17)
   --  Not used:
   input =
-  [[default arguments: n:number = 12 * 17 -> number {
+  [[default arguments: (n:number = 12 * 17) -> number {
     return n
-  }
+  };
 
   entry point: -> number {
     return default arguments(12);
@@ -1260,9 +1264,9 @@ function module:testDefaultArguments()
   -- Default with multiple parameters:
   --  Used:
   input =
-  [[default arguments: b:boolean n:number = 12 * 17 -> number {
+  [[default arguments: (b:boolean n:number = 12 * 17) -> number {
     return n
-  }
+  };
 
   entry point: -> number {
     return default arguments(true);
@@ -1272,15 +1276,130 @@ function module:testDefaultArguments()
 
   --  Not used:
   input =
-  [[default arguments: b:boolean n:number = 12 * 17 -> number {
+  [[default arguments: (b:boolean n:number = 12 * 17) -> number {
     return n
-  }
+  };
 
   entry point: -> number {
     return default arguments(true, 12);
   }
   ]]
   lu.assertEquals(self:fullTest(input), 12)
+end
+
+function module:testMismatchedFunctionAssignments()
+  -- Mismatched parameter types
+  local input =
+  [[test: (b:boolean n:number) -> number {
+  };
+
+  test2: -> number {
+  };
+
+  entry point: -> number {
+    test = test2
+  }
+  ]]
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+
+  -- Mismatched result types
+  input =
+  [[test: (b:boolean n:number) -> number {
+  };
+
+  test2: -> boolean {
+  };
+
+  entry point: -> number {
+    test = test2
+  }
+  ]]
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+
+
+  -- Mismatched parameter types with multiple parameters
+  input =
+  [[
+testMismatches:           (b:boolean, n:number, func: (n:number) ->) -> number {
+};
+
+testMismatchedParameter:  (b:boolean, n:boolean, func: (n:number) ->) -> number {
+};
+
+testMismatchedResultType: (b:boolean, n:number, func: (n:number) ->) -> boolean {
+};
+
+entry point: -> number {
+  testMismatches = testMismatchedParameter
+}
+  ]]
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+
+  input =
+  [[
+testMismatches:           (b:boolean, n:number, func: (n:number) ->) -> number {
+};
+
+testMismatchedParameter:  (b:boolean, n:boolean, func: (n:number) ->) -> number {
+};
+
+testMismatchedResultType: (b:boolean, n:number, func: (n:number) ->) -> boolean {
+};
+
+entry point: -> number {
+  testMismatches = testMismatchedResultType
+}
+  ]]
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+end
+
+
+-- Test function within another function
+function module:testFunctionWithinFunction()
+  local input =
+  [[entry point: -> number {
+    a local function: -> number {
+      return 33
+    };
+
+    return a local function();
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 33)
+end
+
+-- Test function assignment
+function module:testFunctionAssignment()
+  local input =
+  [[test: -> number {
+    return 33
+  };
+
+  entry point: -> number {
+    test2: -> number = test;
+
+    return test2();
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 33)
+
+  -- Test function assignment of existing function
+  input =
+  [[test return anything: -> number {};
+
+test return 10: -> number {
+  return 10;
+};
+
+entry point: -> number {
+  test return anything = test return 10;
+
+  return test return anything()
+}]]
+
+  lu.assertEquals(self:fullTest(input), 10)
 end
 
 return module
