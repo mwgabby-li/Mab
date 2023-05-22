@@ -1,5 +1,21 @@
 # Final Project Report: Mab
 
+## Instructions for Testing Input Program and Test Suite
+
+Requires LPeg available to Lua, tested with Lua 5.3 and 5.4.
+
+To test the input program, clone the repository, and invoke it like this:
+
+`lua mab.lua -vi input`
+
+To run the test suite:
+
+`lua mab.lua --tests`
+
+You can also invoke Mab like this if you have marked it as executable in Linux:
+
+`./mab.lua -vi input`
+
 ## Language Syntax
 
 ### Note on Grammar Notation
