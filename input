@@ -1,15 +1,15 @@
 # Draws filled polygons! As long as they're simple, and they are entirely within the buffer.
 
+# Global values for tracing
+empty value: 0
+trace value: 1
+filled value: 7
+
+display: new[18][32] empty value
+display width: 32
+display height: 18
+
 entry point: -> number {
-    # Global values for tracing
-    empty value:global = 0;
-    trace value:global = 1;
-    filled value:global = 7;
-
-    display:global new[18][32] empty value;
-    display width:global 32;
-    display height:global 18;
-
     points: new[24][2] 1;
     point count:24;
 
@@ -30,12 +30,12 @@ entry point: -> number {
     points[14][1] = 12; points[14][2] =  2;
     points[15][1] = 11; points[15][2] =  3;
     points[16][1] = 10; points[16][2] =  3;
-    points[17][1] = 9;  points[17][2] =  4;
-    points[18][1] = 9;  points[18][2] =  5;
-    points[19][1] = 8;  points[19][2] =  6;
-    points[20][1] = 8;  points[20][2] = 10;
-    points[21][1] = 9;  points[21][2] = 11;
-    points[22][1] = 9;  points[22][2] = 12;
+    points[17][1] =  9; points[17][2] =  4;
+    points[18][1] =  9; points[18][2] =  5;
+    points[19][1] =  8; points[19][2] =  6;
+    points[20][1] =  8; points[20][2] = 10;
+    points[21][1] =  9; points[21][2] = 11;
+    points[22][1] =  9; points[22][2] = 12;
     points[23][1] = 10; points[23][2] = 13;
     points[24][1] = 11; points[24][2] = 13;
     
@@ -72,7 +72,7 @@ entry point: -> number {
 }
 
 # Draws a closed polygon. Connects the last point with the first point again at the end.
-closed polygon: points:[24][2] number, point count:number, value to draw:number -> {
+closed polygon: (points:[24][2] number, point count:number, value to draw:number) -> {
     i: 1;
     while i <= point count {
         point: points[i];
@@ -88,7 +88,7 @@ closed polygon: points:[24][2] number, point count:number, value to draw:number 
 }
 
 # Draws a line using the idea of the Bresenham algorithm, but not optimized.
-line: start point:[2] number, end point:[2] number, value to draw:number -> {
+line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
   delta x: end point[1] - start point[1];
   delta y: end point[2] - start point[2];
   
@@ -226,7 +226,7 @@ finalize: -> {
 # +1: Some above, none below.
 #  0: Some above and some below, or none above or below.
 # -1: Some below, none above.
-get enter state: x:number y:number -> number {
+get enter state: (x:number y:number) -> number {
   sum: 0;
   
   above: false;
@@ -279,10 +279,10 @@ get enter state: x:number y:number -> number {
   return 0;
 }
 
-get: x:number y:number -> number {
+get: (x:number y:number) -> number {
   return display[18 - y + 1][x];
 }
 
-set: x:number y:number value:number -> {
+set: (x:number y:number value:number) -> {
   display[18 - y + 1][x] = value
 }

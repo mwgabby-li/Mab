@@ -31,8 +31,7 @@ local unaryToName = {
 function Translator:new(o)
   o = o or {
     currentCode = {},
-    currentParameters = 0,
-    functions = {},
+    currentParameters = {},
     variables = {},
     numVariables = 0,
     localVariables = {},
@@ -80,50 +79,60 @@ function Translator:addCode(opcode)
 end
 
 function Translator:variableToNumber(variable)
-  local number = self.variables[variable]
-  if not number then
+  local existingVariable = self.variables[variable.name]
+  if not existingVariable then
     number = self.numVariables + 1
     self.numVariables = number
-    self.variables[variable] = number
+    local newVariable = { number = number, type_ = variable.type_ }
+    self.variables[variable.name] = newVariable
+    return number, newVariable
   end
-  return number
+  return existingVariable.number, existingVariable
 end
 
 function Translator:findLocalVariable(variable)
   local localVariables = self.localVariables
   for i=#localVariables,1,-1 do
-    if variable == localVariables[i] then
-      return i
+    if variable == localVariables[i].name then
+      return i, localVariables[i]
     end
   end
   local currentParameters = self.currentParameters
   for i=1,#currentParameters do
     if variable == currentParameters[i].name then
-        return -(#currentParameters - i)
+        return -(#currentParameters - i), currentParameters[i]
     end
   end
 end
 
 function Translator:codeFunctionCall(ast)
-  local function_ = self.functions[ast.name]
-  if not function_ then
-    self:addError('Undefined function "'..ast.name..'()."', ast)
+  local indexOrNumber, functionCodeReference = self:findLocalVariable(ast.name)
+  local isGlobal = false
+  if not functionCodeReference then
+    indexOrNumber, functionCodeReference = self:variableToNumber(ast)
+    isGlobal = true
+  end
+  
+  if not functionCodeReference then
+    self:addError('Cannot call function, "'..ast.name..'" is undefined.', ast)
   else
     local arguments = ast.arguments
+    local functionType = functionCodeReference.type_
+    local parameters = functionType.parameters
     
-    if #function_.parameters == #arguments then
+    if #parameters == #arguments then
       -- Push arguments on the stack for the function
       for i=1,#arguments do
         self:codeExpression(arguments[i])
       end
-    elseif function_.defaultArgument and #function_.parameters == #arguments + 1 then
+    elseif functionType.defaultArgument and #parameters == #arguments + 1 then
       -- Push arguments on the stack for the function
       for i=1,#arguments do
         self:codeExpression(arguments[i])
       end
-      self:codeExpression(function_.defaultArgument)
+      self:codeExpression(functionType.defaultArgument)
     else
-      local pcount = #function_.parameters
+      local pcount = #functionType.parameters
       local acount = #ast.arguments
       self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pcount, 'parameter')..
                     ' but was sent '..common.toReadableNumber(acount, 'argument')..'.', ast)
@@ -133,10 +142,30 @@ function Translator:codeFunctionCall(ast)
       end
     end
 
+    if not isGlobal then
+      self:codeLoadVariable(ast, indexOrNumber)
+    else
+      self:codeLoadVariable(ast, nil, indexOrNumber)
+    end
+
     self:addCode('callFunction')
-    self:addCode(function_.code)
+    -- Code is from the stack.
     -- Function's return code will do the argument popping.
   end
+end
+
+function Translator:codeLoadVariable(ast, localIndex, globalNumber)
+    local index = localIndex or self:findLocalVariable(ast.name)
+    if index then
+      self:addCode'loadLocal'
+      self:addCode(index)
+    elseif globalNumber or self.variables[ast.name] then
+      self:addCode('load')
+      self:addCode(self:variableToNumber(ast))
+    else
+      self:addError('Trying to load from undefined variable "' .. ast.name .. '."', ast)
+    end
+
 end
 
 function Translator:codeExpression(ast)
@@ -144,16 +173,7 @@ function Translator:codeExpression(ast)
     self:addCode('push')
     self:addCode(ast.value)
   elseif ast.tag == 'variable' then
-    local index = self:findLocalVariable(ast.name)
-    if index then
-      self:addCode'loadLocal'
-      self:addCode(index)
-    elseif self.variables[ast.name] then
-      self:addCode('load')
-      self:addCode(self:variableToNumber(ast.name))
-    else
-      self:addError('Trying to load from undefined variable "' .. ast.name .. '."', ast)
-    end
+    self:codeLoadVariable(ast)
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
   elseif ast.tag == 'arrayElement' then
@@ -211,25 +231,67 @@ function Translator:codeExpression(ast)
   end
 end
 
-function Translator:codeNewVariable(ast)
-  if ast.scope == 'local' then
+function Translator:checkForVariableNameCollisions(ast)
+  local inferredScope = self:inferScope(ast)
+
+  -- This is the check for duplicate locals and globals in the same scope
+  if inferredScope == 'local' then
     local numLocals = #self.localVariables
     for i=numLocals,self.blockBases[#self.blockBases],-1 do
-      if self.localVariables[i] == ast.name then
+      if i > 0 and self.localVariables[i].name == ast.name then
         self:addError('Variable "' .. ast.name .. '" already defined in this scope.', ast)
       end
     end
-  elseif self.variables[ast.name] ~= nil then
-    self:addError('Re-defining global variable "' .. ast.name .. '."', ast)
+  elseif inferredScope == 'global' then
+    if self.variables[ast.name] ~= nil then
+      self:addError('Re-defining global variable "' .. ast.name .. '."', ast)
+    end
+  else
+    if result ~= nil then
+      self:addError('Unknown scope .."'..tostring(result)..'."', ast)
+    else
+      self:addError('Scope undefined.', ast)
+    end
+  end
+end
+
+function Translator:inferScope(ast)
+  local result = ast.scope
+
+  -- Top-level scopes default to 'global' if unspecified
+  if result == 'unspecified' then
+    if #self.blockBases == 0 then
+      result = 'global'
+    else
+      result = 'local'
+    end
+  elseif result ~= 'local' and result ~= 'global' then
+    if result ~= nil then
+      self:addError('Unknown scope .."'..tostring(result)..'."', ast)
+    else
+      self:addError('Scope undefined.', ast)
+    end
+    result = 'local'
   end
 
-  if self.functions[ast.name] then
-    self:addError('Creating a variable "'..ast.name..'" with the same name as a function.', ast)
+  return result
+end
+
+function Translator:codeNewVariable(ast)
+  if #self.blockBases > 0 then
+    self:checkForVariableNameCollisions(ast)
   end
 
   -- Both global and local need their expression set up
   if ast.assignment then
-    self:codeExpression(ast.assignment)
+    if ast.assignment.tag ~= 'block' then
+      self:codeExpression(ast.assignment)
+    else
+      local code = self:codeFunction(ast, ast.type_, ast.assignment)
+      -- Put the code on the stack to be loaded into this variable.
+      self:addCode 'push'
+      self:addCode(code)
+    end
   -- Default values otherwise!
   else
     if ast.type_ then
@@ -242,6 +304,10 @@ function Translator:codeNewVariable(ast)
       elseif ast.type_.tag == 'boolean' then
         self:addCode 'push'
         self:addCode(false)
+      elseif ast.type_.tag == 'function' then
+        -- TODO: A default value for a function? Maybe code that returns the default return type?
+        self:addCode 'push'
+        self:addCode(0)
       else
         self:addError('No type for variable "' .. ast.name .. '."', ast)
         self:addCode 'push'
@@ -250,11 +316,22 @@ function Translator:codeNewVariable(ast)
     end
   end
 
-  if ast.scope == 'local' then
-    self.localVariables[#self.localVariables + 1] = ast.name
-  else
+  -- If we aren't already tracking this variable and it's local,
+  -- start tracking its position.
+  local scope = self:inferScope(ast)
+  if scope == 'local' then
+    -- Track it and its position.
+    self.localVariables[#self.localVariables + 1] =  {name = ast.name, type_ = ast.type_}
+  -- Otherwise, load whatever's in the stack into this variable.
+  elseif scope == 'global' then
     self:addCode('store')
-    self:addCode(self:variableToNumber(ast.name))
+    self:addCode(self:variableToNumber(ast))
+  else
+    if scope ~= nil then
+      self:addError('Unknown scope .."'..tostring(result)..'."', ast)
+    else
+      self:addError('Scope undefined.', ast)
+    end
   end
 end
 
@@ -268,7 +345,7 @@ function Translator:codeAssignment(ast)
       self:addCode(index)
     elseif self.variables[ast.writeTarget.name] then
       self:addCode('store')
-      self:addCode(self:variableToNumber(ast.writeTarget.name))
+      self:addCode(self:variableToNumber(ast.writeTarget))
     else
       self:addError('Assigning to undefined variable "'..ast.writeTarget.name..'."', ast.writeTarget)
     end
@@ -369,8 +446,8 @@ function Translator:codeStatement(ast)
   end
 end
 
-function Translator:duplicateParameterCheck(ast)
-  local parameters = self.functions[ast.name].parameters
+function Translator:duplicateParameterCheck(type_)
+  local parameters = type_.parameters
 
   -- Duplicate parameter check
   local duplicates = {}
@@ -414,69 +491,64 @@ function Translator:duplicateParameterCheck(ast)
   end
 end
 
-function Translator:parameterFunctionNameCheck(ast)
-  local parameters = self.functions[ast.name].parameters
-  for i = 1,#parameters do
-    local parameterName = parameters[i].name
-    if self.functions[parameterName] then
-      self:addError('Parameter "'..parameterName..'" collides with a function of the same name:', parameters[i])
-      self:addError('', self.functions[parameterName])
-    end
-  end
-end
+function Translator:codeFunction(name, type_, block)
+  local previousCode = self.currentCode
+  self.currentCode = {}
+  self.currentParameters = type_.parameters
 
-function Translator:codeFunction(ast)
-  self.currentCode = self.functions[ast.name].code
-  self.currentParameters = self.functions[ast.name].parameters
-
-  self:duplicateParameterCheck(ast)
-  self:parameterFunctionNameCheck(ast)
+  self:duplicateParameterCheck(type_)
 
   self.codingFunction = true
-  self:codeStatement(ast.block)
+  self:codeStatement(block)
   if self.currentCode[#self.currentCode - 1] ~= 'return' then
-    -- TODO First-class functions/closures... is this correct?
-    --      We might have more local variables than this? Or maybe it works differently?
     self:addCode('push')
     -- TODO: Doesn't support creating default returns for arrays.
-    if ast.returnType.tag == 'array' then
+    local resultTypeTag = type_.resultType.tag
+    if resultTypeTag == 'array' then
       self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
-                    ast.name .. '."', self.functions[ast.name])
+                    name or 'anonymous function' .. '."', block)
     end
 
-    if ast.returnType.tag == 'number' then
+    if resultTypeTag == 'number' then
       self:addCode(0)
-    elseif ast.returnType.tag == 'boolean' then
+    elseif resultTypeTag == 'boolean' then
       self:addCode(false)
-    elseif ast.returnType.tag == 'unknown' then
+    -- TODO: Rename 'unknown' to 'unspecified.'
+    elseif resultTypeTag == 'unknown' then
       -- This is valid. Note that a function like this, with no return type,
       -- is only allowed to be executed as a statement.
       -- Any other use will cause a type checker error.
       self:addCode(false)
     else
-      self:addError('Internal error: unknown type "'..ast.returnType.tag ..'" when generating automatic return value.')
+      self:addError('Internal error: unknown type "'..resultTypeTag..'" when generating automatic return value.')
       self:addCode(0)
     end
     self:addCode('return')
     self:addCode(self.functionLocalsToRemove + #self.currentParameters)
     self.functionLocalsToRemove = nil
   end
-  self.currentCode = nil
+
+  -- TODO: More elegant way of doing this?
+  local generatedCode = self.currentCode
+  self.currentCode = previousCode
+  return generatedCode
 end
 
 function Translator:translate(ast)
   local duplicates = {}
+  
+  local firstPositions = {}
 
   for i = 1,#ast do
-    -- No function here? Add one!
-    if not self.functions[ast[i].name] then
-      self.functions[ast[i].name] = {code = {}, parameters=ast[i].parameters, defaultArgument=ast[i].defaultArgument, position=ast[i].position}
+    if not self.variables[ast[i].name] then
+      self:variableToNumber(ast[i])
+      firstPositions[ast[i].name] = ast[i].position
     -- Otherwise, duplication detected!
     else
       -- First duplicate: Set name, and position of first definition
       if duplicates[ast[i].name] == nil then
         duplicates[ast[i].name] = {}
-        duplicates[ast[i].name][#duplicates[ast[i].name] + 1] = self.functions[ast[i].name].position
+        duplicates[ast[i].name][#duplicates[ast[i].name] + 1] = firstPositions[ast[i].name]
       end
       
       -- First and subsequent duplicates, add position of this duplicate
@@ -484,36 +556,39 @@ function Translator:translate(ast)
     end
   end
 
-  local entryPoint = self.functions[literals.entryPointName]
+  local entryPoint = self.variables[literals.entryPointName]
   if not entryPoint then
     self:addError('No entry point found. (Program must contain a function named "entry point.")')
   else
-    entryPoint.code.version = common.toStackVMVersionHash()
-    local eppCount = #entryPoint.parameters
+    local eppCount = #entryPoint.type_.parameters
     if eppCount > 0 then
-      self:addError('Entry point has '..common.toReadableNumber(eppCount, 'parameter')..' but should have none.', entryPoint.parameters[1])
+      self:addError('Entry point has '..common.toReadableNumber(eppCount, 'parameter')..' but should have none.', entryPoint.type_.parameters[1])
     end
   end
 
   -- Report error. Since we list the number of duplicates, we do this as a second pass.
   for name, duplicate_positions in pairs(duplicates) do
     if #duplicate_positions > 0 then
-      self:addError(#duplicate_positions .. ' duplicate functions sharing name "'..name..'."')
+      self:addError(#duplicate_positions .. ' duplicate top-level variables sharing name "'..name..'."')
       for index,position in ipairs(duplicate_positions) do
         self:addError(index .. ': ', {position=position})
       end
     end
   end
 
+  local entryPoint = nil
   for i = 1,#ast do
-    self:codeFunction(ast[i])
+    self:codeNewVariable(ast[i])
   end
+  -- 
 
-  if not entryPoint then
-    return nil
-  else
-    return entryPoint.code
-  end
+  local fakeEntryPointNode = {name=literals.entryPointName}  
+  self:codeLoadVariable(fakeEntryPointNode)
+  self:addCode('callFunction')
+
+  self.currentCode.version = common.toStackVMVersionHash()
+
+  return self.currentCode
 end
 
 function module.translate(ast, parameters)

@@ -148,10 +148,9 @@ end
 
 function TypeChecker:new(o)
   o = o or {
-    currentFunction = '',
+    currentFunction = { parameters = {} },
     variableTypes = {},
     blocks = {},
-    functions = {},
   }
   self.__index = self
   setmetatable(o, self)
@@ -178,6 +177,17 @@ function TypeChecker:cloneType(type_)
     return {tag='array', dimensions = clonedDimensions, elementType = self:cloneType(type_.elementType)}
   elseif type_.tag == 'number' or type_.tag == 'boolean' or type_.tag == 'unknown' then
     return {tag=type_.tag}
+  elseif type_.tag == 'function' then
+    local result = {tag='function', parameters={}}
+    local parameterCount = #type_.parameters
+    for i = 1, parameterCount do
+      result.parameters[i] = {}
+      result.parameters[i].name = type_.parameters[i].name
+      result.parameters[i].tag = 'parameter'
+      result.parameters[i].type_ = self:cloneType(type_.parameters[i].type_)
+    end
+    result.resultType = self:cloneType(type_.resultType)
+    return result
   else
     self:addError('Internal error: Unknown type tag "'..type_.tag..'."')
   end
@@ -193,8 +203,8 @@ function TypeChecker:duplicateVariablesType(variable)
   end
 
   -- Check parameters
-  for i = 1,#self.currentParameters do
-    local parameter = self.currentParameters[i]
+  for i = 1,#self.currentFunction.parameters do
+    local parameter = self.currentFunction.parameters[i]
     if parameter.name == variable then
       return self:cloneType(parameter.type_)
     end
@@ -247,6 +257,21 @@ function TypeChecker:typeMatches(apple, orange)
     end
   elseif apple.tag == 'boolean' or apple.tag == 'number' or apple.tag == 'unknown' then
     return true
+  elseif apple.tag == 'function' then
+    if #apple.parameters ~= #orange.parameters then
+      return false
+    end
+    
+    for i=1, #apple.parameters do
+      if not self:typeMatches(apple.parameters[i].type_, orange.parameters[i].type_) then
+        return false
+      end
+    end
+    if not self:typeMatches(apple.resultType, orange.resultType) then
+      return false
+    end
+    
+    return true
   else
     self:addError('Internal error: Unknown type tag "'..apple.tag..'."')
     return false
@@ -282,6 +307,16 @@ end
 function TypeChecker:toReadable(type_)
   if type_ == nil then
     return 'invalid type'
+  elseif type_.tag == 'function' then
+    local result = '('
+    local parameterCount = #type_.parameters
+    for i = 1, parameterCount do
+      result = result..self:toReadable(type_.parameters[i].type_)
+      if i ~= parameterCount then
+        result = result..', '
+      end
+    end
+    return result..') -> '..self:toReadable(type_.resultType)
   elseif not type_.dimensions then
     return type_.tag
   else
@@ -296,13 +331,15 @@ function TypeChecker:toReadable(type_)
 end
 
 function TypeChecker:checkFunctionCall(ast)
-  if #ast.arguments ~= #self.functions[ast.name].parameters then
+  local functionType = self:duplicateVariablesType(ast.name)
+
+  if #ast.arguments ~= #functionType.parameters then
     -- Don't try type checking, this is another phase's error.
-    return self.functions[ast.name].returnType
+    return functionType.resultType
   end
 
   for i=1,#ast.arguments do
-    local parameter = self.functions[ast.name].parameters[i]
+    local parameter = functionType.parameters[i]
     local parameterType = parameter.type_
     local argumentType = self:checkExpression(ast.arguments[i])
     if not self:typeMatches(parameterType, argumentType) then
@@ -312,7 +349,7 @@ function TypeChecker:checkFunctionCall(ast)
     end
   end
 
-  return self.functions[ast.name].returnType
+  return functionType.resultType
 end
 
 function TypeChecker:checkExpression(ast)
@@ -451,13 +488,56 @@ function TypeChecker:checkExpression(ast)
   end
 end
 
+function TypeChecker:inferScope(ast)
+  local result = ast.scope
+
+  -- Unspecified scopes
+  if result == 'unspecified' then
+    -- Default to local after the outer block
+    if #self.blocks > 0 then
+      result = 'local'
+    -- Default to global inside the outer block
+    else
+      result = 'global'
+    end
+  elseif ast.scope ~= 'global' and ast.scope ~= 'local' then
+    if ast.scope ~= nil then
+      self:addError('Unknown scope .."'..tostring(scope)..'."', ast)
+    else
+      self:addError('Scope undefined.', ast)
+    end
+    result = 'local'
+  end
+
+  return result
+end
+
 function TypeChecker:checkNewVariable(ast)
   local specifiedType = ast.type_
   local inferredType = specifiedType
 
   -- Possibilities:
+  -- A function type:
+  if specifiedType.tag == 'function' then
+    if ast.assignment and ast.assignment.tag == 'block' then
+      -- This is OK, a function is being assigned a block.
+      -- TODO: Maybe check the return types?
+      self:checkFunction(ast)
+    elseif ast.assignment and ast.assignment.tag == 'variable' then
+      local variableType = self:duplicateVariablesType(ast.assignment.name)
+
+      if not self:typeMatches(specifiedType, variableType) then
+        self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
+        self:addError('But variable is being initialized with ' .. self:toReadable(variableType) .. '.', ast.assignment)
+      end
+    elseif not ast.assignment then
+      -- This is OK, don't need to assign anything if the type is specified.
+    else
+      self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
+      self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)
+    end
   -- Invalid type specified:
-  if not self:typeMatches(specifiedType, kUnknownType) and not self:typeValid(specifiedType) then
+  elseif not self:typeMatches(specifiedType, kUnknownType) and not self:typeValid(specifiedType) then
     self:addError('Type of variable "'..ast.name..'" specified, but type is invalid: "'..self:toReadable(specifiedType)..'."', ast)
   -- No type specified:
   elseif self:typeMatches(specifiedType, kUnknownType) then
@@ -489,10 +569,19 @@ function TypeChecker:checkNewVariable(ast)
     -- No action.
   end
 
-  if ast.scope == 'global' then
+  local scope = self:inferScope(ast)
+
+  -- Unspecified scopes
+  if scope == 'local' then
+    self.currentBlock.locals[ast.name] = inferredType
+  elseif scope == 'global' then
     self.variableTypes[ast.name] = inferredType
   else
-    self.currentBlock.locals[ast.name] = inferredType
+    if scope ~= nil then
+      self:addError('Unknown scope .."'..tostring(scope)..'."', ast)
+    else
+      self:addError('Scope undefined.', ast)
+    end
   end
 end
 
@@ -514,20 +603,20 @@ function TypeChecker:checkStatement(ast)
     local returnType = self:checkExpression(ast.sentence)
     if returnType == nil then
       self:addError('Could not determine type of return type.', ast)
-    elseif not self:typeMatches(returnType, self.functions[self.currentFunction].returnType) then
-      self:addError('Mismatched types with return, function "' .. self.currentFunction .. '" returns "' ..
-                    self:toReadable(self.functions[self.currentFunction].returnType) .. '," but returning type "' ..
+    elseif not self:typeMatches(returnType, self.currentFunction.resultType) then
+      self:addError('Mismatched types with return, function "' .. self.currentFunction.name .. '" returns "' ..
+                    self:toReadable(self.currentFunction.resultType) .. '," but returning type "' ..
                     self:toReadable(returnType) .. '."', ast)
     end
   elseif ast.tag == 'functionCall' then
-    -- Actually, we can just ignore this. It doesn't need to match anything.
+    return self:checkFunctionCall(ast)
   elseif ast.tag == 'assignment' then
     -- Get the type of the thing we're writing to, and its root name
     -- (e.g. given a two-dimensional array of numbers of 4x4, 'a,'
     --  'a[1][2]' is the target, the type is {name='number', dimensions={4,4}},
     --  and the root name is 'a.')
     local writeTargetType, writeTargetRootName = self:checkExpression(ast.writeTarget)
-    
+
     -- Get the type of the source of the assignment
     local expressionType, etRootName = self:checkExpression(ast.assignment)
   
@@ -581,55 +670,70 @@ function TypeChecker:checkStatement(ast)
 end
 
 function TypeChecker:checkFunction(ast)
-  self.currentFunction = ast.name
-  self.currentParameters = ast.parameters
-  self:checkStatement(ast.block)
+  self.currentFunction.name = ast.name
+  self.currentFunction.parameters = ast.type_.parameters
+  self.currentFunction.resultType = ast.type_.resultType
+  self:checkStatement(ast.assignment)
 end
 
 function TypeChecker:check(ast)
-  for i = 1, #ast do
-    -- First, go through all the functions ahead of time and get their information.
-    -- Mab uses the 'two pass compilation' style of forward declarations,
-    -- so the type checker has to do the same thing as other parts of the code.
-    local returnType = ast[i].returnType
-    if self.functions[ast[i].name] == nil then
-      self.functions[ast[i].name] = { returnType = returnType, parameters=ast[i].parameters, position=ast[i].position }
-    -- Error for a function being defined with two types. Errors in other parts of the compiler for duplicate function names...
-    -- TODO: Overloading support, etc. No checks on function parameters and so on...
-    elseif not self:typeMatches(self.functions[ast[i].name].returnType, returnType) then
-      self:addError('Function "' .. ast[i].name .. '" redefined returning type "' .. self:toReadable(returnType) ..
-                    '," was "' .. self:toReadable(self.functions[ast[i].name].returnType)..'."')
-    end
 
-    -- Check type of default argument expression against last parameter
-    if ast[i].defaultArgument then
-      -- No last parameter? This is also an error.
-      local defaultArgumentType = self:checkExpression(ast[i].defaultArgument)
-      local numParameters = #ast[i].parameters
-      if numParameters == 0 then
-        self:addError('Function "' .. ast[i].name .. '" has a default argument but no parameters.', ast[i])
-      else
-        local lastParameter = ast[i].parameters[numParameters]
-        local parameterType = lastParameter.type_
-        if not self:typeMatches(defaultArgumentType,parameterType) then
-        self:addError('Default argument for function "' .. ast[i].name .. '" evaluates to type "'..
-                      self:toReadable(defaultArgumentType)..'," but parameter "'..lastParameter.name..'" is type "'..
-                      self:toReadable(parameterType)..'."', lastParameter)
+  -- Do a pre-pass, and add types for all functions to the AST.
+  -- Two-pass compilation style for functions at the top level.
+  for i = 1, #ast do
+    local type_ = ast[i].type_
+    if type_.tag == 'function' then
+      -- Just infer the scope for the errors it generates...
+      local scope = self:inferScope(ast[i])
+      if scope ~= 'global' then
+        -- TODO: Export?
+        -- TODO: This only checks functions. But others should also be checked for this...
+        self:addError('Top-level variables cannot use any scope besides global, which is the default.'..
+                      ' Otherwise, they would be inaccessible.', ast[i])
+        scope = 'global'
+      end
+
+      local name = ast[i].name
+      local resultType = type_.resultType
+      if self.variableTypes[name] == nil then
+        self.variableTypes[name] = type_
+      -- Error for a function being defined with two types. Errors in other parts of the compiler for duplicate function names...
+      -- TODO: Overloading support, etc. No checks on function parameters and so on...
+      elseif not self:typeMatches(self.variableTypes[name].resultType, resultType) then
+        self:addError('Function "' .. name .. '" redefined returning type "' .. self:toReadable(resultType) ..
+                      '," was "' .. self:toReadable(self.variableTypes[name].resultType)..'."')
+      end
+
+      -- Check type of default argument expression against last parameter
+      if type_.defaultArgument then
+        -- No last parameter? This is also an error.
+        local defaultArgumentType = self:checkExpression(type_.defaultArgument)
+        local numParameters = #type_.parameters
+        if numParameters == 0 then
+          self:addError('Function "'..name..'" has a default argument but no parameters.', ast[i])
+        else
+          local lastParameter = type_.parameters[numParameters]
+          local parameterType = lastParameter.type_
+          if not self:typeMatches(defaultArgumentType,parameterType) then
+          self:addError('Default argument for function "'..name..'" evaluates to type "'..
+                        self:toReadable(defaultArgumentType)..'," but parameter "'..lastParameter.name..'" is type "'..
+                        self:toReadable(parameterType)..'."', lastParameter)
+          end
         end
       end
     end
   end
-  
+
   -- Make sure entry point returns a number.
-  local entryPoint = self.functions[literals.entryPointName] 
+  local entryPoint = self.variableTypes[literals.entryPointName]
   if entryPoint then
-    if not self:typeMatches(entryPoint.returnType, kNumberType) then
+    if not self:typeMatches(entryPoint.resultType, kNumberType) then
       self:addError('Entry point must return a number because that\'s what OSes expect.', entryPoint.returnType)
     end
   end
 
   for i = 1, #ast do
-    self:checkFunction(ast[i])
+    self:checkStatement(ast[i], true)
   end
 end
 

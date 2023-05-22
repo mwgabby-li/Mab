@@ -300,8 +300,10 @@ function StackVM:run(code)
     elseif code[pc] == 'callFunction' then
       self:traceCustom(code[pc])
       self:traceStack()
-      pc = pc + 1
-      self:run(code[pc])
+      local code = self.stack[self.top]
+      self:popStack(1)
+
+      self:run(code)
     else
       self:addError('Unknown instruction "'..code[pc]..'."')
     end

@@ -44,11 +44,11 @@ local nodeNumeral = node('number', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'position', 'value')
-local nodeFunction = node('function', 'position', 'name', 'parameters', 'defaultArgument', 'returnType', 'block')
 local nodeParameter = node('parameter', 'position', 'name', 'type_')
 local nodeFunctionCall = node('functionCall', 'name', 'position', 'arguments')
 local nodeBlock = node('block', 'body')
 local nodeTernary = node('ternary', 'testPosition', 'test', 'position', 'truePosition', 'trueExpression', 'falsePosition', 'falseExpression')
+local nodeFunctionType = node('function', 'parameters', 'defaultArgument', 'position', 'resultType')
 
 local function nodeStatementSequence(first, rest)
   -- When first is empty, rest is nil, so we return an empty statement.
@@ -144,14 +144,15 @@ local numberType = V'numberType'
 local omittedType = V'omittedType'
 local arrayType = V'arrayType'
 local ternaryExpr = V'ternaryExpr'
+local newVariable = V'newVariable'
+local functionType = V'functionType'
 
 local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
 'program',
-program = endToken * Ct(functionDeclaration^1) * -1,
+program = endToken * Ct(newVariable^1) * -1,
 
-functionDeclaration = Cp() * identifier * sep.newVariable * delim.openFunctionParameterList^-1 * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList^-1 * sep.functionResult * type_ * op.assign^-1 * blockStatement / nodeFunction,
 parameter = Cp() * identifier * sep.parameter * type_ / nodeParameter,
 parameters = Ct((parameter * (sep.argument^-1 * parameter)^0)^-1),
 
@@ -166,11 +167,13 @@ writeTarget = Ct(variable * (delim.openArray * Cp() * expression * delim.closeAr
 functionCall = identifier * Cp() * delim.openFunctionParameterList * arguments * delim.closeFunctionParameterList / nodeFunctionCall,
 arguments = Ct((expression * (sep.argument * expression)^0)^-1),
 
+newVariable = Cp() * identifier * sep.newVariable * (KWc'export' + KWc'global' + KWc'local' + Cc'unspecified') * type_ * (op.assign^-1 * (expression + blockStatement))^-1 / nodeNewVariable,
+
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
             writeTarget * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
             -- New variable
-            Cp() * identifier * sep.newVariable * (KWc'export' + KWc'global' + KWc'local' + Cc'local') * (type_ * (op.assign^-1 * expression)^-1) / nodeNewVariable +
+            newVariable +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
@@ -188,8 +191,9 @@ numberType = Cp() * KW'number' / node('number', 'position'),
 omittedType = Cp() / node('unknown', 'position'),
 arrayType = Ct((delim.openArray * expression * delim.closeArray)^1) * (booleanType + numberType + omittedType) / makeArrayType,
 
+functionType = ((delim.openFunctionParameterList * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList) + Cc{} * Cc(false)) * Cp() * sep.functionResult * type_ / nodeFunctionType,
 
-type_ = (booleanType + numberType + arrayType + omittedType),
+type_ = (functionType + booleanType + numberType + arrayType + omittedType),
 
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 

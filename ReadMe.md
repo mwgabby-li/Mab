@@ -908,6 +908,8 @@ would say "Zero, one, two. Three apples!"
 * Report differences in AST based on hash of parser bytecode rather than text hash.
   * Text hash is sensitive to formatting, comments, and other irrelevant modifications.
   * `string.dump()` seems promising?
+* Type aliases: numeral:type number; true or false:type boolean.
+  * Interesting problem, now maybe function parameter lists will need to have commas.
 
 #### Hard
 * First-class functions.

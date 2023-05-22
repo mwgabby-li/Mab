@@ -289,9 +289,12 @@ function common.ErrorReporter:new(o)
 end
 
 function common.ErrorReporter:addError(message, tableWithPositionOrPositionOrNil)
-  local position = type(tableWithPositionOrPositionOrNil) == 'table' and
-                   tableWithPositionOrPositionOrNil.position or
-                   tableWithPositionOrPositionOrNil
+  local position
+  if type(tableWithPositionOrPositionOrNil) == 'table' then
+    position = tableWithPositionOrPositionOrNil.position
+  else
+    position = tableWithPositionOrPositionOrNil
+  end
 
   self.errors[#self.errors + 1] = {
     message = message,

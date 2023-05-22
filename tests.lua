@@ -315,17 +315,17 @@ function module:testLessonFourEdgeCases()
     ]])
   lu.assertEquals(result, false)
   errorReporter, result = module.parse(wrapWithEntrypoint'#{##}')
-  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
+  lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
   
   errorReporter, result = module.parse(wrapWithEntrypoint'#{#{#}')
-  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
+  lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
   
   errorReporter, result = module.parse(wrapWithEntrypoint[[
       #{
       :x=1
       #}
     ]])
-  lu.assertEquals(result[1].block.body, {tag = 'emptyStatement'})
+  lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
   
   lu.assertEquals(self:fullTest(
     [[
@@ -676,15 +676,6 @@ entry point: () -> number {
   lu.assertEquals(self:fullTest(input), 0)
 end
 
-function module:testEntryPointNameExclude()
-  local input =
-[[entry point: () -> number {
-  entry point: 12
-}
-]]
-  lu.assertEquals(self:fullTest(input), 'Translation failed!')
-end
-
 function module:testFunctionCall()
   local input =
 [[
@@ -991,6 +982,19 @@ input =
   lu.assertEquals(errorReporter:count(), 2)
 end
 
+function module:testWrongFunctionArgumentTypes()
+  local input =
+[[test: (n:number) -> number {
+  return n
+}
+entry point: -> number {
+  call test(true)
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+end
+
 -- test function parameter count mismatch (zero when should be something, number when should be another number, something when should be zero.)
 function module:testParameterArgumentCountMismatch()
   -- Matching
@@ -1208,8 +1212,8 @@ function module:testExampleProgram()
       return a + b
   }
 
-  # The parethesis are optional:
-  div: a:number b:number -> number {
+  # Commas can be included:
+  div: (a:number, b:number) -> number {
       return a / b
   }
 
@@ -1235,7 +1239,7 @@ function module:testDefaultArguments()
   -- Default with one parameter
   --  Used:
   local input =
-  [[default arguments: n:number = 12 * 17 -> number {
+  [[default arguments: (n:number = 12 * 17) -> number {
     return n
   }
 
@@ -1247,7 +1251,7 @@ function module:testDefaultArguments()
   lu.assertEquals(self:fullTest(input), 12 * 17)
   --  Not used:
   input =
-  [[default arguments: n:number = 12 * 17 -> number {
+  [[default arguments: (n:number = 12 * 17) -> number {
     return n
   }
 
@@ -1260,7 +1264,7 @@ function module:testDefaultArguments()
   -- Default with multiple parameters:
   --  Used:
   input =
-  [[default arguments: b:boolean n:number = 12 * 17 -> number {
+  [[default arguments: (b:boolean n:number = 12 * 17) -> number {
     return n
   }
 
@@ -1272,7 +1276,7 @@ function module:testDefaultArguments()
 
   --  Not used:
   input =
-  [[default arguments: b:boolean n:number = 12 * 17 -> number {
+  [[default arguments: (b:boolean n:number = 12 * 17) -> number {
     return n
   }
 
@@ -1281,6 +1285,121 @@ function module:testDefaultArguments()
   }
   ]]
   lu.assertEquals(self:fullTest(input), 12)
+end
+
+function module:testMismatchedFunctionAssignments()
+  -- Mismatched parameter types
+  local input =
+  [[test: (b:boolean n:number) -> number {
+  }
+
+  test2: -> number {
+  }
+
+  entry point: -> number {
+    test = test2
+  }
+  ]]
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+
+  -- Mismatched result types
+  input =
+  [[test: (b:boolean n:number) -> number {
+  }
+
+  test2: -> boolean {
+  }
+
+  entry point: -> number {
+    test = test2
+  }
+  ]]
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+
+
+  -- Mismatched parameter types with multiple parameters
+  input =
+  [[
+testMismatches:           (b:boolean, n:number, func: (n:number) ->) -> number {
+}
+
+testMismatchedParameter:  (b:boolean, n:boolean, func: (n:number) ->) -> number {
+}
+
+testMismatchedResultType: (b:boolean, n:number, func: (n:number) ->) -> boolean {
+}
+
+entry point: -> number {
+  testMismatches = testMismatchedParameter
+}
+  ]]
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+
+  input =
+  [[
+testMismatches:           (b:boolean, n:number, func: (n:number) ->) -> number {
+}
+
+testMismatchedParameter:  (b:boolean, n:boolean, func: (n:number) ->) -> number {
+}
+
+testMismatchedResultType: (b:boolean, n:number, func: (n:number) ->) -> boolean {
+}
+
+entry point: -> number {
+  testMismatches = testMismatchedResultType
+}
+  ]]
+  lu.assertEquals(self:fullTest(input), 'Type checking failed!')
+end
+
+
+-- Test function within another function
+function module:testFunctionWithinFunction()
+  local input =
+  [[entry point: -> number {
+    a local function: -> number {
+      return 33
+    };
+
+    return a local function();
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 33)
+end
+
+-- Test function assignment
+function module:testFunctionAssignment()
+  local input =
+  [[test: -> number {
+    return 33
+  }
+
+  entry point: -> number {
+    test2: -> number = test;
+
+    return test2();
+  }
+  ]]
+
+  lu.assertEquals(self:fullTest(input), 33)
+
+  -- Test function assignment of existing function
+  input =
+  [[test return anything: -> number {}
+
+test return 10: -> number {
+  return 10;
+}
+
+entry point: -> number {
+  test return anything = test return 10;
+
+  return test return anything()
+}]]
+
+  lu.assertEquals(self:fullTest(input), 10)
 end
 
 return module
