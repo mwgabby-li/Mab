@@ -28,7 +28,7 @@ phases = {
     name = 'Type Checker',
     actionName = 'type checking',
     inputName = 'AST',
-    version = 3241613977,
+    version = 63148387,
   },
 
   graphviz = {
@@ -44,7 +44,7 @@ phases = {
     name = 'Stack VM',
     actionName = 'generating Stack VM code',
     inputName = 'AST',
-    version = 3241613977,
+    version = 63148387,
   },
 
   interpreter = {
@@ -56,7 +56,7 @@ phases = {
     -- for the program to output, then prints
     -- the completion message.
     separatedOutput = true,
-    version = 1956578936,
+    version = 399266495,
   },
 }
 

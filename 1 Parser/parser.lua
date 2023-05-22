@@ -255,7 +255,10 @@ end
 
 function module.parse(input, parameters)
   ParserErrorReporter.position = false
-  ParserErrorReporter.filename = parameters.inputFile
+  if parameters then
+    ParserErrorReporter.filename = parameters.inputFile
+  end
+
   local grammar = grammar
   if parameters and parameters.pegdebug then
     grammar = require('External.pegdebug').trace(grammar)
