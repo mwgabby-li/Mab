@@ -216,7 +216,7 @@ Where type can be a boolean, a number, a function type, or another array type.
 The end result is something like this, where `[2][2] number` is an array type:
 
 ```
-is identity: matrix:[2][2] number -> boolean {
+is identity: (matrix:[2][2] number) -> boolean {
   # Contents
 }
 ```
@@ -260,8 +260,9 @@ entry point: () -> number {
 
     # Fully specified variable
     a:local number = 2;
-    # Equals is optional...
+    # Scope and type are optional...
     b:= 2;
+    # Equals also optional...
     # Other than the name, the same
     # as the two previous.
     c: 2;
@@ -386,7 +387,7 @@ A function whose return value is discarded after being called is a statement.
 Mab requires a special keyword for this case, unlike most other languages:
 
 ```
-'call' identifier '(' { expression { ',' expression } } ')'
+'call' identifier '(' [ expression { ',' expression } ] ')'
 ```
 
 Example of usage. Note that `print()` here has no return type, so it actually can only
@@ -453,6 +454,18 @@ The expression here is the default value of all the elements of the array.
 ```
 a: new [2][2][3];
 ```
+
+> *Note*
+>
+> Because array types are statically typed in size, only literal numbers
+> may be used to initialize their sizes with `new`.
+>
+> A future Mab goal is to support something like constant variables and expressions here.
+>
+> The grammar can accept expressions, and the expressions could be coded—and were in earlier versions of Mab—but
+> the type checker will reject array sizes that are not literals at the moment.
+
+
 
 To access an element for use in expression or assignment:
 ```
@@ -651,16 +664,6 @@ mismatched array: [3] true;
 array[2] = mismatched array;
 ```
 
-> *Note*
-> 
-> Because array types are statically typed in size, only literal numbers
-> may be used to initialize their sizes with `new`.
-> 
-> A future Mab goal is to support something like constant variables and expressions here.
-> 
-> The grammar can accept expressions, and the expressions could be coded—and were in earlier versions of Mab—but
-> the type checker will reject array sizes that are not literals at the moment.
-
 Array types can be specified, which is necessary for functions since the language is
 strongly typed and has no support for anything like automatic generics:
 ```
@@ -839,11 +842,12 @@ block opening after it.
 The block opening is used to prevent confusion in all the other cases and allows for 
 variables to begin with keywords followed by spaces, such as:
 ```
-:if we win this time;
-if we win this time = false;
+if we win this time: false;
 if if we win this time {
-    # Yes, this is pretty confusing, but the language is named after a
-    # fairy of dreams and madness, right?
+    # Yes, this is pretty confusing,
+    # but the language is named 
+    # after a fairy of dreams and
+    # madness, right?
 }
 ```
 
