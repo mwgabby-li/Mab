@@ -99,7 +99,7 @@ exponent:
 
 In Mab, as functions are first-class, variable definitions and function definitions are fundamentally identical:
 ```
-identifier ':' scope, type [['='] value]
+identifier ':' [scope] [type] [['='] value]
 ```
 
 `value` is either an expression, or a block.
