@@ -1054,8 +1054,28 @@ especially for a performance-focused statically typed language like Mab.
 These are some things I'd like to add or at least try to add,
 but were outside the scope of my free time during the course.
 
+#### Chores
+* Re-do test organization, with directory and specific files.
+* More robust information about what went wrong when test goes awry.
+  * Perhaps report errors?
+* Error changes.
+  * Error codes.
+  * Errors in a separate file.
+* When hashing and versioning, include an explicit version number and size of the files.
+
 #### Easy
+* Error themes. (After *Error changes* above.)
+* Localization support (see *Error changes* above.)
+* Type name changes.
+  * 'none' for omitted function input and return values.
+  * 'infer' for omitted variable definition types.\
+  This might be a little funky with functions. Maybe we can infer output value from return and assume no input values?
+* Deal with output flushing in a more elegant way.
+  * The phases can call `os.exit()` and that will remove the need for the branching right now?\
+  Moving more of this into the phases run functions would be cleaner.
 * Constant support
+  * Maybe limit default `const` to function parameters?\
+  See also the *Language profiles* idea.
 * Further string support.
   * Multi-character strings: `''aren't we having fun?''`.
   * Support for escape sequences.
@@ -1070,6 +1090,10 @@ whether to make changes.
 * Add options for unicode symbols for math and types instead of ASCII.
 * Colon after conditionals instead of open block?
   * Just seems a little more natural to me...
+* Disallow names composed entirely of keywords.
+* A different way to specify array default values, such as a `default` keyword?\
+  Maybe `array [2] default(0)`?
+* Error phase before type checking.
 
 #### Medium
 * Make Language Loopier
@@ -1105,15 +1129,19 @@ would say "Zero, one, two. Three apples!"
   in a location that an identifier is allowed could work for this.
 * Support trailing base notation for numbers, rather than prefix.
   * `1000 b2`, for example.
+  * Allow identifiers to start with numbers, as long as they contain at least one letter or underscore,
+  and don't contain a trailing `b<n>`.
 * Enumerations.
 * For version hashing, strip irrelevant information like comments and whitespace out of the file first.
   * Considered using hash of Lua bytecode, but it's not portable and not stable across versions.
 * Type aliases: numeral:type number; true or false:type boolean.
   * Interesting problem, if I do this, maybe function parameter lists will need to have commas.
+* Anonymous functions (Lambdas).
 
 #### Hard
 * Proper tail recursion.
   * With keyword, so it can be verified with an error that it's working.
+* Closures.
 * Much more robust type inference.
   * Be able to tell the type of variable based on first initialization.
   * Inferring function arguments based on their usage.
@@ -1133,6 +1161,7 @@ would say "Zero, one, two. Three apples!"
   * The first would probably involve making the parser aware of valid variables.
 * Report source line on interpreter errors.
 * Full debugger support.
+* Bitwise operators with the same operator as booleans.
 
 ## Self assessment
 
