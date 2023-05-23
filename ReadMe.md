@@ -335,7 +335,7 @@ It contains the following numeric binary operators:
 | <center>`%`</center> | Modulus        |
 | <center>`^`</center> | Exponent       |
 
-And the following boolean binary operators:
+The following boolean binary operators:
 
 | Operator              | Operation    |
 |-----------------------|--------------|
@@ -346,6 +346,18 @@ And the following boolean binary operators:
 | <center>`~=`</center> | Not Equal    |
 | <center>`=` </center> | Equal        |
 
+And the following boolean logical operators:
+
+| Operator               | Operation |
+|------------------------|-----------|
+| <center>`&`</center>   | And       |
+| <center>`\|` </center> | Or        |
+
+> *Note*
+> 
+> The logical operators short-circuit. For `&`, this means that if the left side is `false`,
+the right side is not evaluated. This includes potential side effects like function calls.
+> For `|`, if the left side is `true`, the right side is not evaluated.
 
 ### Ternary Operator
 
@@ -373,6 +385,7 @@ From lowest to highest:
 | Operator                                     | Name                                  |
 |----------------------------------------------|---------------------------------------|
 | <center>`?:`</center>                        | Ternary                               |
+| <center>`&` `\|`</center>                    | Boolean Logical                       |
 | <center>`>=` `>` `<=` `<` `~=` `=` </center> | Boolean Comparisons                   |
 | <center>`!` </center>                        | Boolean Not                           |
 | <center>`+`  `-` </center>                   | Addition and Subtraction              |
