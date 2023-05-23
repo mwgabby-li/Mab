@@ -123,7 +123,8 @@ entry point: -> number {
         return 1;
       };
       return n * factorial(n - 1);
-    };';
+    }
+    ';
 
   @a string;
   @an embedded program;
@@ -145,6 +146,7 @@ factorial: (n:number) -> number {
   };
   return n * factorial(n - 1);
 };
+
 ```
 
 ### Function and Variable Definition
@@ -1054,6 +1056,10 @@ but were outside the scope of my free time during the course.
 
 #### Easy
 * Constant support
+* Further string support.
+  * Multi-character strings: `''aren't we having fun?''`.
+  * Support for escape sequences.
+  * Double-quoted strings: `"let's make a \"more traditional\" string?"`.
 * Entry Point case-insensitive?
 * Include explicit version number and size for AST and code versions,
 in addition to the hash.
