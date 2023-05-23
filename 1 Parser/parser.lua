@@ -6,6 +6,7 @@ local identifierPattern = require 'identifier'
 
 local tokens = require 'tokens'
 local op = tokens.op
+local literals = require 'literals'
 local KW, KWc = tokens.KW, tokens.KWc
 local sep = tokens.sep
 local delim = tokens.delim
@@ -71,15 +72,13 @@ end
 local function nodeString(position, value)
   value = string.gsub(value, "''", "'")
 
-  local first, last = string.find(value, '\n%s+$')
-  if first then
-    local prefix = string.sub(value, first, last)
-    
+  local prefix = string.match(value, '^\r?(\n%s+)')
+  if prefix then
     value = string.gsub(value, prefix, '\n')
-    if string.sub(value, #value - 1, #value - 1) == '\r' then
-      value = string.sub(value, 1, #value - 2)
+    if string.sub(value, 1, 1) == '\r' then
+      value = string.sub(value, 3, #value)
     else
-      value = string.sub(value, 1, #value - 1)
+      value = string.sub(value, 2, #value)
     end
   end
 
@@ -167,6 +166,8 @@ local newVariable = V'newVariable'
 local functionType = V'functionType'
 local newVariableList = V'newVariableList'
 
+local lStrDelim = lpeg.P(literals.delim.string)
+
 local C, Ct, Cc, Cp = lpeg.C, lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
@@ -218,7 +219,8 @@ functionType = ((delim.openFunctionParameterList * parameters * ((op.assign * ex
 type_ = (functionType + booleanType + numberType + arrayType + omittedType),
 
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
-string = Cp() * delim.string * C(((1 - delim.string) + (delim.string * delim.string))^0) * delim.string / nodeString,
+-- Have to use literal string delimiter, or whitespace will be stripped before string opens.
+string = Cp() * lStrDelim * C(((1 - lStrDelim) + (lStrDelim * lStrDelim))^0) * delim.string / nodeString,
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +
