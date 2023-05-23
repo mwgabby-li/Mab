@@ -53,9 +53,7 @@ function Translator:finalize()
 end
 
 function Translator:nodeExpression(ast)
-  if ast.tag == 'number' then
-    self:appendNode(ast, false, tostring(ast.value))
-  elseif ast.tag == 'boolean' then
+  if ast.tag == 'number' or ast.tag =='boolean' or ast.tag == 'string' then
     self:appendNode(ast, false, tostring(ast.value))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.name)

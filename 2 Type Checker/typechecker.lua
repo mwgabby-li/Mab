@@ -31,7 +31,11 @@ TypeChecker.typeCompatibleBinaryOps = {
     [l_op.or_] = true,
     --]]
   },
-  
+
+  string = {
+
+  },
+
   unknown = {
     -- Unknown is really not compatible with anything...
     -- To-Do: Bit manipulation?
@@ -58,6 +62,10 @@ TypeChecker.typeCompatibleUnaryOps = {
     --[[
     [l_op.not_] = true,
     --]]
+  },
+
+  string = {
+
   },
 
   unknown = {
@@ -157,6 +165,14 @@ function TypeChecker:new(o)
   return o
 end
 
+function isBasicType(tag)
+  return tag == 'number' or tag == 'boolean' or tag == 'string'
+end
+
+function isBasicTypeOrUnknown(tag)
+   return isBasicType(tag) or tag == 'unknown'
+end
+
 function TypeChecker:addError(...)
   if self.errorReporter then
     self.errorReporter:addError(...)
@@ -175,7 +191,7 @@ function TypeChecker:cloneType(type_)
   if type_.tag == 'array' then
     local clonedDimensions = cloneDimensions(type_.dimensions)
     return {tag='array', dimensions = clonedDimensions, elementType = self:cloneType(type_.elementType)}
-  elseif type_.tag == 'number' or type_.tag == 'boolean' or type_.tag == 'unknown' then
+  elseif isBasicTypeOrUnknown(type_.tag) then
     return {tag=type_.tag}
   elseif type_.tag == 'function' then
     local result = {tag='function', parameters={}}
@@ -255,7 +271,7 @@ function TypeChecker:typeMatches(apple, orange)
       end
       return true
     end
-  elseif apple.tag == 'boolean' or apple.tag == 'number' or apple.tag == 'unknown' then
+  elseif isBasicTypeOrUnknown(apple.tag) then
     return true
   elseif apple.tag == 'function' then
     if #apple.parameters ~= #orange.parameters then
@@ -353,7 +369,7 @@ function TypeChecker:checkFunctionCall(ast)
 end
 
 function TypeChecker:checkExpression(ast)
-  if ast.tag == 'number' or ast.tag == 'boolean' then
+  if isBasicType(ast.tag) then
     return self:createBasicType(ast.tag)
   elseif ast.tag == 'functionCall' then
     return self:checkFunctionCall(ast)

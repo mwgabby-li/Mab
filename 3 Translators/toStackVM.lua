@@ -177,7 +177,7 @@ function Translator:codeLoadVariable(ast, localIndex, globalNumber)
 end
 
 function Translator:codeExpression(ast)
-  if ast.tag == 'number' or ast.tag == 'boolean' then
+  if ast.tag == 'number' or ast.tag == 'boolean' or ast.tag == 'string' then
     self:addCode('push')
     self:addCode(ast.value)
   elseif ast.tag == 'variable' then
@@ -312,6 +312,9 @@ function Translator:codeNewVariable(ast)
       elseif ast.type_.tag == 'boolean' then
         self:addCode 'push'
         self:addCode(false)
+      elseif ast.type_tag == 'string' then
+        self:addCode 'push'
+        self:addCode ''
       elseif ast.type_.tag == 'function' then
         -- TODO: A default value for a function? Maybe code that returns the default return type?
         self:addCode 'push'
@@ -521,7 +524,9 @@ function Translator:codeFunction(name, type_, block)
       self:addCode(0)
     elseif resultTypeTag == 'boolean' then
       self:addCode(false)
-    -- TODO: Rename 'unknown' to 'unspecified.'
+    elseif resultTypeTag == 'string' then
+      self:addCode ''
+      -- TODO: Rename 'unknown' to 'unspecified.'
     elseif resultTypeTag == 'unknown' then
       -- This is valid. Note that a function like this, with no return type,
       -- is only allowed to be executed as a statement.

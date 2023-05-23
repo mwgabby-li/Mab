@@ -1441,4 +1441,20 @@ entry point: -> number {
   lu.assertEquals(self:fullTest(input), 450)
 end
 
+function module:testBasicStringSupport()
+  local input =
+[[entry point: -> number {
+    a string: 'a string "this is single quoted" and the end';
+    a string = 'a string ''this is double quoted'' and the end';
+a string = 'this is a multiline
+string using the same basic syntax, and you can insert single quotes as ''"'' or double quotes as '''''' ';
+
+a unicode string: 'This is a string in UTF-8: ''いづれの御時にか、女御、更衣あまたさぶらひたまひけるなかに、いとやむごとなき際にはあらぬが、すぐれて時めきたまふありけり。''';
+
+a string = a unicode string;
+}]]
+
+  lu.assertEquals(self:fullTest(input), 0)
+end
+
 return module

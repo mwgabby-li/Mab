@@ -68,6 +68,17 @@ local function nodeStatementSequence(first, rest)
   end
 end
 
+local function nodeString(position, value)
+  -- Swap '' for a character that cannot appear in the string
+  value = string.gsub(value, "''", '\127')
+  -- Swap double quotes for single quotes. '' is eventually going to become double
+  -- quotes, so we had to convert it to a temporary value before doing this.
+  value = string.gsub(value, '"', "'")
+
+  -- Finally, swap the character that can't appear in the string to double quote.
+  return {tag = 'string', position = position, value = string.gsub(value, "\127", '"')}
+end
+
 local function addUnaryOp(operator, position, expression)
   return { tag = 'unaryOp', op = operator, position=position, child = expression }
 end
@@ -127,6 +138,7 @@ local blockStatement = V'blockStatement'
 local expression = V'expression'
 local functionCall = V'functionCall'
 local boolean = V'boolean'
+local string = V'string'
 local variable = V'variable'
 local identifier = V'identifier'
 local functionDeclaration = V'functionDeclaration'
@@ -148,7 +160,7 @@ local newVariable = V'newVariable'
 local functionType = V'functionType'
 local newVariableList = V'newVariableList'
 
-local Ct, Cc, Cp = lpeg.Ct, lpeg.Cc, lpeg.Cp
+local C, Ct, Cc, Cp = lpeg.C, lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
 'program',
@@ -188,6 +200,7 @@ statement = blockStatement +
             -- Print
             op.print * Cp() * expression / nodePrint,
 
+stringType = Cp() * KW'string' / node('string', 'position'),
 booleanType = Cp() * KW'boolean' / node('boolean', 'position'),
 numberType = Cp() * KW'number' / node('number', 'position'),
 omittedType = Cp() / node('unknown', 'position'),
@@ -198,6 +211,7 @@ functionType = ((delim.openFunctionParameterList * parameters * ((op.assign * ex
 type_ = (functionType + booleanType + numberType + arrayType + omittedType),
 
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
+string = Cp() * delim.string * C(((1 - delim.string) + (delim.string * delim.string))^0) * delim.string / nodeString,
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +
@@ -209,6 +223,7 @@ primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^
           Cp() * numeral / nodeNumeral +
           -- Literal booleans
           boolean +
+          string +
           -- Sentences in the language enclosed in parentheses
           delim.openFactor * expression * delim.closeFactor,
 
