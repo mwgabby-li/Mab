@@ -1,15 +1,24 @@
-# Final Project Report: Mab
+# The Mab Programming Language
 
-## Instructions for Testing Input Program and Test Suite
+![An illustration of Queen Mab by Willy Pogany,
+ a line drawing of a fairy in black and white with butterfly wings,
+holding a rod and wearing a crown,
+in a dress, her feet straight down,
+and below her feet a single star.
+ "Queen Mab" is written in the middle in script,
+one word on either side of the figure.](https://repository-images.githubusercontent.com/624608539/e2e0bdf5-6a47-459a-83f8-6e57f0ad7ce6 "Queen Mab, Illustration by Willy Pogany")
+
+## Instructions for Using Language, Input Program, and Test Suite
 
 Requires Lua and LPeg available to Lua, tested with Lua 5.3 and 5.4.
 
 To test the input program, clone the repository, and invoke it like this:
 
 ```
-lua mab.lua -v input
+lua mab.lua input
 ```
 
+To run your own code, replace `input` with the filepath.
 
 To run the test suite:
 
@@ -20,7 +29,7 @@ lua mab.lua --tests
 You can also invoke Mab like this if it's marked executable (which it should be on Linux):
 
 ```
-./mab.lua -v input
+./mab.lua input
 ```
 
 ## Language Syntax
@@ -82,7 +91,13 @@ Mab indicates a number of a specific base with the following format:
 number 128 in base 10, and `07 200` is 128 in base 8. `0F 80` is the same number in
 hexidecimal.
 
-All numbers may have single spaces between digits.
+Mab supports single spaces in numerals for digit grouping. For example, `1 000 000` is
+valid as a way of writing the number one million.
+This also works with base notation, and in fact the separator between the base prefix
+and the rest of the number is just part of this feature.
+
+For example, one might write `0F FF FF 00` to group a 3-byte (24-bit) color,
+or `01 1000 0110 1111` to write out a boolean mask in a readable way.
 
 The default base in Mab is base 10, and in this base, no base prefix is necessary.
 
@@ -94,6 +109,14 @@ exponent:
 112.
 .01e-3
 ```
+> *Background*
+> 
+> Digit grouping with spaces is supported by many standards organizations.
+See, for example, the [22nd General Conference of Weights and Measures Resolution 10](https://www.bipm.org/en/committees/cg/cgpm/22-2003/resolution-10).
+>
+>Commas and periods are culture-specific and can cause confusion between fractional
+parts of the number and digit grouping.
+
 
 #### Strings
 
@@ -357,6 +380,10 @@ Particularly, using a boolean operator with a number is an error.
 
 If you're familiar with C or C++, you might tend to do this:
 ```
+a:number = 0;
+
+# Operations on a...
+
 if a {
     # ...
 };
@@ -505,6 +532,7 @@ return: a = b;
 ### Arrays
 
 Arrays in Mab are indexed from element one, not zero.
+A feature to allow offset-indexing is on the roadmap.
 
 Mab is done this way because unifying the count and index of things is
 more natural and less confusing.
@@ -636,13 +664,7 @@ Example of usage:
 #}
 ```
 
-## New Features/Changes
-
-### Type Specification, Unified Types
-
-As described in
-**[Function and Variable Definition](#function-and-variable-definition).**
-This differs significantly from Selene.
+## Other Notes on Features
 
 ### Type Checker/Strongly Typed
 
@@ -773,40 +795,10 @@ Types can be a bit clunky as it is right now.
 
 Generics would also be a fun goal.
 
-### Robust Error Support
-
-Error messages indicate the line number, and show it along with surrounding context
-lines with an indication of the exact character where the error occurs.
-
-In addition, the output includes `filename:line number`, allowing some editors,
-such as ZeroBrane Studio, to open the file when the error line is double-clicked in
-the log.
-
-#### Limitations
-Some errors crash various phases, and even if they are caught, they can still be cryptic.
-
-One approach to solve this would be to have a phase that does robust verification of the AST
-for correctness to verify preconditions before further phase processing.
-
-### Booleans
-
-Basic boolean support. The default value of booleans is `false`.
-
-There is intentionally no direct coercion between booleans and numbers,
-i.e. `0` is not `false`, and conditionals may only accept booleans.
-
-### Ternary Operator
-
-The ternary operator has the same syntax as the C/C++ version:
-`<expression> ? <evaluate if true> : <evaluate if false>`.
-
 ### Two-Pass Compilation
 
 Rather than support forward declarations, Mab scans the entire AST up-front and
 collects all top-level functions before proceeding, and sets them as global.
-
-This is a slightly different approach to fulfilling the goals of the forward
-declaration exercise, as it also allows for indirect recursion.
 
 For example, this is valid Mab code:
 ```
@@ -835,97 +827,6 @@ odd: -> boolean {
   }
 }
 ```
-#### Limitations
-
-If I want to support modules, I'll need a new feature, as opposed to forward
-declarations, which can be used for that with only slight modifications.
-
-### Name Collision Support
-
-The exercises call for detecting collisions between global variables and functions, 
-and parameters with the same name, and locals in the same scope sharing a name.
-
-After moving to first-class functions, I didn't update and removed the code that checked for collisions between
-functions and locals, as doing so seemed against the spirit of first-class functions. 
-
-#### Limitations
-
-If a local is given the same name as a global, the global will always be shadowed,
-even if the global is created *after* the local, which is a bit odd.\
-I think this is inherent to globals, but it seems unusual.
-
-For example, the following function will return 12, rather than generating a type
-mismatch error:
-```
-entry point: () -> number {
-  v:local = 12;
-  v:global = false;
-
-  return v
-}
-```
-
-### Numeral Base Notation
-
-As  described in **[Numerals](#numerals)**.
-
-#### Limitations
-
-This syntax can be a bit confusing to those used to other languages, because `0x80` in
-Mab is 540 in base 10. 128 would be `0x5N` with this prefix, as it indicates base 35 in
-Mab.
-
-### Single Spaces in Numerals
-
-Mab supports single spaces in numerals for digit grouping. For example, `1 000 000` is
-valid as a way of writing the number one million.
-This also works with base notation, and in fact the separator between the base prefix 
-and the rest of the number is just part of this feature.
-
-For example, one might write `0F FF FF 00` to group a 3-byte (24-bit) color,
-or `01 1000 0110 1111` to write out a boolean mask in a readable way.
-
-Digit grouping with spaces is supported by many standards organizations.
-See, for example, the [22nd General Conference of Weights and Measures Resolution 10](https://www.bipm.org/en/committees/cg/cgpm/22-2003/resolution-10).
-
-Commas and periods are culture-specific and can cause confusion between fractional
-parts of the number and digit grouping.
-
-### Single Spaces and Dashes in Identifiers
-
-As described in **[Identifiers](#identifiers)**.
-
-#### Limitations
-
-There is some ambiguity with the `return` keyword and spaces, as it can be read as an
-identifier in some cases, such as `return a = b`, which will be parsed as 
-`return a` `=` `b` rather than `return` `a = b`. This particular case could also be
-solved by requiring a different character than equals for assignment, by disallowing
-the return keyword as a prefix for variables, or by using a double equals for equality.
-The underlying issue is that every statement except for assignment and new variables
-begins with a keyword, and every keyword-prefixed statement except for return has a
-block opening after it.
-
-The block opening is used to prevent confusion in all the other cases and allows for 
-variables to begin with keywords followed by spaces, such as:
-```
-if we win this time: false;
-if if we win this time {
-    # Yes, this is pretty confusing,
-    # but the language is named 
-    # after a fairy of dreams and
-    # madness, right?
-}
-```
-
-To avoid another case of ambiguity, a function call as a statement must be proceeded by
-the `call` keyword. Because function calls like this can be a sign of mutating program
-state in unclear ways, I judged that adding some friction to this case was not much of
-a negative.
-
-Dashes can also be confused with binary or unary operators. Requiring alphanumeric
-characters on both sides avoids this issue in most cases, but I think there are some
-programmers who would find the need for spaces all the time infuriating.
 
 ### Command-Line Options
 
@@ -1163,39 +1064,18 @@ would say "Zero, one, two. Three apples!"
 * Full debugger support.
 * Bitwise operators with the same operator as booleans.
 
-## Self assessment
-
-### Language Completeness: 3/3
-* All exercises have been incorporated into the language, as well as two optional
-features (booleans and the ternary operator) and the type checker.
-* As reflected in **[New Features/Changes](#new-featureschanges)**, many changes have 
-been made beyond basic project requirements.
-* The language supports basic first-class functions.
-
-### Code Quality & Report: 3/3
-
-* Code organization is exceptional, with well-named files, organized into directories,
-and phases numbered by order of execution.
-* Error handling is user-friendly, with a wide variety of well-written error messages,
-and in the worst case, exceptions in phase execution will be caught as internal errors.
-* The language includes a suite of test cases.
-
-### Originality & Scope: 3/3
-* Mab has several experiments, including spaces in variable names, autogenerated AST
-and code versions, and other unique syntax constructs such as parameter lists where commas are optional.
-* Language is broken into different phases to allow localized changes, and is otherwise modular,
-with things like literals defined in a single place for customization.
-* The example program is reasonably complex and demonstrates the power of the language.
-
 ## References
-Most of my research beyond asking questions on Discord was small Google searches,
-but here are some relatively relevant links.
+Some links relevant to languages and development of the Mab language.
 
 ### [syntax across languages](http://rigaux.org/language-study/syntax-across-languages.html)
 I used this to get some ideas for function syntax.
 
 ### [Frink](https://frinklang.org/)
 A programming language that does unit checking.
+
+### [Strings in C#](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/strings/)
+Some of C#'s string features inspired me, particularly the removal of leading whitespace based on final line indentation.
+(I used the first line, instead.)
 
 ### [OCaml Book: Recursive Functions](https://ocamlbook.org/recursive-functions/#recursive-binding-syntax)
 Hugo mentioned OCaml's keywords for recursion, I was curious and looked it up here.
