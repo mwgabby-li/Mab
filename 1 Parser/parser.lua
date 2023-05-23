@@ -69,14 +69,21 @@ local function nodeStatementSequence(first, rest)
 end
 
 local function nodeString(position, value)
-  -- Swap '' for a character that cannot appear in the string
-  value = string.gsub(value, "''", '\127')
-  -- Swap double quotes for single quotes. '' is eventually going to become double
-  -- quotes, so we had to convert it to a temporary value before doing this.
-  value = string.gsub(value, '"', "'")
+  value = string.gsub(value, "''", "'")
 
-  -- Finally, swap the character that can't appear in the string to double quote.
-  return {tag = 'string', position = position, value = string.gsub(value, "\127", '"')}
+  local first, last = string.find(value, '\n%s+$')
+  if first then
+    local prefix = string.sub(value, first, last)
+    
+    value = string.gsub(value, prefix, '\n')
+    if string.sub(value, #value - 1, #value - 1) == '\r' then
+      value = string.sub(value, 1, #value - 2)
+    else
+      value = string.sub(value, 1, #value - 1)
+    end
+  end
+
+  return {tag = 'string', position = position, value = value}
 end
 
 local function addUnaryOp(operator, position, expression)

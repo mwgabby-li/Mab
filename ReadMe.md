@@ -95,6 +95,59 @@ exponent:
 .01e-3
 ```
 
+#### Strings
+
+Strings are delimited by single quotes.
+
+To insert a single quote in a string, use two single quotes.
+
+Strings may span multiple lines.
+
+If the last line in a string is a newline followed by some whitespace,
+that whitespace will be stripped from the start of all lines,
+and the final trailing newline will be removed.
+
+For example:
+
+```
+entry point: -> number {
+  a string: '# Let''s have fun!'
+
+
+  an embedded program:
+    '# Our favorite recursive program
+    entry point: -> number {
+      return factorial(10)
+    };
+    
+    factorial: (n:number) -> number {
+      if n = 0 {
+        return 1;
+      };
+      return n * factorial(n - 1);
+    };
+    '
+}
+```
+
+Will output:
+
+```
+# Let's have fun!
+
+# Our favorite recursive program
+entry point: -> number {
+  return factorial(10)
+};
+
+factorial: (n:number) -> number {
+  if n = 0 {
+    return 1;
+  };
+  return n * factorial(n - 1);
+};
+```
+
 ### Function and Variable Definition
 
 In Mab, as functions are first-class, variable definitions and function definitions are fundamentally identical:
