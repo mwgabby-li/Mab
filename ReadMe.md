@@ -6,7 +6,14 @@ holding a rod and wearing a crown,
 in a dress, her feet straight down,
 and below her feet a single star.
  "Queen Mab" is written in the middle in script,
-one word on either side of the figure.](https://repository-images.githubusercontent.com/624608539/e2e0bdf5-6a47-459a-83f8-6e57f0ad7ce6 "Queen Mab, Illustration by Willy Pogany")
+one word on either side of the figure.](Artwork/QueenMab.png#gh-light-mode-only "Queen Mab, Illustration by Willy Pogany")
+![An illustration of Queen Mab by Willy Pogany,
+a line drawing of a fairy in black and white with butterfly wings,
+holding a rod and wearing a crown,
+in a dress, her feet straight down,
+and below her feet a single star.
+"Queen Mab" is written in the middle in script,
+one word on either side of the figure.](Artwork/QueenMabDark.png#gh-dark-mode-only "Queen Mab, Illustration by Willy Pogany")
 
 ## Instructions for Using Language, Input Program, and Test Suite
 
