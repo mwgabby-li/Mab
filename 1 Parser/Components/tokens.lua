@@ -10,6 +10,7 @@ end
 -- Operators, delimiters, separators, keywords, and keywords that capture the keyword.
 local module = { op = {}, delim = {}, sep = {}, kw = {}, kwc = {} }
 
+-- Returns a pattern that matches the keyword, and saves it in the keyword table.
 function module.KW(keyword)
   if not module.kw[keyword] then
     module.kw[keyword] = keyword * -lpeg.locale().alnum * endToken
@@ -18,6 +19,7 @@ function module.KW(keyword)
   return module.kw[keyword]
 end
 
+-- Similar to KW, but the pattern returns a capture of the keyword.
 function module.KWc(keyword)
   -- Make sure it's recorded in the kw table
   module.KW(keyword)
