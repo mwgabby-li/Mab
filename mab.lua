@@ -258,7 +258,7 @@ if trace then
 
     if trace.stack[k] then
       for i = #trace.stack[k],1,-1 do
-        print('\t\t\t' .. tostring(trace.stack[k][i]))
+        print('\t\t\t' .. tostring(trace.stack[k][i].value)..(trace.stack[k][i].base==i and ' -' or ''))
       end
       if #trace.stack[k] == 0 then
         print '\t\t\t(empty)'

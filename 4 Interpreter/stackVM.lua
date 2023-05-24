@@ -86,11 +86,11 @@ function StackVM:traceCustom(string)
   end
 end
 
-function StackVM:traceStack()
+function StackVM:traceStack(base)
   if self.trace then
     local result = {}
     for k,v in ipairs(self.stack) do
-      result[k] = v
+      result[k] = { value=v, base=base }
     end
 
     self.trace.stack[#self.trace] = result
@@ -295,19 +295,19 @@ function StackVM:run(code)
         self.stack[i] = self.stack[i + pop]
       end
       self:popStack(pop)
-      self:traceStack()
+      self:traceStack(base)
       return
     elseif code[pc] == 'callFunction' then
       self:traceCustom(code[pc])
-      self:traceStack()
       local code = self.stack[self.top]
       self:popStack(1)
+      self:traceStack(base)
 
       self:run(code)
     else
       self:addError('Unknown instruction "'..code[pc]..'."')
     end
-    self:traceStack()
+    self:traceStack(base)
     pc = pc + 1
   end
 end
