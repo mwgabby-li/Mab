@@ -1457,4 +1457,88 @@ a string = a unicode string;
   lu.assertEquals(self:fullTest(input), 0)
 end
 
+function module:testComplexFirstClassFunctions()
+  local input =
+[[
+test return 10: -> number {
+  return 10;
+};
+test return 20: -> number {
+  return 10;
+};
+
+testReturnLocalFunction: -> -> number {
+  a local function: -> number {
+    a: 33;
+    {
+      b: 22;
+      a = a + b;
+    };
+    return a
+  };
+  
+  return a local function;
+};
+
+entry point: -> number {
+  test return anything: 10 > 20 ? test return 10 : test return 20;
+
+  a local function: -> number {
+    return 33
+  };
+  
+  lf: testReturnLocalFunction();
+  
+  return lf();
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 55)
+
+  input =
+[[test return 10: -> number {
+  return 10;
+};
+test return 20: -> number {
+  return 10;
+};
+
+testReturnLocalFunction: -> -> number {
+  internal local function: -> number {
+    a: 33;
+    {
+      b: 22;
+      a = a + b;
+    };
+    return a
+  };
+  
+  return internal local function;
+};
+
+
+entry point: -> number {
+  test return anything: 10 > 20 ? test return 10 : test return 20;
+
+  a local function: -> number {
+    a: 33;
+    {
+      b: 22;
+      a = a + b;
+    };
+    return a
+  };
+
+  call a local function();
+  
+  lf: testReturnLocalFunction();
+  
+  return lf();
+}
+]]
+  lu.assertEquals(self:fullTest(input), 55)
+
+end
+
+
 return module
