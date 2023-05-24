@@ -1,31 +1,15 @@
-# The Mab Programming Language
+# Final Project Report: Mab
 
-![An illustration of Queen Mab by Willy Pogany,
- a line drawing of a fairy in black and white with butterfly wings,
-holding a rod and wearing a crown,
-in a dress, her feet straight down,
-and below her feet a single star.
- "Queen Mab" is written in the middle in script,
-one word on either side of the figure.](Artwork/QueenMab.png#gh-light-mode-only "Queen Mab, Illustration by Willy Pogany")
-![An illustration of Queen Mab by Willy Pogany,
-a line drawing of a fairy in black and white with butterfly wings,
-holding a rod and wearing a crown,
-in a dress, her feet straight down,
-and below her feet a single star.
-"Queen Mab" is written in the middle in script,
-one word on either side of the figure.](Artwork/QueenMabDark.png#gh-dark-mode-only "Queen Mab, Illustration by Willy Pogany")
-
-## Instructions for Using Language, Input Program, and Test Suite
+## Instructions for Testing Input Program and Test Suite
 
 Requires Lua and LPeg available to Lua, tested with Lua 5.3 and 5.4.
 
 To test the input program, clone the repository, and invoke it like this:
 
 ```
-lua mab.lua input
+lua mab.lua -v input
 ```
 
-To run your own code, replace `input` with the filepath.
 
 To run the test suite:
 
@@ -36,7 +20,7 @@ lua mab.lua --tests
 You can also invoke Mab like this if it's marked executable (which it should be on Linux):
 
 ```
-./mab.lua input
+./mab.lua -v input
 ```
 
 ## Language Syntax
@@ -98,13 +82,7 @@ Mab indicates a number of a specific base with the following format:
 number 128 in base 10, and `07 200` is 128 in base 8. `0F 80` is the same number in
 hexidecimal.
 
-Mab supports single spaces in numerals for digit grouping. For example, `1 000 000` is
-valid as a way of writing the number one million.
-This also works with base notation, and in fact the separator between the base prefix
-and the rest of the number is just part of this feature.
-
-For example, one might write `0F FF FF 00` to group a 3-byte (24-bit) color,
-or `01 1000 0110 1111` to write out a boolean mask in a readable way.
+All numbers may have single spaces between digits.
 
 The default base in Mab is base 10, and in this base, no base prefix is necessary.
 
@@ -116,74 +94,12 @@ exponent:
 112.
 .01e-3
 ```
-> *Background*
-> 
-> Digit grouping with spaces is supported by many standards organizations.
-See, for example, the [22nd General Conference of Weights and Measures Resolution 10](https://www.bipm.org/en/committees/cg/cgpm/22-2003/resolution-10).
->
->Commas and periods are culture-specific and can cause confusion between fractional
-parts of the number and digit grouping.
-
-
-#### Strings
-
-Strings are delimited by single quotes. To insert a single quote in a string, use two single quotes.
-
-Strings may span multiple lines.
-
-If the first line in a string is a newline followed by some whitespace,
-said whitespace will be stripped from the start of all lines,
-and the beginning newline will be removed.
-
-For example:
-
-```
-entry point: -> number {
-  a string: '# Let''s have fun!';
-
-  an embedded program:
-    '
-    # Our favorite recursive program
-    entry point: -> number {
-      return factorial(10)
-    };
-    
-    factorial: (n:number) -> number {
-      if n = 0 {
-        return 1;
-      };
-      return n * factorial(n - 1);
-    }
-    ';
-
-  @a string;
-  @an embedded program;
-}
-```
-
-Will output:
-
-```
-# Let's have fun!
-# Our favorite recursive program
-entry point: -> number {
-  return factorial(10)
-};
-
-factorial: (n:number) -> number {
-  if n = 0 {
-    return 1;
-  };
-  return n * factorial(n - 1);
-};
-
-```
 
 ### Function and Variable Definition
 
 In Mab, as functions are first-class, variable definitions and function definitions are fundamentally identical:
 ```
-identifier ':' [scope] [type] [['='] value]
+identifier ':' scope, type [['='] value]
 ```
 
 `value` is either an expression, or a block.
@@ -262,7 +178,7 @@ Scope is `global` or `local`. If no scope is specified,
 
 `global` variables are accessible everywhere in the file after the location they are defined.
 
-### Type 
+### Type
 
 Types can be either `boolean`, `number`, an array type, or a function type.
 
@@ -365,7 +281,7 @@ The grammar for assignments is:
 identifier {'[' expression ']'} '=' expression
 ```
 
-The middle part is the array index syntax. Note that each array index must evaluate 
+The middle part is the array index syntax. Note that each array index must evaluate
 to a number. (But it is not necessary for them to be *literal* numbers,
 again, just a thing that *evaluates* to a number.)
 
@@ -387,10 +303,6 @@ Particularly, using a boolean operator with a number is an error.
 
 If you're familiar with C or C++, you might tend to do this:
 ```
-a:number = 0;
-
-# Operations on a...
-
 if a {
     # ...
 };
@@ -423,7 +335,7 @@ It contains the following numeric binary operators:
 | <center>`%`</center> | Modulus        |
 | <center>`^`</center> | Exponent       |
 
-The following boolean binary operators:
+And the following boolean binary operators:
 
 | Operator              | Operation    |
 |-----------------------|--------------|
@@ -434,22 +346,10 @@ The following boolean binary operators:
 | <center>`~=`</center> | Not Equal    |
 | <center>`=` </center> | Equal        |
 
-And the following boolean logical operators:
-
-| Operator               | Operation |
-|------------------------|-----------|
-| <center>`&`</center>   | And       |
-| <center>`\|` </center> | Or        |
-
-> *Note*
-> 
-> The logical operators short-circuit. For `&`, this means that if the left side is `false`,
-the right side is not evaluated. This includes potential side effects like function calls.
-> For `|`, if the left side is `true`, the right side is not evaluated.
 
 ### Ternary Operator
 
-The ternary operator is an expression that evaluates to the value of one of its 
+The ternary operator is an expression that evaluates to the value of one of its
 branches. Both branches must evaluate to the same type, and the conditional
 expression before the `?` must evaluate to a boolean.
 
@@ -473,7 +373,6 @@ From lowest to highest:
 | Operator                                     | Name                                  |
 |----------------------------------------------|---------------------------------------|
 | <center>`?:`</center>                        | Ternary                               |
-| <center>`&` `\|`</center>                    | Boolean Logical                       |
 | <center>`>=` `>` `<=` `<` `~=` `=` </center> | Boolean Comparisons                   |
 | <center>`!` </center>                        | Boolean Not                           |
 | <center>`+`  `-` </center>                   | Addition and Subtraction              |
@@ -539,7 +438,6 @@ return: a = b;
 ### Arrays
 
 Arrays in Mab are indexed from element one, not zero.
-A feature to allow offset-indexing is on the roadmap.
 
 Mab is done this way because unifying the count and index of things is
 more natural and less confusing.
@@ -671,7 +569,13 @@ Example of usage:
 #}
 ```
 
-## Other Notes on Features
+## New Features/Changes
+
+### Type Specification, Unified Types
+
+As described in
+**[Function and Variable Definition](#function-and-variable-definition).**
+This differs significantly from Selene.
 
 ### Type Checker/Strongly Typed
 
@@ -681,7 +585,7 @@ Expressions are all recursively evaluated to types, and checked for compatibilit
 between operands and in parts of statements.
 
 For example, this code will check if `true` is a boolean, because it must be to be the
-condition of the ternary operator. It will then check to make sure both arms of the 
+condition of the ternary operator. It will then check to make sure both arms of the
 ternary match in type (which they don't!) and then return the type of the first arm in
 order to continue checking, whether the check passed.
 
@@ -735,7 +639,7 @@ another one: 15;
 a boolean: number & another one;
 ```
 
-However, logical operators will cause a type conversion of the expression to a boolean, 
+However, logical operators will cause a type conversion of the expression to a boolean,
 which will then be acceptable for conditionals or assignment to booleans:
 ``` 
 a boolean = another number > number;
@@ -802,10 +706,40 @@ Types can be a bit clunky as it is right now.
 
 Generics would also be a fun goal.
 
+### Robust Error Support
+
+Error messages indicate the line number, and show it along with surrounding context
+lines with an indication of the exact character where the error occurs.
+
+In addition, the output includes `filename:line number`, allowing some editors,
+such as ZeroBrane Studio, to open the file when the error line is double-clicked in
+the log.
+
+#### Limitations
+Some errors crash various phases, and even if they are caught, they can still be cryptic.
+
+One approach to solve this would be to have a phase that does robust verification of the AST
+for correctness to verify preconditions before further phase processing.
+
+### Booleans
+
+Basic boolean support. The default value of booleans is `false`.
+
+There is intentionally no direct coercion between booleans and numbers,
+i.e. `0` is not `false`, and conditionals may only accept booleans.
+
+### Ternary Operator
+
+The ternary operator has the same syntax as the C/C++ version:
+`<expression> ? <evaluate if true> : <evaluate if false>`.
+
 ### Two-Pass Compilation
 
 Rather than support forward declarations, Mab scans the entire AST up-front and
 collects all top-level functions before proceeding, and sets them as global.
+
+This is a slightly different approach to fulfilling the goals of the forward
+declaration exercise, as it also allows for indirect recursion.
 
 For example, this is valid Mab code:
 ```
@@ -834,6 +768,97 @@ odd: -> boolean {
   }
 }
 ```
+#### Limitations
+
+If I want to support modules, I'll need a new feature, as opposed to forward
+declarations, which can be used for that with only slight modifications.
+
+### Name Collision Support
+
+The exercises call for detecting collisions between global variables and functions,
+and parameters with the same name, and locals in the same scope sharing a name.
+
+After moving to first-class functions, I didn't update and removed the code that checked for collisions between
+functions and locals, as doing so seemed against the spirit of first-class functions.
+
+#### Limitations
+
+If a local is given the same name as a global, the global will always be shadowed,
+even if the global is created *after* the local, which is a bit odd.\
+I think this is inherent to globals, but it seems unusual.
+
+For example, the following function will return 12, rather than generating a type
+mismatch error:
+```
+entry point: () -> number {
+  v:local = 12;
+  v:global = false;
+
+  return v
+}
+```
+
+### Numeral Base Notation
+
+As  described in **[Numerals](#numerals)**.
+
+#### Limitations
+
+This syntax can be a bit confusing to those used to other languages, because `0x80` in
+Mab is 540 in base 10. 128 would be `0x5N` with this prefix, as it indicates base 35 in
+Mab.
+
+### Single Spaces in Numerals
+
+Mab supports single spaces in numerals for digit grouping. For example, `1 000 000` is
+valid as a way of writing the number one million.
+This also works with base notation, and in fact the separator between the base prefix
+and the rest of the number is just part of this feature.
+
+For example, one might write `0F FF FF 00` to group a 3-byte (24-bit) color,
+or `01 1000 0110 1111` to write out a boolean mask in a readable way.
+
+Digit grouping with spaces is supported by many standards organizations.
+See, for example, the [22nd General Conference of Weights and Measures Resolution 10](https://www.bipm.org/en/committees/cg/cgpm/22-2003/resolution-10).
+
+Commas and periods are culture-specific and can cause confusion between fractional
+parts of the number and digit grouping.
+
+### Single Spaces and Dashes in Identifiers
+
+As described in **[Identifiers](#identifiers)**.
+
+#### Limitations
+
+There is some ambiguity with the `return` keyword and spaces, as it can be read as an
+identifier in some cases, such as `return a = b`, which will be parsed as
+`return a` `=` `b` rather than `return` `a = b`. This particular case could also be
+solved by requiring a different character than equals for assignment, by disallowing
+the return keyword as a prefix for variables, or by using a double equals for equality.
+The underlying issue is that every statement except for assignment and new variables
+begins with a keyword, and every keyword-prefixed statement except for return has a
+block opening after it.
+
+The block opening is used to prevent confusion in all the other cases and allows for
+variables to begin with keywords followed by spaces, such as:
+```
+if we win this time: false;
+if if we win this time {
+    # Yes, this is pretty confusing,
+    # but the language is named 
+    # after a fairy of dreams and
+    # madness, right?
+}
+```
+
+To avoid another case of ambiguity, a function call as a statement must be proceeded by
+the `call` keyword. Because function calls like this can be a sign of mutating program
+state in unclear ways, I judged that adding some friction to this case was not much of
+a negative.
+
+Dashes can also be confused with binary or unary operators. Requiring alphanumeric
+characters on both sides avoids this issue in most cases, but I think there are some
+programmers who would find the need for spaces all the time infuriating.
 
 ### Command-Line Options
 
@@ -889,9 +914,9 @@ particular phase hadn't been updated is lost in the shuffle.
 Additionally, crashes and error messages caused by incompatible ASTs can be unclear.
 
 To address these issues, Mab hashes the parser and seeds the hash of the Stack VM
-translator with the parser hash. These versions are set for each phase, and if a 
+translator with the parser hash. These versions are set for each phase, and if a
 phase's version is not updated after changes are made, a warning is output.
-Additionally, if a phase crashes or has errors, the warning notes more strongly it may 
+Additionally, if a phase crashes or has errors, the warning notes more strongly it may
 be due to the incompatibility.
 
 The ideal workflow here is to update a phase, then verify each translator and update
@@ -962,44 +987,18 @@ especially for a performance-focused statically typed language like Mab.
 These are some things I'd like to add or at least try to add,
 but were outside the scope of my free time during the course.
 
-#### Chores
-* Re-do test organization, with directory and specific files.
-* More robust information about what went wrong when test goes awry.
-  * Perhaps report errors?
-* Error changes.
-  * Error codes.
-  * Errors in a separate file.
-* When hashing and versioning, include an explicit version number and size of the files.
-
 #### Easy
-* Error themes. (After *Error changes* above.)
-* Localization support (see *Error changes* above.)
-* Type name changes.
-  * 'none' for omitted function input and return values.
-  * 'infer' for omitted variable definition types.\
-  This might be a little funky with functions. Maybe we can infer output value from return and assume no input values?
-* Deal with output flushing in a more elegant way.
 * Constant support
-  * Maybe limit default `const` to function parameters?\
-  See also the *Language profiles* idea.
-* Further string support.
-  * Multi-character strings: `''aren't we having fun?''`.
-  * Support for escape sequences.
-  * Double-quoted strings: `"let's make a \"more traditional\" string?"`.
 * Entry Point case-insensitive?
 * Include explicit version number and size for AST and code versions,
-in addition to the hash.
+  in addition to the hash.
 * Disallow globals in default arguments, or remove default arguments.
 * Do a pass over different keyword and symbol literals and consider
-whether to make changes.
+  whether to make changes.
   * `~=`, `!`, comments. Others...
 * Add options for unicode symbols for math and types instead of ASCII.
 * Colon after conditionals instead of open block?
   * Just seems a little more natural to me...
-* Disallow names composed entirely of keywords.
-* A different way to specify array default values, such as a `default` keyword?\
-  Maybe `array [2] default(0)`?
-* Error phase before type checking.
 
 #### Medium
 * Make Language Loopier
@@ -1016,7 +1015,7 @@ whether to make changes.
 * Way of returning nothing, for functions that have no return type.
   * `exit` statement?
 * Offset-based array indexing syntax, for people who, when asked to count three apples,
-would say "Zero, one, two. Three apples!"
+  would say "Zero, one, two. Three apples!"
   * Maybe `array+[0][0]`, `array+[1][1]` as equivalent to `array[1][1]` and `array[2][2]`?
 * Ability to get size of array, since it's static.
 * Language profiles with different rules.
@@ -1032,22 +1031,18 @@ would say "Zero, one, two. Three apples!"
 * Remove semicolons from the language.
 * Use keywords for block delimiters rather than symbols.
   * A capture that looks at an entire line that starts with an identifier character
-  in a location that an identifier is allowed could work for this.
+    in a location that an identifier is allowed could work for this.
 * Support trailing base notation for numbers, rather than prefix.
   * `1000 b2`, for example.
-  * Allow identifiers to start with numbers, as long as they contain at least one letter or underscore,
-  and don't contain a trailing `b<n>`.
 * Enumerations.
 * For version hashing, strip irrelevant information like comments and whitespace out of the file first.
   * Considered using hash of Lua bytecode, but it's not portable and not stable across versions.
 * Type aliases: numeral:type number; true or false:type boolean.
   * Interesting problem, if I do this, maybe function parameter lists will need to have commas.
-* Anonymous functions (Lambdas).
 
 #### Hard
 * Proper tail recursion.
   * With keyword, so it can be verified with an error that it's working.
-* Closures.
 * Much more robust type inference.
   * Be able to tell the type of variable based on first initialization.
   * Inferring function arguments based on their usage.
@@ -1055,7 +1050,7 @@ would say "Zero, one, two. Three apples!"
 * Multiple return values.
 * Everything expressions.
   * Seems to conflict with other goals. Maybe have a construct that indicates
-  a statement should produce a result?
+    a statement should produce a result?
   * This could replace `return`...
 * Mix static and dynamic type checking.
   * See earlier idea of language profiles.
@@ -1063,24 +1058,44 @@ would say "Zero, one, two. Three apples!"
   * Two-pass compilation for all the things!
 * Keywords for boolean operators or shared symbol operators.
   * The second one would involve doing something to assure sane precedence based on
-  types.
+    types.
   * The first would probably involve making the parser aware of valid variables.
 * Report source line on interpreter errors.
 * Full debugger support.
-* Bitwise operators with the same operator as booleans.
+
+## Self assessment
+
+### Language Completeness: 3/3
+* All exercises have been incorporated into the language, as well as two optional
+  features (booleans and the ternary operator) and the type checker.
+* As reflected in **[New Features/Changes](#new-featureschanges)**, many changes have
+  been made beyond basic project requirements.
+* The language supports basic first-class functions.
+
+### Code Quality & Report: 3/3
+
+* Code organization is exceptional, with well-named files, organized into directories,
+  and phases numbered by order of execution.
+* Error handling is user-friendly, with a wide variety of well-written error messages,
+  and in the worst case, exceptions in phase execution will be caught as internal errors.
+* The language includes a suite of test cases.
+
+### Originality & Scope: 3/3
+* Mab has several experiments, including spaces in variable names, autogenerated AST
+  and code versions, and other unique syntax constructs such as parameter lists where commas are optional.
+* Language is broken into different phases to allow localized changes, and is otherwise modular,
+  with things like literals defined in a single place for customization.
+* The example program is reasonably complex and demonstrates the power of the language.
 
 ## References
-Some links relevant to languages and development of the Mab language.
+Most of my research beyond asking questions on Discord was small Google searches,
+but here are some relatively relevant links.
 
 ### [syntax across languages](http://rigaux.org/language-study/syntax-across-languages.html)
 I used this to get some ideas for function syntax.
 
 ### [Frink](https://frinklang.org/)
 A programming language that does unit checking.
-
-### [Strings in C#](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/strings/)
-Some of C#'s string features inspired me, particularly the removal of leading whitespace based on final line indentation.
-(I used the first line, instead.)
 
 ### [OCaml Book: Recursive Functions](https://ocamlbook.org/recursive-functions/#recursive-binding-syntax)
 Hugo mentioned OCaml's keywords for recursion, I was curious and looked it up here.
