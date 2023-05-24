@@ -35,8 +35,7 @@ function Translator:new(o)
     variables = {},
     numVariables = 0,
     localVariables = {},
-    -- Set this to zero so the loop in newVariable will work even in top-level blocks.
-    blockBases = {[0] = 0},
+    blockBases = {},
   }
   self.__index = self
   setmetatable(o, self)
@@ -245,9 +244,12 @@ function Translator:checkForVariableNameCollisions(ast)
   -- This is the check for duplicate locals and globals in the same scope
   if inferredScope == 'local' then
     local numLocals = #self.localVariables
-    for i=numLocals,self.blockBases[#self.blockBases],-1 do
-      if i > 0 and self.localVariables[i].name == ast.name then
-        self:addError('Variable "' .. ast.name .. '" already defined in this scope.', ast)
+    -- No locals means this one can't possibly collide.
+    if numLocals > 0 then
+      for i=numLocals,self.blockBases[#self.blockBases],-1 do
+        if self.localVariables[i].name == ast.name then
+          self:addError('Variable "' .. ast.name .. '" already defined in this scope.', ast)
+        end
       end
     end
   elseif inferredScope == 'global' then
@@ -414,7 +416,8 @@ function Translator:codeStatement(ast)
     self:codeExpression(ast.sentence)
     self:addCode('return')
     -- Add the number of locals at this time so we can update the stack.
-    self:addCode((#self.localVariables - self.functionStartLocalCount) + #self.currentParameters)
+    local localsBeforeFunctionCodeStart = self.blockBases[self.functionBlockBase] - 1
+    self:addCode((#self.localVariables - localsBeforeFunctionCodeStart) + #self.currentParameters)
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
     -- Discard return value for function statements, since it's not used by anything.
@@ -509,8 +512,10 @@ end
 function Translator:codeFunction(name, type_, block)
   local previousCode = self.currentCode
   self.currentCode = {}
-  local previousStartCount = self.functionStartLocalCount
-  self.functionStartLocalCount = #self.localVariables
+  local previousBlockBase = self.functionBlockBase
+  -- When we translate the block, it will add a new base.
+  -- That's the one we want to use.
+  self.functionBlockBase = #self.blockBases + 1
   
   self.currentParameters = type_.parameters
 
@@ -548,11 +553,9 @@ function Translator:codeFunction(name, type_, block)
     self.functionLocalsToRemove = nil
   end
 
-  -- TODO: More elegant way of doing this?
   local generatedCode = self.currentCode
-  
   self.currentCode = previousCode
-  self.functionStartLocalCount = previousStartCount
+  self.functionBlockBase = previousBlockBase
   
   return generatedCode
 end
