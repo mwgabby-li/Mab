@@ -526,6 +526,7 @@ function TypeChecker:checkNewVariable(ast)
       self:checkFunction(ast)
     -- Otherwise, function is being assigned some expression.
     elseif ast.assignment then
+      -- More work for Lambdas... type may not be known.
       local assignmentType = self:checkExpression(ast.assignment)
 
       if not self:typeMatches(specifiedType, assignmentType) then
