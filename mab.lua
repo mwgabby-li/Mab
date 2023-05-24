@@ -21,6 +21,7 @@ phases = {
     name = 'Parser',
     actionName = 'parsing',
     inputName = 'source code',
+    abortOnFailure = 'Failed to generate AST from input.',
   },
 
   typeChecker = {
@@ -45,6 +46,7 @@ phases = {
     actionName = 'generating Stack VM code',
     inputName = 'AST',
     version = 2582941974,
+    abortOnFailure = 'Failed to generate StackVM code from AST.',
   },
 
   interpreter = {
@@ -94,6 +96,10 @@ function runPhase(phaseTable, phaseInput, parameters)
     end
 
     errorReporter:outputErrors(parameters.subject, parameters.inputFile)
+    if parameters.abortOnFailure then
+      io.stderr:write('Unable to continue. '..parameters.abortOnFailure..'\n')
+      os.exit(1)
+    end
   elseif mismatchAndSuccess then
     io.stderr:write(mismatchAndSuccess..'\n\n')
   end
@@ -194,11 +200,7 @@ if parameters.show.input then
   print(subject)
 end
 
-local success, ast = runPhase(phases.parser, subject, parameters)
-if not success then
-  io.stderr:write('Unable to continue. Failed to generate AST from input.\n')
-  return 1
-end
+local _, ast = runPhase(phases.parser, subject, parameters)
 
 if parameters.show.AST then
   print '\nAST:'
@@ -208,10 +210,6 @@ end
 local typeCheckerSuccess = true
 if parameters.typechecker then
   typeCheckerSuccess = runPhase(phases.typeChecker, ast, parameters)
-  if typeCheckerSuccess == false then
-    io.stderr:write('Type checking failed.'..(parameters.show.graphvis and ' Will abort after GraphViz' or '')..'\n')
-    io.stderr:flush()
-  end
 else
   io.stderr:write '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.\n'
   io.stderr:flush()
@@ -244,12 +242,7 @@ if not typeCheckerSuccess then
   return 1
 end
 
-local success, code = runPhase(phases.toStackVM, ast, parameters)
-
-if not success then
-  io.stderr:write('Unable to continue. Failed to generate StackVM code from AST.\n')
-  return 1
-end
+local _, code = runPhase(phases.toStackVM, ast, parameters)
 
 if parameters.show.code then
   print '\nGenerated code:'

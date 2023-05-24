@@ -979,8 +979,6 @@ but were outside the scope of my free time during the course.
   * 'infer' for omitted variable definition types.\
   This might be a little funky with functions. Maybe we can infer output value from return and assume no input values?
 * Deal with output flushing in a more elegant way.
-  * The phases can call `os.exit()` and that will remove the need for the branching right now?\
-  Moving more of this into the phases run functions would be cleaner.
 * Constant support
   * Maybe limit default `const` to function parameters?\
   See also the *Language profiles* idea.
