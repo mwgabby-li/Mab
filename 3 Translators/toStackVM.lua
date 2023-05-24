@@ -334,7 +334,7 @@ function Translator:codeNewVariable(ast)
   local scope = self:inferScope(ast)
   if scope == 'local' then
     -- Track it and its position.
-    self.locals[#self.locals + 1] =  {name = ast.name, type_ = ast.type_}
+    self.locals[#self.locals + 1] = ast
   -- Otherwise, load whatever's in the stack into this variable.
   elseif scope == 'global' then
     self:addCode('store')
