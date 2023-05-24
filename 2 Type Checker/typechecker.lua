@@ -680,10 +680,17 @@ function TypeChecker:checkStatement(ast)
 end
 
 function TypeChecker:checkFunction(ast)
-  self.currentFunction.name = ast.name
-  self.currentFunction.parameters = ast.type_.parameters
-  self.currentFunction.resultType = ast.type_.resultType
+  local previousFunction = self.currentFunction
+
+  self.currentFunction = {
+    name = ast.name,
+    parameters = ast.type_.parameters,
+    resultType = ast.type_.resultType,
+  }
+
   self:checkStatement(ast.assignment)
+
+  self.currentFunction = previousFunction
 end
 
 function TypeChecker:check(ast)
