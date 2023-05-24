@@ -72,19 +72,19 @@ function TypeChecker:isCompatible(op, binary, type_)
   end
 end
 
-function readonlytable(table)
+function readOnlyTable(table)
    return setmetatable({}, {
      __index = table,
-     __newindex = function(table, key, value)
+     __newindex = function(_table, _key, _value)
                     error("Attempt to modify read-only table")
                   end,
      __metatable = false
    });
 end
 
-local kBooleanType = readonlytable{tag='boolean'}
-local kNumberType = readonlytable{tag='number'}
-local kNoType = readonlytable{tag='none'}
+local kBooleanType = readOnlyTable{tag='boolean'}
+local kNumberType = readOnlyTable{tag='number'}
+local kNoType = readOnlyTable{tag='none'}
 
 TypeChecker.resultTypeBinaryOps = {
   number = {
@@ -309,7 +309,7 @@ function TypeChecker:toReadable(type_)
   elseif not type_.dimensions then
     return type_.tag
   else
-    numDimensions = #type_.dimensions
+    local numDimensions = #type_.dimensions
     local dimensionString = numDimensions == 1 and '' or numDimensions .. 'D '
     local explicitDimensions = ''
     for i = 1,numDimensions do
@@ -400,7 +400,7 @@ function TypeChecker:checkExpression(ast)
       self:addError('Attempting to index into "'..variableName..'," which is a "'..
                     arrayType.tag..'," not an array.', ast.array)
       -- EARLY RETURN, can't recover.
-      return resultType, variableName
+      return arrayType, variableName
     end
 
     local newDimensions = cloneDimensions(arrayType.dimensions)
@@ -503,7 +503,7 @@ function TypeChecker:inferScope(ast)
     end
   elseif ast.scope ~= 'global' and ast.scope ~= 'local' then
     if ast.scope ~= nil then
-      self:addError('Unknown scope .."'..tostring(scope)..'."', ast)
+      self:addError('Unknown scope .."'..tostring(ast.scope)..'."', ast)
     else
       self:addError('Scope undefined.', ast)
     end
@@ -534,9 +534,6 @@ function TypeChecker:checkNewVariable(ast)
       end
     elseif not ast.assignment then
       -- This is OK, don't need to assign anything if the type is specified.
-    else
-      self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
-      self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)
     end
   -- We aren't inferring, but invalid type specified:
   elseif not specifiedType.tag == 'infer' and not self:typeValid(specifiedType) then
@@ -559,7 +556,7 @@ function TypeChecker:checkNewVariable(ast)
   -- Type specified and assignment.
   elseif ast.assignment then
     -- MUST MATCH.
-    assignmentType = self:checkExpression(ast.assignment)
+    local assignmentType = self:checkExpression(ast.assignment)
     if not self:typeMatches(specifiedType, assignmentType) then
       self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
       self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)

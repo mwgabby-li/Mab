@@ -12,7 +12,7 @@ local identifierStartCharacters = (alpha + '_')
 local digit = R'09'
 local identifierTailCharacters = (alpha + digit + '_')
 
-local function getIdentifier(subject, position, match)
+local function getIdentifier(_subject, _position, match)
   
   if tokens.kw[match] then
     return false

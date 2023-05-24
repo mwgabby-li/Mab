@@ -3,7 +3,7 @@ local common = require 'common'
 local module = {}
 
 -- For if we want to align array elements by printed length
-local function calculatePad(array)
+local function calculatePad(_array)
   return 0
 end
 
@@ -98,7 +98,7 @@ function StackVM:traceStack(base)
 end
 
 function StackVM:popStack(amount)
-  for i = self.top + amount - 1, self.top, -1 do
+  for _ = self.top + amount - 1, self.top, -1 do
     self.stack[self.top] = nil
     self.top = self.top - 1
   end
@@ -299,11 +299,11 @@ function StackVM:run(code)
       return
     elseif code[pc] == 'callFunction' then
       self:traceCustom(code[pc])
-      local code = self.stack[self.top]
+      local functionCode = self.stack[self.top]
       self:popStack(1)
       self:traceStack(base)
 
-      self:run(code)
+      self:run(functionCode)
     else
       self:addError('Unknown instruction "'..code[pc]..'."')
     end

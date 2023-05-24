@@ -147,7 +147,6 @@ local boolean = V'boolean'
 local string = V'string'
 local variable = V'variable'
 local identifier = V'identifier'
-local functionDeclaration = V'functionDeclaration'
 -- Something that can be written to, i.e. assigned to. AKA 'left-hand side'
 local target = V'target'
 -- Inputs specified in the function type declaration.

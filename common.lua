@@ -262,6 +262,7 @@ function common.hash(string, start)
   assert(#string <= 1000000, "Hash fail, {string:byte(1,-1) doesn't work with strings over 1 million bytes long.")
   local stringBytes = {string:byte(1,-1)}
   local hash = ~(start & #string)
+  local addByte
   for i = 1,#stringBytes do
     local byte = stringBytes[i]
     

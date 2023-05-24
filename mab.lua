@@ -15,7 +15,7 @@ local interpreter = require 'stackVM'
 local pt = require 'External.pt'
 local common = require 'common'
 
-phases = {
+local phases = {
   parser = {
     action = parser.parse,
     name = 'Parser',
@@ -29,7 +29,7 @@ phases = {
     name = 'Type Checker',
     actionName = 'type checking',
     inputName = 'AST',
-    version = 1249253252,
+    version = 3645030261,
   },
 
   graphviz = {
@@ -45,7 +45,7 @@ phases = {
     name = 'Stack VM',
     actionName = 'generating Stack VM code',
     inputName = 'AST',
-    version = 1249253252,
+    version = 3645030261,
     abortOnFailure = 'Failed to generate StackVM code from AST.',
   },
 
@@ -58,7 +58,7 @@ phases = {
     -- for the program to output, then prints
     -- the completion message.
     separatedOutput = true,
-    version = 3457073512,
+    version = 3524015963,
   },
 }
 
@@ -84,8 +84,8 @@ function runPhase(phaseTable, phaseInput, parameters)
     end
   end
   
-  start = os.clock()
-  errorReporter, result, extra = phaseTable.action(phaseInput, parameters)
+  local start = os.clock()
+  local errorReporter, result, extra = phaseTable.action(phaseInput, parameters)
   local success = result and errorReporter:count() == 0
 
   if parameters.verbose then
@@ -99,7 +99,7 @@ function runPhase(phaseTable, phaseInput, parameters)
     io.flush()
   end
 
-  mismatchAndFailure, mismatchAndSuccess = common.maybeCreateMismatchMessages(phaseInput, phaseTable)
+  local mismatchAndFailure, mismatchAndSuccess = common.maybeCreateMismatchMessages(phaseInput, phaseTable)
 
   if not success then
     if mismatchAndFailure then
@@ -179,7 +179,7 @@ local function readOption(argument)
   end  
 end
 
-for index, argument in ipairs(arg) do
+for _, argument in ipairs(arg) do
   if awaiting_filename then
     readOption(argument)
   elseif argument:find('^[-][-]') then

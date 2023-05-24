@@ -146,10 +146,10 @@ function Translator:codeFunctionCall(ast)
     end
     self:codeExpression(functionType.defaultArgument)
   else
-    local pcount = #functionType.parameters
-    local acount = #ast.arguments
-    self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pcount, 'parameter')..
-                  ' but was sent '..common.toReadableNumber(acount, 'argument')..'.', ast)
+    local pCount = #functionType.parameters
+    local aCount = #ast.arguments
+    self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pCount, 'parameter')..
+                  ' but was sent '..common.toReadableNumber(aCount, 'argument')..'.', ast)
     -- Try to do what they asked, I guess...
     for i=1,#arguments do
       self:codeExpression(arguments[i])
@@ -338,10 +338,10 @@ function Translator:codeNewVariable(ast)
   -- Otherwise, load whatever's in the stack into this variable.
   elseif scope == 'global' then
     self:addCode('store')
-    self:addCode(self:globalToID(ast))
+    self:addCode( (self:globalToID(ast)) )
   else
     if scope ~= nil then
-      self:addError('Unknown scope .."'..tostring(result)..'."', ast)
+      self:addError('Unknown scope .."'..tostring(scope)..'."', ast)
     else
       self:addError('Scope undefined.', ast)
     end
@@ -358,7 +358,7 @@ function Translator:codeAssignment(ast)
       self:addCode(index)
     elseif self.globals[ast.target.name] then
       self:addCode('store')
-      self:addCode(self:globalToID(ast.target))
+      self:addCode( (self:globalToID(ast.target)) )
     else
       self:addError('Assigning to undefined variable "'..ast.target.name..'."', ast.target)
     end
@@ -387,7 +387,7 @@ function Translator:codeBlock(ast)
   self.blockBases[#self.blockBases] = nil
   -- Remove the trailing numToRemove local variables from the table
   if numToRemove > 0 then
-    for i = 1,numToRemove do
+    for _ = 1,numToRemove do
       table.remove(self.locals)
     end
     
@@ -602,7 +602,6 @@ function Translator:translate(ast)
     end
   end
 
-  local entryPoint = nil
   for i = 1,#ast do
     self:codeNewVariable(ast[i])
   end

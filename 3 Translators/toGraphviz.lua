@@ -1,7 +1,5 @@
 local module = {}
-local literals = require 'literals'
 local common = require 'common'
-local op = literals.op
 
 local Translator = {}
 
@@ -34,7 +32,7 @@ end
 
 function Translator:makeRankString(nodes)
   local rank = ''
-  for index, nodeNames in ipairs(nodes) do
+  for _, nodeNames in ipairs(nodes) do
     if #nodeNames > 0 then
       rank = rank .. '{rank=same'
       for _, nodeName in pairs(nodeNames) do
@@ -112,7 +110,7 @@ function Translator:appendNode(ast, sequence, label, ...)
     childPortSecond = ':n '
   end
   
-  local labelsStart = nil
+  local labelsStart
   for i = 1, arguments.n do
     if type(arguments[i]) ~= 'table' then
       labelsStart = i
@@ -127,18 +125,18 @@ function Translator:appendNode(ast, sequence, label, ...)
   end
 
   if firstChild then
-    local label = (firstLabel and ('[ label = "' .. firstLabel  .. '" ];') or ';')
+    label = (firstLabel and ('[ label = "' .. firstLabel  .. '" ];') or ';')
     self.file = self.file .. nodeName .. parentPortFirst .. ' -> ' .. (self:nodeName(firstChild)) .. childPortFirst .. label  .. '\n'
   end
 
   if secondChild then
-    local label = (secondLabel and ('[ label = "' .. secondLabel  .. '" ];') or ';')
+    label = (secondLabel and ('[ label = "' .. secondLabel  .. '" ];') or ';')
     self.file = self.file .. nodeName .. parentPortSecond ..  ' -> ' .. self:nodeName(secondChild) .. childPortSecond .. label .. '\n'
   end
   
   for i = 3, arguments.n do
     if type(arguments[i]) == 'table' then
-      local label = ';'
+      label = ';'
       if labelsStart then
         local ourLabelIndex = labelsStart + 2 + (i - 3)
         label = (arguments[ourLabelIndex] and ('[ label = "' .. arguments[ourLabelIndex]  .. '" ];') or ';')

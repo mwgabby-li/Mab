@@ -46,7 +46,7 @@ end
 local baseStart = '0' * (baseStartDigit / digitToBase) * P' '^-1
 local baseNumeral = (baseStart * C(baseDigit^1))
 
-local function toNumberWithUnary(subject, position, base, num)
+local function toNumberWithUnary(_subject, _position, base, num)
   -- Remove optional space separators/any captured trailing spaces.
   num = num:gsub('%s+', '')
 

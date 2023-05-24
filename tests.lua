@@ -1,7 +1,5 @@
 -- Mab Frontend Test Suite (AST generation)
 local lu = require 'External.luaunit'
--- Most recent supported version
-local astVersion = 1
 local module = {}
 local entryPointName = require('literals').entryPointName
 local common = require 'common'
@@ -148,22 +146,24 @@ local function wrapWithEntrypoint(string)
 end
 
 function module:fullTest(input, addEntryPoint)
+  local errorReporter, ast, code, result
+
   input = addEntryPoint and wrapWithEntrypoint(input) or input
-  local errorReporter, ast = module.parse(input)
+  errorReporter, ast = module.parse(input)
   if ast == false then
     return 'Parsing failed!'
   end
-  
+
   errorReporter = module.typeChecker.check(ast)
   if errorReporter:count() > 0 then
     return 'Type checking failed!'
   end
   
-  local errorReporter, code = module.toStackVM.translate(ast)
+  errorReporter, code = module.toStackVM.translate(ast)
   if code == false or errorReporter:count() > 0 then
     return 'Translation failed!'
   end
-  local errorReporter, result = module.interpreter.execute(code)
+  errorReporter, result = module.interpreter.execute(code)
   if errorReporter:count() > 0 then
     return 'Running failed!'
   end  
@@ -296,12 +296,14 @@ return c;
 end
 
 function module:testLessonFourEdgeCases()
-  local errorReporter, ast = module.parse(wrapWithEntrypoint('returned: 10; return returned'))
+  local errorReporter, ast, code, result
+
+  errorReporter, ast = module.parse(wrapWithEntrypoint('returned: 10; return returned'))
   errorReporter, code = module.toStackVM.translate(ast)
   lu.assertNotEquals(code, nil)
   errorReporter, result = module.interpreter.execute(code)
   lu.assertEquals(result, 10)
-  
+
   errorReporter, result = module.parse(
     [[
       :x=1;
@@ -316,10 +318,10 @@ function module:testLessonFourEdgeCases()
   lu.assertEquals(result, false)
   errorReporter, result = module.parse(wrapWithEntrypoint'#{##}')
   lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
-  
+
   errorReporter, result = module.parse(wrapWithEntrypoint'#{#{#}')
   lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
-  
+
   errorReporter, result = module.parse(wrapWithEntrypoint[[
       #{
       :x=1
@@ -523,14 +525,14 @@ if b > a & 1/2 = 0.5 {
 return b
 ]]
 
-  local errorReporter, ast = module.parse(wrapWithEntrypoint(shortCircuit))
-  local errorReporter, code = module.toStackVM.translate(ast)
-  local trace = {}
+  local ast, code, result, errorReporter
+  errorReporter, ast = module.parse(wrapWithEntrypoint(shortCircuit))
+  errorReporter, code = module.toStackVM.translate(ast)
   lu.assertNotEquals(code, nil)
   local parameters = {show ={trace = true}}
   local errorReporter, result, trace = module.interpreter.execute(code, parameters)
   local divide = false
-  for i, v in ipairs(trace) do
+  for _, v in ipairs(trace) do
     if v:gmatch('divide')() then
       divide = true
     end
@@ -551,7 +553,7 @@ return b
   errorReporter, code = module.toStackVM.translate(ast)
   errorReporter, result, trace = module.interpreter.execute(code, parameters)
   divide = false
-  for i, v in ipairs(trace) do
+  for _, v in ipairs(trace) do
     if v:gmatch('divide')() then
       divide = true
     end
@@ -716,7 +718,8 @@ another function: () -> number {
   local errorReporter, ast = module.parse(input)
   lu.assertEquals(type(ast), 'table')
   
-  local errorReporter, code = module.toStackVM.translate(ast, errorReporter)
+  local code
+  errorReporter, code = module.toStackVM.translate(ast, errorReporter)
   lu.assertEquals(errorReporter:count(), 4)
   
   input =
@@ -975,10 +978,10 @@ input =
     };
 }
 ]]
-  local errorReporter, ast = module.parse(input)
+  local _, ast = module.parse(input)
   lu.assertNotEquals(ast, nil)
 
-  local errorReporter, code = module.toStackVM.translate(ast, errorReporter)
+  local errorReporter, _ = module.toStackVM.translate(ast)
   lu.assertEquals(errorReporter:count(), 2)
 end
 
@@ -1103,7 +1106,7 @@ entry point: () -> number {
 ]]
   lu.assertEquals(self:fullTest(input), 89)
   
-  local input = 
+  input = 
 [[sum: (a:number b:number) -> number {
   return a + b
 };
@@ -1540,5 +1543,20 @@ entry point: -> number {
 
 end
 
-
+-- Aspirational. The issue is that expressions can't contain blocks.
+-- Basically, this is a test of lambdas.
+--function module:testCreateFunctionWithTernaryExpressionBodies()
+--  local input =
+--[[entry point: -> number {
+--  returning parameter: (n:number) -> number = true ? { a: n; b: n; return b; } : { b: n; return -b; };
+--
+--  c:10;
+--
+--  return returning parameter(12);
+--}
+--]]
+--
+--  lu.assertEquals(self:fullTest(input), 12)
+--end
+--
 return module
