@@ -63,6 +63,17 @@ phases = {
 }
 
 function runPhase(phaseTable, phaseInput, parameters)
+  if not phaseInput then
+    io.stderr:write('\n'..phaseTable.name..' cannot start, no input.')
+
+    if parameters.abortOnFailure then
+      io.stderr:write(' Unable to continue.\n')
+      os.exit(1)
+    else
+      io.stderr:write '\n'
+      return
+    end
+  end
 
   if parameters.verbose then
     if not phaseTable.separatedOutput then
