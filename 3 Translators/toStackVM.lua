@@ -30,12 +30,15 @@ local unaryToName = {
 
 function Translator:new(o)
   o = o or {
+    -- old name/structure
+    blockBases = {},
     currentCode = {},
     currentParameters = {},
-    variables = {},
-    numVariables = 0,
-    localVariables = {},
-    blockBases = {},
+    -- new name/structure
+    blocks = {},
+    locals = {}, -- maybe put these in the blocks?
+    globals = {},
+    numGlobals = 0,
   }
   self.__index = self
   setmetatable(o, self)
@@ -77,28 +80,28 @@ function Translator:addCode(opcode)
   self.currentCode[#self.currentCode + 1] = opcode
 end
 
-function Translator:variableToNumber(variable)
-  local existingVariable = self.variables[variable.name]
-  if not existingVariable then
-    number = self.numVariables + 1
-    self.numVariables = number
-    local newVariable = { number = number, type_ = variable.type_ }
-    self.variables[variable.name] = newVariable
-    return number, newVariable
+function Translator:globalToID(global)
+  local existing = self.globals[global.name]
+  if not existing then
+    self.numGlobals = self.numGlobals + 1
+    local ID = self.numGlobals
+    local newGlobal = { ID = ID, type_ = global.type_ }
+    self.globals[global.name] = newGlobal
+    return ID, newGlobal
   end
-  return existingVariable.number, existingVariable
+  return existing.ID, existing
 end
 
-function Translator:findLocalVariable(variable)
-  local localVariables = self.localVariables
-  for i=#localVariables,1,-1 do
-    if variable == localVariables[i].name then
-      return i, localVariables[i]
+function Translator:findLocal(local_)
+  local locals = self.locals
+  for i=#locals,1,-1 do
+    if local_ == locals[i].name then
+      return i, locals[i]
     end
   end
   local currentParameters = self.currentParameters
   for i=1,#currentParameters do
-    if variable == currentParameters[i].name then
+    if local_ == currentParameters[i].name then
         return -(#currentParameters - i), currentParameters[i]
     end
   end
@@ -115,11 +118,9 @@ function Translator:codeFunctionCall(ast)
     target = target.array
   end
   
-  local indexOrNumber, functionCodeReference = self:findLocalVariable(target.name)
-  local isGlobal = false
+  local _, functionCodeReference = self:findLocal(target.name)
   if not functionCodeReference then
-    indexOrNumber, functionCodeReference = self:variableToNumber(target)
-    isGlobal = true
+    _, functionCodeReference = self:globalToID(target)
   end
 
   if not functionCodeReference then
@@ -161,18 +162,17 @@ function Translator:codeFunctionCall(ast)
   -- Function's return code will do the argument popping.
 end
 
-function Translator:codeLoadVariable(ast, localIndex, globalNumber)
-    local index = localIndex or self:findLocalVariable(ast.name)
+function Translator:codeLoadVariable(ast, localIndex, globalID)
+    local index = localIndex or self:findLocal(ast.name)
     if index then
       self:addCode'loadLocal'
       self:addCode(index)
-    elseif globalNumber or self.variables[ast.name] then
+    elseif globalID or self.globals[ast.name] then
       self:addCode('load')
-      self:addCode(self:variableToNumber(ast))
+      self:addCode(globalID or self:globalToID(ast))
     else
       self:addError('Trying to load from undefined variable "' .. ast.name .. '."', ast)
     end
-
 end
 
 function Translator:codeExpression(ast)
@@ -243,22 +243,22 @@ function Translator:checkForVariableNameCollisions(ast)
 
   -- This is the check for duplicate locals and globals in the same scope
   if inferredScope == 'local' then
-    local numLocals = #self.localVariables
+    local numLocals = #self.locals
     -- No locals means this one can't possibly collide.
     if numLocals > 0 then
       for i=numLocals,self.blockBases[#self.blockBases],-1 do
-        if self.localVariables[i].name == ast.name then
+        if self.locals[i].name == ast.name then
           self:addError('Variable "' .. ast.name .. '" already defined in this scope.', ast)
         end
       end
     end
   elseif inferredScope == 'global' then
-    if self.variables[ast.name] ~= nil then
+    if self.globals[ast.name] ~= nil then
       self:addError('Re-defining global variable "' .. ast.name .. '."', ast)
     end
   else
-    if result ~= nil then
-      self:addError('Unknown scope .."'..tostring(result)..'."', ast)
+    if inferredScope ~= nil then
+      self:addError('Unknown scope .."'..tostring(inferredScope)..'."', ast)
     else
       self:addError('Scope undefined.', ast)
     end
@@ -334,11 +334,11 @@ function Translator:codeNewVariable(ast)
   local scope = self:inferScope(ast)
   if scope == 'local' then
     -- Track it and its position.
-    self.localVariables[#self.localVariables + 1] =  {name = ast.name, type_ = ast.type_}
+    self.locals[#self.locals + 1] =  {name = ast.name, type_ = ast.type_}
   -- Otherwise, load whatever's in the stack into this variable.
   elseif scope == 'global' then
     self:addCode('store')
-    self:addCode(self:variableToNumber(ast))
+    self:addCode(self:globalToID(ast))
   else
     if scope ~= nil then
       self:addError('Unknown scope .."'..tostring(result)..'."', ast)
@@ -352,13 +352,13 @@ function Translator:codeAssignment(ast)
   local target = ast.target
   if target.tag == 'variable' then
     self:codeExpression(ast.assignment)
-    local index = self:findLocalVariable(ast.target.name)
+    local index = self:findLocal(ast.target.name)
     if index then
       self:addCode('storeLocal')
       self:addCode(index)
-    elseif self.variables[ast.target.name] then
+    elseif self.globals[ast.target.name] then
       self:addCode('store')
-      self:addCode(self:variableToNumber(ast.target))
+      self:addCode(self:globalToID(ast.target))
     else
       self:addError('Assigning to undefined variable "'..ast.target.name..'."', ast.target)
     end
@@ -380,15 +380,15 @@ function Translator:codeBlock(ast)
 
   -- The base of this block is one more than the current number of locals,
   -- since the last local in the table, if any, is from the previous scope.
-  local numLocals = #self.localVariables
+  local numLocals = #self.locals
   self.blockBases[#self.blockBases + 1] = numLocals + 1
   self:codeStatement(ast.body)
-  local numToRemove = #self.localVariables - numLocals
+  local numToRemove = #self.locals - numLocals
   self.blockBases[#self.blockBases] = nil
   -- Remove the trailing numToRemove local variables from the table
   if numToRemove > 0 then
     for i = 1,numToRemove do
-      table.remove(self.localVariables)
+      table.remove(self.locals)
     end
     
     -- The function's return will pop its locals.
@@ -417,7 +417,7 @@ function Translator:codeStatement(ast)
     self:addCode('return')
     -- Add the number of locals at this time so we can update the stack.
     local localsBeforeFunctionCodeStart = self.blockBases[self.functionBlockBase] - 1
-    self:addCode((#self.localVariables - localsBeforeFunctionCodeStart) + #self.currentParameters)
+    self:addCode((#self.locals - localsBeforeFunctionCodeStart) + #self.currentParameters)
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
     -- Discard return value for function statements, since it's not used by anything.
@@ -566,8 +566,8 @@ function Translator:translate(ast)
   local firstPositions = {}
 
   for i = 1,#ast do
-    if not self.variables[ast[i].name] then
-      self:variableToNumber(ast[i])
+    if not self.globals[ast[i].name] then
+      self:globalToID(ast[i])
       firstPositions[ast[i].name] = ast[i].position
     -- Otherwise, duplication detected!
     else
@@ -582,7 +582,7 @@ function Translator:translate(ast)
     end
   end
 
-  local entryPoint = self.variables[literals.entryPointName]
+  local entryPoint = self.globals[literals.entryPointName]
   if not entryPoint then
     self:addError('No entry point found. (Program must contain a function named "entry point.")')
   else
