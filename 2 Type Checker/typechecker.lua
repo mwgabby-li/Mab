@@ -32,22 +32,13 @@ TypeChecker.typeCompatibleBinaryOps = {
     --]]
   },
 
-  string = {
+  string = {},
 
-  },
+  array = {},
 
-  unknown = {
-    -- Unknown is really not compatible with anything...
-    -- To-Do: Bit manipulation?
-    --[[
-    [l_op.and_] = true,
-    [l_op.or_] = true,
-    --]]
-    --[[
-    [l_op.equal] = true,
-    [l_op.notEqual] = true,
-    ]]
-  },
+  ['function'] = {},
+
+  none = {},
 }
 
 TypeChecker.typeCompatibleUnaryOps = {
@@ -64,18 +55,22 @@ TypeChecker.typeCompatibleUnaryOps = {
     --]]
   },
 
-  string = {
+  string = {},
 
-  },
+  array = {},
 
-  unknown = {
-    -- Unknown is really not compatible with anything...
-    -- To-Do: Bit manipulation?
-    --[[
-    [l_op.not_] = true,
-    --]]
-  },
+  ['function'] = {},
+
+  none = {},
 }
+
+function TypeChecker:isCompatible(op, binary, type_)
+  if binary then
+    return self.typeCompatibleBinaryOps[type_.tag][op]
+  else
+    return self.typeCompatibleUnaryOps[type_.tag][op]
+  end
+end
 
 function readonlytable(table)
    return setmetatable({}, {
@@ -89,7 +84,7 @@ end
 
 local kBooleanType = readonlytable{tag='boolean'}
 local kNumberType = readonlytable{tag='number'}
-local kUnknownType = readonlytable{tag='unknown'}
+local kNoType = readonlytable{tag='none'}
 
 TypeChecker.resultTypeBinaryOps = {
   number = {
@@ -120,13 +115,14 @@ TypeChecker.resultTypeBinaryOps = {
     [l_op.or_] = 'boolean',
   },
 
-  unknown = {
-    -- Unknown really shouldn't be resulting in anything...
-    --[[
-    [l_op.equal] = 'boolean',
-    [l_op.notEqual] = 'boolean',
-    --]]
-  }
+  string = {},
+
+  array = {},
+
+  ['function'] = {},
+
+  -- None doesn't result in anything.
+  none = {}
 }
 TypeChecker.resultTypeUnaryOps = {
   number = {
@@ -140,7 +136,26 @@ TypeChecker.resultTypeUnaryOps = {
   boolean = {
     [l_op.not_] = 'boolean',
   },
+
+  string = {},
+
+  array = {},
+
+  ['function'] = {},
+
+  -- None doesn't result in anything.
+  none = {}
 }
+
+function TypeChecker:toResultType(op, binary, type_)
+  local resultTag
+  if binary then
+    resultTag = self.resultTypeBinaryOps[type_.tag][op]
+  else
+    resultTag = self.resultTypeUnaryOps[type_.tag][op]
+  end
+  return self:createBasicType(not resultTag and 'none' or resultTag)
+end
 
 function cloneDimensions(toClone)
   if toClone then
@@ -169,8 +184,8 @@ function isBasicType(tag)
   return tag == 'number' or tag == 'boolean' or tag == 'string'
 end
 
-function isBasicTypeOrUnknown(tag)
-   return isBasicType(tag) or tag == 'unknown'
+function isSpecialType(tag)
+  return tag == 'none' or tag == 'infer'
 end
 
 function TypeChecker:addError(...)
@@ -187,34 +202,12 @@ function TypeChecker:createArrayType(dimensions, elementType)
   return {tag='array', dimensions=dimensions, elementType=elementType}
 end
 
-function TypeChecker:cloneType(type_)
-  if type_.tag == 'array' then
-    local clonedDimensions = cloneDimensions(type_.dimensions)
-    return {tag='array', dimensions = clonedDimensions, elementType = self:cloneType(type_.elementType)}
-  elseif isBasicTypeOrUnknown(type_.tag) then
-    return {tag=type_.tag}
-  elseif type_.tag == 'function' then
-    local result = {tag='function', parameters={}}
-    local parameterCount = #type_.parameters
-    for i = 1, parameterCount do
-      result.parameters[i] = {}
-      result.parameters[i].name = type_.parameters[i].name
-      result.parameters[i].tag = 'parameter'
-      result.parameters[i].type_ = self:cloneType(type_.parameters[i].type_)
-    end
-    result.resultType = self:cloneType(type_.resultType)
-    return result
-  else
-    self:addError('Internal error: Unknown type tag "'..type_.tag..'."')
-  end
-end
-
-function TypeChecker:duplicateVariablesType(variable)
+function TypeChecker:getVariablesType(variable)
   -- Check locals
   for i = #self.blocks,1, -1 do
     local typeOfVariable = self.blocks[i].locals[variable]
     if typeOfVariable then
-      return self:cloneType(typeOfVariable)
+      return typeOfVariable
     end
   end
 
@@ -222,24 +215,27 @@ function TypeChecker:duplicateVariablesType(variable)
   for i = 1,#self.currentFunction.parameters do
     local parameter = self.currentFunction.parameters[i]
     if parameter.name == variable then
-      return self:cloneType(parameter.type_)
+      return parameter.type_
     end
   end
 
   -- Check globals
   local global = self.variableTypes[variable]
   if global then
-    return self:cloneType(global)
+    return global
   end
+
+  return kNoType
 end
 
 function TypeChecker:typeValid(apple)
-  if apple.tag == 'unknown' then
+  if apple.tag == 'none' then
     return false
   end
 
   if apple.dimensions then
     for i=1,#apple.dimensions do
+      -- e.g. the dimensions are 'invalid'
       if type(apple.dimensions[i]) == 'string' then
         return false
       end
@@ -249,7 +245,7 @@ function TypeChecker:typeValid(apple)
 end
 
 function TypeChecker:typeMatches(apple, orange)
-  if apple == nil or orange == nil then
+  if not self:typeValid(apple) or not self:typeValid(orange) then
     return false
   end
   
@@ -271,7 +267,7 @@ function TypeChecker:typeMatches(apple, orange)
       end
       return true
     end
-  elseif isBasicTypeOrUnknown(apple.tag) then
+  elseif isBasicType(apple.tag) then
     return true
   elseif apple.tag == 'function' then
     if #apple.parameters ~= #orange.parameters then
@@ -296,29 +292,6 @@ function TypeChecker:typeMatches(apple, orange)
   return true
 end
 
-function TypeChecker:toResultType(op, binary, type_)
-  if type_.tag == 'array' or type_.tag =='function' then
-    return 
-  end
-
-  if binary then
-    return self:createBasicType(self.resultTypeBinaryOps[type_.tag][op])
-  else
-    return self:createBasicType(self.resultTypeUnaryOps[type_.tag][op])
-  end
-end
-
-function TypeChecker:isCompatible(op, binary, type_)
-  if type_.tag == 'array' or type_.tag =='function' then
-    return false
-  end
-  
-  if binary then
-    return self.typeCompatibleBinaryOps[type_.tag][op]
-  else
-    return self.typeCompatibleUnaryOps[type_.tag][op]
-  end
-end
 
 function TypeChecker:toReadable(type_)
   if type_ == nil then
@@ -369,14 +342,15 @@ function TypeChecker:checkFunctionCall(ast)
 end
 
 function TypeChecker:checkExpression(ast)
+  -- Things like literal numbers, booleans, or strings.
   if isBasicType(ast.tag) then
     return self:createBasicType(ast.tag)
   elseif ast.tag == 'functionCall' then
     return self:checkFunctionCall(ast)
   elseif ast.tag == 'variable' then
-    local variableType = self:duplicateVariablesType(ast.name)
+    local variableType = self:getVariablesType(ast.name)
     
-    if variableType == nil then
+    if not self:typeValid(variableType) then
       self:addError('Attempting to use undefined variable "'..ast.name..'."', ast)
     end
 
@@ -411,7 +385,7 @@ function TypeChecker:checkExpression(ast)
       elementType = initType
     end
 
-    return self:createArrayType(newDimensions, self:cloneType(elementType))
+    return self:createArrayType(newDimensions, elementType)
   elseif ast.tag == 'arrayElement' then
     local indexType = self:checkExpression(ast.index)
     if not self:typeMatches(indexType, kNumberType) then
@@ -441,9 +415,9 @@ function TypeChecker:checkExpression(ast)
 
     local resultType
     if next(newDimensions) == nil then
-      resultType = self:cloneType(arrayType.elementType)
+      resultType = arrayType.elementType
     else
-      resultType = self:createArrayType(newDimensions, self:cloneType(arrayType.elementType))
+      resultType = self:createArrayType(newDimensions, arrayType.elementType)
     end
 
     return resultType, variableName
@@ -451,27 +425,27 @@ function TypeChecker:checkExpression(ast)
     -- If type checking fails on one of the subexpressions,
     -- don't bother reporting another error here, it will be nonsense.
     local firstChildType = self:checkExpression(ast.firstChild)
-    if firstChildType == nil then
-      return nil
+    if not self:typeValid(firstChildType) then
+      return kNoType
     end
 
     local secondChildType = self:checkExpression(ast.secondChild)
-    if secondChildType == nil then
-      return nil
+    if not self:typeValid(secondChildType) then
+      return kNoType
     end
 
     if not self:typeMatches(firstChildType, secondChildType) then
       self:addError('Mismatched types with operator "' .. ast.op ..
                     '"! (' .. self:toReadable(firstChildType) .. ' ' .. ast.op ..
                     ' ' .. self:toReadable(secondChildType) .. ').', ast)
-      return nil
+      return kNoType
     end
     local expressionType = firstChildType
     -- is binary op? - true
     if not self:isCompatible(ast.op, true, expressionType) then
       self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
                     self:toReadable(expressionType) .. '."', ast)
-      return nil
+      return kNoType
     else
       -- is binary op? - true
       return self:toResultType(ast.op, true, expressionType)
@@ -482,7 +456,7 @@ function TypeChecker:checkExpression(ast)
     if not self:isCompatible(ast.op, false, childType) then
       self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
                     self:toReadable(childType) .. '."', ast)
-      return nil
+      return kNoType
     else
       -- is binary op? - false (unary op)
       return self:toResultType(ast.op, false, childType)
@@ -511,7 +485,7 @@ function TypeChecker:checkExpression(ast)
     return trueBranchType
   else
     self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
-    return self:createType('unknown')
+    return kNoType
   end
 end
 
@@ -550,12 +524,13 @@ function TypeChecker:checkNewVariable(ast)
       -- This is OK, a function is being assigned a block.
       -- TODO: Maybe check the return types?
       self:checkFunction(ast)
-    elseif ast.assignment and ast.assignment.tag == 'variable' then
-      local variableType = self:duplicateVariablesType(ast.assignment.name)
+    -- Otherwise, function is being assigned some expression.
+    elseif ast.assignment then
+      local assignmentType = self:checkExpression(ast.assignment)
 
-      if not self:typeMatches(specifiedType, variableType) then
+      if not self:typeMatches(specifiedType, assignmentType) then
         self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
-        self:addError('But variable is being initialized with ' .. self:toReadable(variableType) .. '.', ast.assignment)
+        self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)
       end
     elseif not ast.assignment then
       -- This is OK, don't need to assign anything if the type is specified.
@@ -563,16 +538,16 @@ function TypeChecker:checkNewVariable(ast)
       self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
       self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)
     end
-  -- Invalid type specified:
-  elseif not self:typeMatches(specifiedType, kUnknownType) and not self:typeValid(specifiedType) then
+  -- We aren't inferring, but invalid type specified:
+  elseif not specifiedType.tag == 'infer' and not self:typeValid(specifiedType) then
     self:addError('Type of variable "'..ast.name..'" specified, but type is invalid: "'..self:toReadable(specifiedType)..'."', ast)
   -- No type specified:
-  elseif self:typeMatches(specifiedType, kUnknownType) then
+  elseif specifiedType.tag == 'infer' then
     -- Assignment?
     if ast.assignment then
       -- Set the type to the assignment value.
       inferredType = self:checkExpression(ast.assignment)
-      if inferredType == nil or self:typeMatches(inferredType, kUnknownType) then
+      if not self:typeValid(inferredType) then
         self:addError('Cannot determine type of variable "'..ast.name..'" because no type was specified and the assignment has no type.', ast)
       end
     -- No assignment?
@@ -634,7 +609,7 @@ function TypeChecker:checkStatement(ast)
     self:checkStatement(ast.secondChild)
   elseif ast.tag == 'return' then
     local returnType = self:checkExpression(ast.sentence)
-    if returnType == nil then
+    if not self:typeValid(returnType) then
       self:addError('Could not determine type of return type.', ast)
     elseif not self:typeMatches(returnType, self.currentFunction.resultType) then
       self:addError('Mismatched types with return, function "' .. self.currentFunction.name .. '" returns "' ..
@@ -642,7 +617,7 @@ function TypeChecker:checkStatement(ast)
                     self:toReadable(returnType) .. '."', ast)
     end
   elseif ast.tag == 'functionCall' then
-    return self:checkFunctionCall(ast)
+    self:checkFunctionCall(ast)
   elseif ast.tag == 'assignment' then
     -- Get the type of the thing we're writing to, and its root name
     -- (e.g. given a two-dimensional array of numbers of 4x4, 'a,'
@@ -682,7 +657,8 @@ function TypeChecker:checkStatement(ast)
 
     if not self:typeMatches(expressionType, kBooleanType) then
       self:addError('if statements require a boolean value,' ..
-                    ' or an expression evaluating to a boolean.', ast)
+                    ' or an expression evaluating to a boolean.'..
+                    'Type was "'..self:toReadable(expressionType)..'."', ast)
     end
     self:checkStatement(ast.body)
     if ast.elseBody then
@@ -692,7 +668,8 @@ function TypeChecker:checkStatement(ast)
     local expressionType = self:checkExpression(ast.expression)
     if not self:typeMatches(expressionType, kBooleanType) then
       self:addError('while loop conditionals require a boolean value,' ..
-                    ' or an expression evaluating to a boolean.', ast)
+                    ' or an expression evaluating to a boolean.'..
+                    'Type was "'..self:toReadable(expressionType)..'."', ast)
     end
     self:checkStatement(ast.body)
   elseif ast.tag == 'print' then

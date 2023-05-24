@@ -159,7 +159,8 @@ local arguments = V'arguments'
 local type_ = V'type_'
 local booleanType = V'booleanType'
 local numberType = V'numberType'
-local omittedType = V'omittedType'
+local inferType = V'inferType'
+local noType = V'noType'
 local arrayType = V'arrayType'
 local ternaryExpr = V'ternaryExpr'
 local newVariable = V'newVariable'
@@ -189,7 +190,7 @@ target = Ct(variable * (delim.openArray * Cp() * expression * delim.closeArray)^
 functionCall = target * Cp() * delim.openFunctionParameterList * arguments * delim.closeFunctionParameterList / nodeFunctionCall,
 arguments = Ct((expression * (sep.argument * expression)^0)^-1),
 
-newVariable = Cp() * identifier * sep.newVariable * (KWc'export' + KWc'global' + KWc'local' + Cc'unspecified') * type_ * (op.assign^-1 * (expression + blockStatement))^-1 / nodeNewVariable,
+newVariable = Cp() * identifier * sep.newVariable * (KWc'export' + KWc'global' + KWc'local' + Cc'unspecified') * (type_ + inferType) * (op.assign^-1 * (expression + blockStatement))^-1 / nodeNewVariable,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
@@ -211,12 +212,13 @@ statement = blockStatement +
 stringType = Cp() * KW'string' / node('string', 'position'),
 booleanType = Cp() * KW'boolean' / node('boolean', 'position'),
 numberType = Cp() * KW'number' / node('number', 'position'),
-omittedType = Cp() / node('unknown', 'position'),
-arrayType = Ct((delim.openArray * expression * delim.closeArray)^1) * (functionType + booleanType + numberType + omittedType) / makeArrayType,
+noType = Cp() / node('none', 'position'),
+inferType = Cp() / node('infer', 'position'),
+arrayType = Ct((delim.openArray * expression * delim.closeArray)^1) * (functionType + booleanType + numberType + inferType) / makeArrayType,
 
-functionType = ((delim.openFunctionParameterList * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList) + Cc{} * Cc(false)) * Cp() * sep.functionResult * type_ / nodeFunctionType,
+functionType = ((delim.openFunctionParameterList * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList) + Cc{} * Cc(false)) * Cp() * sep.functionResult * (type_ + noType) / nodeFunctionType,
 
-type_ = (functionType + booleanType + numberType + arrayType + omittedType),
+type_ = (functionType + booleanType + numberType + arrayType),
 
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 -- Have to use literal string delimiter, or whitespace will be stripped before string opens.

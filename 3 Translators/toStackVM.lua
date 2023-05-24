@@ -534,7 +534,7 @@ function Translator:codeFunction(name, type_, block)
     elseif resultTypeTag == 'string' then
       self:addCode ''
       -- TODO: Rename 'unknown' to 'unspecified.'
-    elseif resultTypeTag == 'unknown' then
+    elseif resultTypeTag == 'none' then
       -- This is valid. Note that a function like this, with no return type,
       -- is only allowed to be executed as a statement.
       -- Any other use will cause a type checker error.
