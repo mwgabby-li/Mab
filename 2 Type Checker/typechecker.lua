@@ -534,7 +534,8 @@ function TypeChecker:checkNewVariable(ast)
         self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)
       end
     elseif not ast.assignment then
-      -- This is OK, don't need to assign anything if the type is specified.
+      -- Functions without default values are currently disallowed.
+      self:addError('Function type specified for variable "'..ast.name..'", but no value was provided. Defaults required for functions, sorry!', ast)
     end
   -- We aren't inferring, but invalid type specified:
   elseif not specifiedType.tag == 'infer' and not self:typeValid(specifiedType) then
