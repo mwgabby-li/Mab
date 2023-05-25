@@ -215,6 +215,38 @@ function common.toStackVMVersionHash()
   return toStackVMVersionHash
 end
 
+function common.toReadableType(type_)
+  if type_ == nil then
+    return 'invalid type'
+  elseif type_.tag == 'function' then
+    local parameterCount = #type_.parameters
+    local result
+    if parameterCount > 0 then
+      result = '('
+      for i = 1, parameterCount do
+        result = result..common.toReadableType(type_.parameters[i].type_)
+        if i ~= parameterCount then
+          result = result..', '
+        end
+      end
+      result = result ..')'
+    else
+      result = 'none'
+    end
+    return result..' -> '..common.toReadableType(type_.resultType)
+  elseif not type_.dimensions then
+    return type_.tag
+  else
+    local numDimensions = #type_.dimensions
+    local dimensionString = numDimensions == 1 and '' or numDimensions .. 'D '
+    local explicitDimensions = ''
+    for i = 1,numDimensions do
+      explicitDimensions = explicitDimensions..'['..type_.dimensions[i]..']'
+    end
+    return dimensionString .. 'array ('..explicitDimensions..') of "'.. common.toReadableType(type_.elementType)..'"s'
+  end
+end
+
 -- Numbers less than ten are spelled out.
 -- You can also pass in a label that becomes plural with 's' and it will become a matching suffix.
 -- e.g.:

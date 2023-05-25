@@ -9,7 +9,7 @@ package.path = package.path .. ';4 Interpreter/?.lua'
 local parser = require 'parser'
 local typeChecker = require 'typechecker'
 local toStackVM = require 'toStackVM'
-local graphviz = require 'toGraphviz'
+local toGraphviz = require 'toGraphviz'
 local interpreter = require 'stackVM'
 
 local pt = require 'External.pt'
@@ -33,11 +33,11 @@ local phases = {
   },
 
   graphviz = {
-    action = graphviz.translate,
+    action = toGraphviz.translate,
     name = 'Graphviz AST',
     actionName = 'generating GraphViz file',
     inputName = 'AST',
-    version = 0,
+    version = 3006704176,
   },
 
   toStackVM = {
@@ -129,7 +129,7 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   print(common.poem(true))
   arg[1] = nil
   local lu = require 'External.luaunit'
-  testFrontend = require 'tests':init(parser.parse, typeChecker, toStackVM, interpreter)
+  testFrontend = require 'tests':init(parser.parse, typeChecker, toGraphviz, toStackVM, interpreter)
 
   os.exit(lu.LuaUnit.run())
 end

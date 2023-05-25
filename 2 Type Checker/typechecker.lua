@@ -292,33 +292,6 @@ function TypeChecker:typeMatches(apple, orange)
   return true
 end
 
-
-function TypeChecker:toReadable(type_)
-  if type_ == nil then
-    return 'invalid type'
-  elseif type_.tag == 'function' then
-    local result = '('
-    local parameterCount = #type_.parameters
-    for i = 1, parameterCount do
-      result = result..self:toReadable(type_.parameters[i].type_)
-      if i ~= parameterCount then
-        result = result..', '
-      end
-    end
-    return result..') -> '..self:toReadable(type_.resultType)
-  elseif not type_.dimensions then
-    return type_.tag
-  else
-    local numDimensions = #type_.dimensions
-    local dimensionString = numDimensions == 1 and '' or numDimensions .. 'D '
-    local explicitDimensions = ''
-    for i = 1,numDimensions do
-      explicitDimensions = explicitDimensions..'['..type_.dimensions[i]..']'
-    end
-    return dimensionString .. 'array ('..explicitDimensions..') of "'.. self:toReadable(type_.elementType)..'"s'
-  end
-end
-
 function TypeChecker:checkFunctionCall(ast)
   local functionType, rootName = self:checkExpression(ast.target)
 
@@ -333,8 +306,8 @@ function TypeChecker:checkFunctionCall(ast)
     local argumentType = self:checkExpression(ast.arguments[i])
     if not self:typeMatches(parameterType, argumentType) then
       self:addError('Argument '..common.toReadableNumber(i)..' to function called via "' .. rootName.. '" evaluates to type "'..
-                    self:toReadable(argumentType)..'," but parameter "'..parameter.name..'" is type "'..
-                    self:toReadable(parameterType)..'."', ast.arguments[i])
+                    common.toReadableType(argumentType)..'," but parameter "'..parameter.name..'" is type "'..
+                    common.toReadableType(parameterType)..'."', ast.arguments[i])
     end
   end
 
@@ -391,7 +364,7 @@ function TypeChecker:checkExpression(ast)
     if not self:typeMatches(indexType, kNumberType) then
       indexType = indexType or tostring(indexType)
       self:addError('Array indexing with type "' ..
-                    self:toReadable(indexType) .. '", only "number" is allowed. Sorry!', ast)
+                    common.toReadableType(indexType) .. '", only "number" is allowed. Sorry!', ast)
     end
 
     local arrayType, variableName = self:checkExpression(ast.array)
@@ -436,15 +409,15 @@ function TypeChecker:checkExpression(ast)
 
     if not self:typeMatches(firstChildType, secondChildType) then
       self:addError('Mismatched types with operator "' .. ast.op ..
-                    '"! (' .. self:toReadable(firstChildType) .. ' ' .. ast.op ..
-                    ' ' .. self:toReadable(secondChildType) .. ').', ast)
+                    '"! (' .. common.toReadableType(firstChildType) .. ' ' .. ast.op ..
+                    ' ' .. common.toReadableType(secondChildType) .. ').', ast)
       return kNoType
     end
     local expressionType = firstChildType
     -- is binary op? - true
     if not self:isCompatible(ast.op, true, expressionType) then
       self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
-                    self:toReadable(expressionType) .. '."', ast)
+                    common.toReadableType(expressionType) .. '."', ast)
       return kNoType
     else
       -- is binary op? - true
@@ -455,7 +428,7 @@ function TypeChecker:checkExpression(ast)
     -- is binary op? - false (unary op)
     if not self:isCompatible(ast.op, false, childType) then
       self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
-                    self:toReadable(childType) .. '."', ast)
+                    common.toReadableType(childType) .. '."', ast)
       return kNoType
     else
       -- is binary op? - false (unary op)
@@ -465,7 +438,7 @@ function TypeChecker:checkExpression(ast)
     local testType = self:checkExpression(ast.test)
     if not self:typeMatches(testType, kBooleanType) then
       self:addError('Ternary condition expression must evaluate to boolean.\n'..
-                    'This expression evaluates to "'..self:toReadable(testType)..
+                    'This expression evaluates to "'..common.toReadableType(testType)..
                     '."', ast.testPosition)
     end
 
@@ -474,11 +447,11 @@ function TypeChecker:checkExpression(ast)
     if not self:typeMatches(trueBranchType, falseBranchType) then
       self:addError('The two branches of the ternary operator must have the same type.\n'..
                     ' Currently, the type of the true branch is "'..
-                    self:toReadable(trueBranchType)..
+                    common.toReadableType(trueBranchType)..
                     ',"\n and the type of the false branch is "'..
-                    self:toReadable(falseBranchType)..'."\n'..
+                    common.toReadableType(falseBranchType)..'."\n'..
                     ' Further type checks in this run will assume this evaluated to "'..
-                    self:toReadable(trueBranchType)..'."', ast)
+                    common.toReadableType(trueBranchType)..'."', ast)
     end
 
     -- Assume true branch type.
@@ -530,8 +503,8 @@ function TypeChecker:checkNewVariable(ast)
       local assignmentType = self:checkExpression(ast.assignment)
 
       if not self:typeMatches(specifiedType, assignmentType) then
-        self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
-        self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)
+        self:addError('Type of variable is ' .. common.toReadableType(specifiedType) ..'.', ast.type_)
+        self:addError('But variable is being initialized with ' .. common.toReadableType(assignmentType) .. '.', ast.assignment)
       end
     elseif not ast.assignment then
       -- Functions without default values are currently disallowed.
@@ -539,7 +512,7 @@ function TypeChecker:checkNewVariable(ast)
     end
   -- We aren't inferring, but invalid type specified:
   elseif not specifiedType.tag == 'infer' and not self:typeValid(specifiedType) then
-    self:addError('Type of variable "'..ast.name..'" specified, but type is invalid: "'..self:toReadable(specifiedType)..'."', ast)
+    self:addError('Type of variable "'..ast.name..'" specified, but type is invalid: "'..common.toReadableType(specifiedType)..'."', ast)
   -- No type specified:
   elseif specifiedType.tag == 'infer' then
     -- Assignment?
@@ -560,8 +533,8 @@ function TypeChecker:checkNewVariable(ast)
     -- MUST MATCH.
     local assignmentType = self:checkExpression(ast.assignment)
     if not self:typeMatches(specifiedType, assignmentType) then
-      self:addError('Type of variable is ' .. self:toReadable(specifiedType) ..'.', ast.type_)
-      self:addError('But variable is being initialized with ' .. self:toReadable(assignmentType) .. '.', ast.assignment)
+      self:addError('Type of variable is ' .. common.toReadableType(specifiedType) ..'.', ast.type_)
+      self:addError('But variable is being initialized with ' .. common.toReadableType(assignmentType) .. '.', ast.assignment)
     end
     
   -- Type specified, no assignment.
@@ -612,8 +585,8 @@ function TypeChecker:checkStatement(ast)
       self:addError('Could not determine type of return type.', ast)
     elseif not self:typeMatches(returnType, self.currentFunction.resultType) then
       self:addError('Mismatched types with return, function "' .. self.currentFunction.name .. '" returns "' ..
-                    self:toReadable(self.currentFunction.resultType) .. '," but returning type "' ..
-                    self:toReadable(returnType) .. '."', ast)
+                    common.toReadableType(self.currentFunction.resultType) .. '," but returning type "' ..
+                    common.toReadableType(returnType) .. '."', ast)
     end
   elseif ast.tag == 'functionCall' then
     self:checkFunctionCall(ast)
@@ -634,21 +607,21 @@ function TypeChecker:checkStatement(ast)
       if not wttValid and not etValid then
         local etMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
         self:addError('Sorry, cannot assign '..etMessage..
-                      self:toReadable(targetType)..
+                      common.toReadableType(targetType)..
                       '."\nThe invalid type of "'..targetRootName..'," the assignment target, also prevents this: "'..
-                      self:toReadable(expressionType)..'."', ast)
+                      common.toReadableType(expressionType)..'."', ast)
       elseif not wttValid then
         self:addError('Sorry, cannot assign to "'..targetRootName..'" because its type is invalid: "' ..
-                      self:toReadable(targetType) .. '."', ast)
+                      common.toReadableType(targetType) .. '."', ast)
       elseif not etValid then
         local endOfMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
         
         self:addError('Sorry, cannot assign '..endOfMessage..
-                      self:toReadable(expressionType) .. '."', ast)
+                      common.toReadableType(expressionType) .. '."', ast)
       elseif wttValid and etValid then
         self:addError('Attempted to change type from "' ..
-                      self:toReadable(targetType) .. '" to "' ..
-                      self:toReadable(expressionType) .. '." Disallowed, sorry!', ast)
+                      common.toReadableType(targetType) .. '" to "' ..
+                      common.toReadableType(expressionType) .. '." Disallowed, sorry!', ast)
       end
     end
   elseif ast.tag == 'if' then
@@ -657,7 +630,7 @@ function TypeChecker:checkStatement(ast)
     if not self:typeMatches(expressionType, kBooleanType) then
       self:addError('if statements require a boolean value,' ..
                     ' or an expression evaluating to a boolean.'..
-                    'Type was "'..self:toReadable(expressionType)..'."', ast)
+                    'Type was "'..common.toReadableType(expressionType)..'."', ast)
     end
     self:checkStatement(ast.body)
     if ast.elseBody then
@@ -668,7 +641,7 @@ function TypeChecker:checkStatement(ast)
     if not self:typeMatches(expressionType, kBooleanType) then
       self:addError('while loop conditionals require a boolean value,' ..
                     ' or an expression evaluating to a boolean.'..
-                    'Type was "'..self:toReadable(expressionType)..'."', ast)
+                    'Type was "'..common.toReadableType(expressionType)..'."', ast)
     end
     self:checkStatement(ast.body)
   elseif ast.tag == 'print' then
@@ -716,8 +689,8 @@ function TypeChecker:check(ast)
       -- Error for a function being defined with two types. Errors in other parts of the compiler for duplicate function names...
       -- TODO: Overloading support, etc. No checks on function parameters and so on...
       elseif not self:typeMatches(self.variableTypes[name].resultType, resultType) then
-        self:addError('Function "' .. name .. '" redefined returning type "' .. self:toReadable(resultType) ..
-                      '," was "' .. self:toReadable(self.variableTypes[name].resultType)..'."')
+        self:addError('Function "' .. name .. '" redefined returning type "' .. common.toReadableType(resultType) ..
+                      '," was "' .. common.toReadableType(self.variableTypes[name].resultType)..'."')
       end
 
       -- Check type of default argument expression against last parameter
@@ -732,8 +705,8 @@ function TypeChecker:check(ast)
           local parameterType = lastParameter.type_
           if not self:typeMatches(defaultArgumentType,parameterType) then
           self:addError('Default argument for function "'..name..'" evaluates to type "'..
-                        self:toReadable(defaultArgumentType)..'," but parameter "'..lastParameter.name..'" is type "'..
-                        self:toReadable(parameterType)..'."', lastParameter)
+                        common.toReadableType(defaultArgumentType)..'," but parameter "'..lastParameter.name..'" is type "'..
+                        common.toReadableType(parameterType)..'."', lastParameter)
           end
         end
       end

@@ -50,28 +50,53 @@ function Translator:finalize()
   return 'digraph { \n splines=true\n' .. self.file .. '\n\n'.. rank .. '\n}\n'
 end
 
-function Translator:nodeExpression(ast)
+function Translator:nodeFunctionCall(ast, depth)  
+  local target = ast.target
+  while target.tag == 'arrayElement' do
+    target = target.array
+  end
+  
+  local argumentList = '()'
+  if #ast.arguments > 0 then
+    argumentList = '(...)'
+  end
+  
+  self:appendNode(ast, false, target.name .. argumentList, table.unpack(ast.arguments))
+  for _, argument in ipairs(ast.arguments) do
+    self:nodeExpression(argument, depth + 1)
+  end
+end
+
+function Translator:nodeExpression(ast, depth)
   if ast.tag == 'number' or ast.tag =='boolean' or ast.tag == 'string' then
     self:appendNode(ast, false, tostring(ast.value))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.name)
   elseif ast.tag == 'functionCall' then
-    self:appendNode(ast, false, ast.target.name .. '()')
+    self:nodeFunctionCall(ast, depth)
+  elseif ast.tag == 'block' then
+    self:appendNode(ast, false, '{...}', ast.body)
+    self:nodeStatement(ast.body, depth)
   elseif ast.tag == 'newArray' then
     self:appendNode(ast, false, 'new[...]', ast.size, ast.initialValue )
-    self:nodeExpression(ast.size)
-    self:nodeExpression(ast.initialValue)
+    self:nodeExpression(ast.size, depth)
+    self:nodeExpression(ast.initialValue, depth)
   elseif ast.tag == 'arrayElement' then
     self:appendNode(ast, false, '[...]', ast.array, ast.index, nil, '...')
-    self:nodeExpression(ast.array)
-    self:nodeExpression(ast.index)
+    self:nodeExpression(ast.array, depth)
+    self:nodeExpression(ast.index, depth)
+  elseif ast.tag == 'ternary' then
+    self:appendNode(ast, false, '?:', ast.test, ast.trueExpression, ast.falseExpression)
+    self:nodeExpression(ast.test, depth)
+    self:nodeExpression(ast.trueExpression, depth)
+    self:nodeExpression(ast.falseExpression, depth)
   elseif ast.tag == 'binaryOp' then
     self:appendNode(ast, false, ast.op, ast.firstChild, ast.secondChild)
-    self:nodeExpression(ast.firstChild)
-    self:nodeExpression(ast.secondChild)
+    self:nodeExpression(ast.firstChild, depth)
+    self:nodeExpression(ast.secondChild, depth)
   elseif ast.tag == 'unaryOp' then
     self:appendNode(ast, false, ast.op, ast.child)
-    self:nodeExpression(ast.child)
+    self:nodeExpression(ast.child, depth)
   else
     self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
   end
@@ -181,47 +206,58 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:appendNode(ast, false, "Empty")
     return
   elseif ast.tag == 'block' then
-    self:appendNode(ast, false, 'Block', ast.body)
-    self:nodeStatement(ast.body, depth)
+    self:appendNode(ast, false, '{...}', ast.body)
+    self:nodeStatement(ast.body, depth + 1)
   elseif ast.tag == 'statementSequence' then
     self:addNodeName(ast, self.statementNodeNames, depth)
-
     self:appendNode(ast, true, 'Statement', ast.firstChild, ast.secondChild)
     self:nodeStatement(ast.firstChild, depth)
     self:nodeStatement(ast.secondChild, depth)
   elseif ast.tag == 'return' then
     self:appendNode(ast, false, 'Return', ast.sentence)
-    self:nodeExpression(ast.sentence)
+    self:nodeExpression(ast.sentence, depth)
   elseif ast.tag == 'functionCall' then
-    self:appendNode(ast, false, ast.target.name .. '()')
+    self:nodeFunctionCall(ast, depth)
   elseif ast.tag == 'newVariable' then
+    local scopeLabel = ast.scope..' '
+    if (depth == 1 and scopeLabel == 'global ') or (depth > 1 and scopeLabel == 'local ') then
+      scopeLabel = ' '
+    end
     if ast.assignment then
-      self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.name .. ' = ', ast.assignment)
-      self:nodeExpression(ast.assignment)    
+      self:appendNode(ast, false, ast.name .. ':'..scopeLabel..'\n'..common.toReadableType(ast.type_), ast.assignment)
+      
+      if ast.assignment.tag == 'block' then
+        depth = depth + 1;
+      end
+      self:nodeExpression(ast.assignment, depth)       
+      
     else
-      self:appendNode(ast, false, ast.scope .. ' ' .. ast.type_.tag ..': ' .. ast.name)
+      self:appendNode(ast, false, ast.name..':'..scopeLabel..'\n'..common.toReadableType(ast.type_))
     end
   elseif ast.tag == 'assignment' then
-    self:nodeExpression(ast.assignment)
+    self:nodeExpression(ast.assignment, depth)
     self:appendNode(ast, false, '=', ast.target, ast.assignment)
-    self:nodeExpression(ast.target)
+    self:nodeExpression(ast.target, depth)
   elseif ast.tag == 'if' then
     self:addNodeName(ast, self.ifNodeNames, depth)
     
     local tag = fromIf and 'Else If' or 'If'
     
     self:appendNode(ast, false, tag, ast.expression, ast.body, ast.elseBody)
-    self:nodeExpression(ast.expression)
-    self:nodeStatement(ast.body, depth + 1)
+    depth = depth + 1
+    self:nodeExpression(ast.expression, depth)
+    self:nodeStatement(ast.body, depth)
     if ast.elseBody then
       self:nodeStatement(ast.elseBody, depth, true)
     end
   elseif ast.tag == 'while' then
     self:appendNode(ast, false, 'While', ast.expression, ast.body)
-    self:nodeExpression(ast.expression)
-    self:nodeStatement(ast.body, depth + 1)    
+    depth = depth + 1
+    self:nodeExpression(ast.expression, depth)
+    self:nodeStatement(ast.body, depth)
   elseif ast.tag == 'print' then
-    self:nodeExpression(ast.toPrint)
+    depth = depth + 1
+    self:nodeExpression(ast.toPrint, depth)
     self:appendNode(ast, false, 'Print', ast.toPrint)
   else
     self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
@@ -229,7 +265,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
 end
 
 function Translator:nodeFunction(ast)
-  local label = '() ➔ ' .. ast.returnType.tag .. ':\n' .. ast.target.name
+  local label = '() ➔ ' .. ast.resultType.tag .. ':\n' .. ast.target.name
 
   self:appendNode(ast, false, label, ast.block)
   self:nodeStatement(ast.block)
@@ -237,7 +273,7 @@ end
 
 function Translator:translate(ast)
   for i = 1,#ast do
-    self:nodeFunction(ast[i])
+    self:nodeStatement(ast[i])
   end
   return self:finalize()
 end

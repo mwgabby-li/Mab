@@ -159,10 +159,16 @@ function module:fullTest(input, addEntryPoint)
     return 'Type checking failed!'
   end
   
+  errorReporter, dot = module.toGraphviz.translate(ast)
+  if dot == false or errorReporter:count() > 0 then
+    return 'Graphviz failed!'
+  end
+  
   errorReporter, code = module.toStackVM.translate(ast)
   if code == false or errorReporter:count() > 0 then
     return 'Translation failed!'
   end
+  
   errorReporter, result = module.interpreter.execute(code)
   if errorReporter:count() > 0 then
     return 'Running failed!'
@@ -170,9 +176,10 @@ function module:fullTest(input, addEntryPoint)
   return result
 end
 
-function module:init(parse, typeChecker, toStackVM, interpreter)
+function module:init(parse, typeChecker, toGraphviz, toStackVM, interpreter)
     module.parse = parse
     module.typeChecker = typeChecker
+    module.toGraphviz = toGraphviz
     module.toStackVM = toStackVM
     module.interpreter = interpreter
     return module
