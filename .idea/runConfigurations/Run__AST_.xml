@@ -5,7 +5,7 @@
     <option name="file" value="" />
     <option name="workingDir" value="$PROJECT_DIR$" />
     <option name="debuggerType" value="2" />
-    <option name="params" value="mab.lua -av program.mab" />
+    <option name="params" value="mab.lua -avr program.mab" />
     <option name="charset" value="UTF-8" />
     <option name="showConsole" value="true" />
     <method v="2" />
