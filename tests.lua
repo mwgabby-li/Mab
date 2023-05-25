@@ -306,6 +306,7 @@ function module:testLessonFourEdgeCases()
   local errorReporter, ast, code, result
 
   errorReporter, ast = module.parse(wrapWithEntrypoint('returned: 10; return returned'))
+  errorReporter = module.typeChecker.check(ast)
   errorReporter, code = module.toStackVM.translate(ast)
   lu.assertNotEquals(code, nil)
   errorReporter, result = module.interpreter.execute(code)
@@ -534,6 +535,7 @@ return b
 
   local ast, code, result, errorReporter
   errorReporter, ast = module.parse(wrapWithEntrypoint(shortCircuit))
+  errorReporter = module.typeChecker.check(ast)
   errorReporter, code = module.toStackVM.translate(ast)
   lu.assertNotEquals(code, nil)
   local parameters = {show ={trace = true}}
@@ -557,6 +559,7 @@ return b
 ]]
 
   errorReporter, ast = module.parse(wrapWithEntrypoint(shortCircuit2))
+  errorReporter = module.typeChecker.check(ast)
   errorReporter, code = module.toStackVM.translate(ast)
   errorReporter, result, trace = module.interpreter.execute(code, parameters)
   divide = false
@@ -724,7 +727,9 @@ another function: () -> number {
 
   local errorReporter, ast = module.parse(input)
   lu.assertEquals(type(ast), 'table')
-  
+    
+  errorReporter = module.typeChecker.check(ast)
+
   local code
   errorReporter, code = module.toStackVM.translate(ast, errorReporter)
   lu.assertEquals(errorReporter:count(), 4)
@@ -755,6 +760,8 @@ another function: () -> number {
   errorReporter, ast = module.parse(input)
   lu.assertEquals(type(ast), 'table')
   
+  errorReporter = module.typeChecker.check(ast)
+
   errorReporter, code = module.toStackVM.translate(ast, errorReporter)
   lu.assertEquals(errorReporter:count(), 7)
 end
@@ -985,10 +992,11 @@ input =
     };
 }
 ]]
-  local _, ast = module.parse(input)
+  local errorReporter, ast = module.parse(input)
   lu.assertNotEquals(ast, nil)
-
-  local errorReporter, _ = module.toStackVM.translate(ast)
+  errorReporter = module.typeChecker.check(ast)
+  local code
+  errorReporter, code = module.toStackVM.translate(ast)
   lu.assertEquals(errorReporter:count(), 2)
 end
 
