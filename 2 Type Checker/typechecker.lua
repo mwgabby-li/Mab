@@ -483,6 +483,8 @@ function TypeChecker:inferScope(ast)
     result = 'local'
   end
 
+  ast.scope = result
+
   return result
 end
 

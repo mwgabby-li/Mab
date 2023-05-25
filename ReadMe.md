@@ -858,7 +858,6 @@ Mab supports a robust array of command-line options:
 * `--echo-input`/`-e`: Output what was sent in to translate.
 * `--graphviz`/`-g`: Generate a graphviz visualization and open it in Firefox. (Unstable.)
 * `--pegdebug`/`-p`: Annotate the grammar with PegDebug before translating.
-* `--type-checker-off`/`-y`: Disable the type checker phase. "Damn the torpedoes, full speed ahead!"
 * `--stop-on-first-error`/`-s`: Stop outputting errors after the first.
 * `--verbose`/`-v`: Output detailed information about stage execution.
 * `--unpoetic`/`-u`: Suppress poetry.

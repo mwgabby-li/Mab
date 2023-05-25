@@ -243,10 +243,10 @@ function Translator:codeExpression(ast)
 end
 
 function Translator:checkForVariableNameCollisions(ast)
-  local inferredScope = self:inferScope(ast)
+  local scope = ast.scope
 
   -- This is the check for duplicate locals and globals in the same scope
-  if inferredScope == 'local' then
+  if scope == 'local' then
     local numLocals = #self.locals
     -- No locals means this one can't possibly collide.
     if numLocals > 0 then
@@ -256,39 +256,17 @@ function Translator:checkForVariableNameCollisions(ast)
         end
       end
     end
-  elseif inferredScope == 'global' then
+  elseif scope == 'global' then
     if self.globals[ast.name] ~= nil then
       self:addError('Re-defining global variable "' .. ast.name .. '."', ast)
     end
   else
-    if inferredScope ~= nil then
-      self:addError('Unknown scope .."'..tostring(inferredScope)..'."', ast)
+    if scope ~= nil then
+      self:addError('Unknown scope .."'..tostring(scope)..'."', ast)
     else
       self:addError('Scope undefined.', ast)
     end
   end
-end
-
-function Translator:inferScope(ast)
-  local result = ast.scope
-
-  -- Top-level scopes default to 'global' if unspecified
-  if result == 'unspecified' then
-    if #self.blockBases == 0 then
-      result = 'global'
-    else
-      result = 'local'
-    end
-  elseif result ~= 'local' and result ~= 'global' then
-    if result ~= nil then
-      self:addError('Unknown scope .."'..tostring(result)..'."', ast)
-    else
-      self:addError('Scope undefined.', ast)
-    end
-    result = 'local'
-  end
-
-  return result
 end
 
 function Translator:codeNewVariable(ast)
@@ -335,7 +313,7 @@ function Translator:codeNewVariable(ast)
 
   -- If we aren't already tracking this variable and it's local,
   -- start tracking its position.
-  local scope = self:inferScope(ast)
+  local scope = ast.scope
   if scope == 'local' then
     -- Track it and its position.
     self.locals[#self.locals + 1] = ast

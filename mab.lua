@@ -134,7 +134,7 @@ if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   os.exit(lu.LuaUnit.run())
 end
 
-local parameters = { show = {}, typechecker = true, poetic = true }
+local parameters = { show = {}, poetic = true }
 local awaiting_filename = false
 
 local function readOption(argument)
@@ -176,8 +176,6 @@ local function readOption(argument)
     parameters.pegdebug = true
   elseif argument == '--stop-at-first-error' or argument == '-s' then
     parameters.stopAtFirstError = true
-  elseif argument == '--type-checker-off' or argument == '-y' then
-    parameters.typechecker = false
   else
     io.stderr:write('Unknown argument ' .. argument .. '.\n')
     os.exit(1)
@@ -223,12 +221,7 @@ if parameters.show.AST then
   print(pt.pt(ast, {'version', 'tag', 'scope', 'parameters', 'type_', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
 end
 
-local typeCheckerSuccess = true
-if parameters.typechecker then
-  typeCheckerSuccess = runPhase(phases.typeChecker, ast, parameters)
-else
-  io.stderr:write '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.\n'
-end
+local typeCheckerSuccess = runPhase(phases.typeChecker, ast, parameters)
 
 if parameters.show.graphviz then
   local success, graphviz = runPhase(phases.graphviz, ast, parameters)
