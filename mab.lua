@@ -58,7 +58,7 @@ local phases = {
     -- for the program to output, then prints
     -- the completion message.
     separatedOutput = true,
-    version = 1035539704,
+    version = 2717950983,
   },
 }
 
