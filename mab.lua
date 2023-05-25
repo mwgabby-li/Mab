@@ -71,6 +71,7 @@ function runPhase(phaseTable, phaseInput, parameters)
       os.exit(1)
     else
       io.stderr:write '\n'
+      io.stderr:flush()
       return
     end
   end
@@ -82,6 +83,7 @@ function runPhase(phaseTable, phaseInput, parameters)
     else
       io.write('\n'..phaseTable.name..' starting...\n\n')
     end
+    io.flush()
   end
   
   local start = os.clock()
@@ -89,14 +91,22 @@ function runPhase(phaseTable, phaseInput, parameters)
   local success = result and errorReporter:count() == 0
 
   if parameters.verbose then
+    local message
     if not phaseTable.separatedOutput then
-      io.write(string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+      message = (string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
     else
       local extraBuffer = 11 - #phaseTable.name
-      io.write(string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n',
-              success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000))
+      message = string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n',
+                    success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000)
     end
-    io.flush()
+
+    if success then
+      io.write(message)
+      io.flush()
+    else
+      io.stderr:write(message)
+      io.stderr:flush()
+    end
   end
 
   local mismatchAndFailure, mismatchAndSuccess = common.maybeCreateMismatchMessages(phaseInput, phaseTable)
@@ -122,6 +132,7 @@ end
 
 if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   print(common.poem(true))
+  io.flush()
   arg[1] = nil
   local lu = require 'External.luaunit'
   testFrontend = require 'tests':init(parser.parse, typeChecker, toStackVM, interpreter)
@@ -137,7 +148,7 @@ local function readOption(argument)
     local defaultInput = io.input()
     local status, err = pcall(io.input, argument)
     if not status then
-      print('Could not open file "' .. argument .. '"\n\tError: ' .. err)
+      io.stderr:write('Could not open file "' .. argument .. '"\n\tError: ' .. err..'\n')
       os.exit(1)
     else
       parameters.inputFile = argument
@@ -149,7 +160,7 @@ local function readOption(argument)
   elseif argument == '--input' or argument == '-i' then
     awaiting_filename = true
   elseif argument == '--tests' then
-    print('-tests must be the first argument if it is being sent in.')
+    io.stderr:write('--tests must be the first argument if it is being sent in.\n')
     os.exit(1)
   elseif argument == '--ast' or argument == '-a' then
     parameters.show.AST = true
@@ -174,7 +185,7 @@ local function readOption(argument)
   elseif argument == '--type-checker-off' or argument == '-y' then
     parameters.typechecker = false
   else
-    print('Unknown argument ' .. argument .. '.')
+    io.stderr:write('Unknown argument ' .. argument .. '.\n')
     os.exit(1)
   end  
 end
@@ -197,18 +208,20 @@ for _, argument in ipairs(arg) do
 end
 
 if awaiting_filename then
-  print 'Specified -i, but no input file found.'
+  io.stderr:write('Specified -i, but no input file found.\n')
   os.exit(1)
 end
 
 if parameters.verbose or parameters.poetic then
   print(common.poem())
+  io.flush()
 end
 
 local subject = parameters.subject or io.read 'a'
 if parameters.show.input then
   print 'Input:'
   print(subject)
+  io.flush()
 end
 
 local _, ast = runPhase(phases.parser, subject, parameters)
@@ -216,6 +229,7 @@ local _, ast = runPhase(phases.parser, subject, parameters)
 if parameters.show.AST then
   print '\nAST:'
   print(pt.pt(ast, {'version', 'tag', 'scope', 'parameters', 'type_', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
+  io.flush()
 end
 
 local typeCheckerSuccess = true
@@ -258,6 +272,7 @@ local _, code = runPhase(phases.toStackVM, ast, parameters)
 if parameters.show.code then
   print '\nGenerated code:'
   print(pt.pt(code))
+  io.flush()
 end
 
 local success, result, trace = runPhase(phases.interpreter, code, parameters)
@@ -276,6 +291,7 @@ if trace then
       end
     end
   end
+  io.flush()
 end
 if parameters.show.result and result ~= nil then
   print '\nResult:'

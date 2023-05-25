@@ -974,21 +974,11 @@ but were outside the scope of my free time during the course.
 #### Easy
 * Error themes. (After *Error changes* above.)
 * Localization support (see *Error changes* above.)
-* Type name changes.
-  * 'none' for omitted function input and return values.
-  * 'infer' for omitted variable definition types.\
-  This might be a little funky with functions. Maybe we can infer output value from return and assume no input values?
-* Deal with output flushing in a more elegant way.
 * Constant support
   * Maybe limit default `const` to function parameters?\
   See also the *Language profiles* idea.
-* Further string support.
-  * Multi-character strings: `''aren't we having fun?''`.
+* String improvements.
   * Support for escape sequences.
-  * Double-quoted strings: `"let's make a \"more traditional\" string?"`.
-* Entry Point case-insensitive?
-* Include explicit version number and size for AST and code versions,
-in addition to the hash.
 * Disallow globals in default arguments, or remove default arguments.
 * Do a pass over different keyword and symbol literals and consider
 whether to make changes.
@@ -1024,7 +1014,6 @@ would say "Zero, one, two. Three apples!"
   * Shadowing on and off.
   * `const` by default or not.
   * Type checked or loose typed.
-* Give error messages numbers and move them to a different file.
 * Constant expression support, for things like array sizes.
 * `recurse` keyword to indicate a function that calls itself.
 * Make variables being undefined before usage an error.
@@ -1043,6 +1032,7 @@ would say "Zero, one, two. Three apples!"
 * Type aliases: numeral:type number; true or false:type boolean.
   * Interesting problem, if I do this, maybe function parameter lists will need to have commas.
 * Anonymous functions (Lambdas).
+* Backtrack comments and whitespace on error, not just whitespace.
 
 #### Hard
 * Proper tail recursion.
@@ -1094,7 +1084,7 @@ An interesting bug with a discussion related to type inference.
 ### [JavaScript: How Line Breaks and Missing Semicolons Can Break Your Code](https://javascript.plainenglish.io/javascript-how-line-breaks-and-missing-semicolons-can-break-your-code-58e031e7f235)
 The woes of automatic semicolon insertion in JavaScript.
 
-### [Lamdba Lifting](https://en.wikipedia.org/wiki/Lambda_lifting)
+### [Lambda Lifting](https://en.wikipedia.org/wiki/Lambda_lifting)
 Hugo mentioned this, and I read it while trying to figure out how to support first-class functions,
 though I ended up going with the solution of making them globals at the top level.
 
