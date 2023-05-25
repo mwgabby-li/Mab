@@ -88,21 +88,22 @@ function runPhase(phaseTable, phaseInput, parameters)
   local errorReporter, result, extra = phaseTable.action(phaseInput, parameters)
   local success = result and errorReporter:count() == 0
 
-  if parameters.verbose then
-    local message
-    if not phaseTable.separatedOutput then
-      message = (string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
-    else
-      local extraBuffer = 11 - #phaseTable.name
-      message = string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n',
-                    success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000)
-    end
+  local message
+  -- We allow separated output in verbose mode.
+  if phaseTable.separatedOutput and parameters.verbose then
+    message = (string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+  -- If not in verbose mode, we only print the message if the phase failed,
+  -- and we print the whole thing at once, never in two pieces.
+  else
+    local extraBuffer = 11 - #phaseTable.name
+    message = string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n',
+                  success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000)
+  end
 
-    if success then
-      io.write(message)
-    else
-      io.stderr:write(message)
-    end
+  if success and parameters.verbose then
+    io.write(message)
+  else
+    io.stderr:write(message)
   end
 
   local mismatchAndFailure, mismatchAndSuccess = common.maybeCreateMismatchMessages(phaseInput, phaseTable)
