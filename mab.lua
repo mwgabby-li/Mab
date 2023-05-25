@@ -71,7 +71,6 @@ function runPhase(phaseTable, phaseInput, parameters)
       os.exit(1)
     else
       io.stderr:write '\n'
-      io.stderr:flush()
       return
     end
   end
@@ -83,7 +82,6 @@ function runPhase(phaseTable, phaseInput, parameters)
     else
       io.write('\n'..phaseTable.name..' starting...\n\n')
     end
-    io.flush()
   end
   
   local start = os.clock()
@@ -102,10 +100,8 @@ function runPhase(phaseTable, phaseInput, parameters)
 
     if success then
       io.write(message)
-      io.flush()
     else
       io.stderr:write(message)
-      io.stderr:flush()
     end
   end
 
@@ -125,14 +121,11 @@ function runPhase(phaseTable, phaseInput, parameters)
     io.stderr:write(mismatchAndSuccess..'\n\n')
   end
   
-  io.stderr:flush()
-
   return success, result, extra
 end
 
 if arg[1] ~= nil and (string.lower(arg[1]) == '--tests') then
   print(common.poem(true))
-  io.flush()
   arg[1] = nil
   local lu = require 'External.luaunit'
   testFrontend = require 'tests':init(parser.parse, typeChecker, toStackVM, interpreter)
@@ -214,14 +207,12 @@ end
 
 if parameters.verbose or parameters.poetic then
   print(common.poem())
-  io.flush()
 end
 
 local subject = parameters.subject or io.read 'a'
 if parameters.show.input then
   print 'Input:'
   print(subject)
-  io.flush()
 end
 
 local _, ast = runPhase(phases.parser, subject, parameters)
@@ -229,7 +220,6 @@ local _, ast = runPhase(phases.parser, subject, parameters)
 if parameters.show.AST then
   print '\nAST:'
   print(pt.pt(ast, {'version', 'tag', 'scope', 'parameters', 'type_', 'name', 'identifier', 'value', 'assignment', 'firstChild', 'op', 'child', 'secondChild', 'body', 'sentence', 'position'}))
-  io.flush()
 end
 
 local typeCheckerSuccess = true
@@ -237,7 +227,6 @@ if parameters.typechecker then
   typeCheckerSuccess = runPhase(phases.typeChecker, ast, parameters)
 else
   io.stderr:write '\nType checking...    skipped: WARNING! ONLY USE FOR MAB LANGUAGE DEVELOPMENT.\n'
-  io.stderr:flush()
 end
 
 if parameters.show.graphviz then
@@ -272,7 +261,6 @@ local _, code = runPhase(phases.toStackVM, ast, parameters)
 if parameters.show.code then
   print '\nGenerated code:'
   print(pt.pt(code))
-  io.flush()
 end
 
 local success, result, trace = runPhase(phases.interpreter, code, parameters)
@@ -291,7 +279,6 @@ if trace then
       end
     end
   end
-  io.flush()
 end
 if parameters.show.result and result ~= nil then
   print '\nResult:'
