@@ -77,7 +77,7 @@ function runPhase(phaseTable, phaseInput, parameters)
 
   if parameters.verbose then
     if not phaseTable.separatedOutput then
-      local extraBuffer = 13 - #phaseTable.name
+      local extraBuffer = 14 - #phaseTable.name
       io.write('\n'..phaseTable.name..'...'..(' '):rep(extraBuffer))
     else
       io.write('\n'..phaseTable.name..' starting...\n\n')
@@ -89,20 +89,20 @@ function runPhase(phaseTable, phaseInput, parameters)
   local success = result and errorReporter:count() == 0
 
   local message
-  -- We allow separated output in verbose mode.
-  if phaseTable.separatedOutput and parameters.verbose then
+  -- We allow only allow unified output in verbose mode.
+  if not phaseTable.separatedOutput and parameters.verbose then
     message = (string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
   -- If not in verbose mode, we only print the message if the phase failed,
   -- and we print the whole thing at once, never in two pieces.
   else
-    local extraBuffer = 11 - #phaseTable.name
+    local extraBuffer = 12 - #phaseTable.name
     message = string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n',
                   success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000)
   end
 
   if success and parameters.verbose then
     io.write(message)
-  else
+  elseif not success then
     io.stderr:write(message)
   end
 
