@@ -539,11 +539,17 @@ return: a = b;
 ### Arrays
 
 Arrays in Mab are indexed from element one, not zero.
-A feature to allow offset-indexing is on the roadmap.
 
 Mab is done this way because unifying the count and index of things is
 more natural and less confusing.
 It leads to intuitive properties such as the last element's index being the length of the array.
+
+However, if you want to index arrays by offset, use this notation, with a `+` before the first `[`:
+
+```
+# This sets the first element of a to 12:
+a+[0] = 12;
+```
 
 When creating an array, you use the `new` keyword:
 
@@ -1005,9 +1011,6 @@ whether to make changes.
 * `goto`.
 * Way of returning nothing, for functions that have no return type.
   * `exit` statement?
-* Offset-based array indexing syntax, for people who, when asked to count three apples,
-would say "Zero, one, two. Three apples!"
-  * Maybe `array+[0][0]`, `array+[1][1]` as equivalent to `array[1][1]` and `array[2][2]`?
 * Ability to get size of array, since it's static.
 * Language profiles with different rules.
   * Lua style, default `global`.
