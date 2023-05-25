@@ -544,11 +544,22 @@ Mab is done this way because unifying the count and index of things is
 more natural and less confusing.
 It leads to intuitive properties such as the last element's index being the length of the array.
 
-However, if you want to index arrays by offset, use this notation, with a `+` before the first `[`:
+To index an array, use this notation:
 
 ```
-# This sets the first element of a to 12:
+array identifier ['+']'[' expression ']'{ '[' expression ']' }
+```
+
+The optional `+` before the first `[]` is array offset notation, aka zero-indexing:
+
+```
+# This sets the first element of 'a'
+# to 12:
 a+[0] = 12;
+
+# A single '+' will make all indices
+# in the list offset-indexed:
+b+[0][1] = 10;
 ```
 
 When creating an array, you use the `new` keyword:
@@ -572,13 +583,6 @@ a: new [2][2][3];
 >
 > The grammar can accept expressions, and the expressions could be coded—and were in earlier versions of Mab—but
 > the type checker will reject array sizes that are not literals at the moment.
-
-
-
-To access an element for use in expression or assignment:
-```
-identifier '[' expression ']' {'[' expression ']'}
-```
 
 ### Control Structures
 #### If / ElseIf / Else
