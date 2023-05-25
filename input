@@ -280,9 +280,13 @@ get enter state: (x:number y:number) -> number {
 };
 
 get: (x:number y:number) -> number {
+  # To fix graphviz, swap these two lines..
   return display[18 - y + 1][x];
+  #return display[y][x];
 };
 
 set: (x:number y:number value:number) -> {
+  # To fix graphviz, swap these two lines..
   display[18 - y + 1][x] = value
+  #display[y][x] = value
 };
