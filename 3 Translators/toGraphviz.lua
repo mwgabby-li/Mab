@@ -47,7 +47,7 @@ end
 function Translator:finalize()
   local rank = self:makeRankString(self.statementNodeNames) .. self:makeRankString(self.ifNodeNames)
   
-  return 'digraph { \nsplines=true\n' .. self.file .. '\n\n'.. rank .. '\n}\n'
+  return 'digraph { \n splines=true\n' .. self.file .. '\n\n'.. rank .. '\n}\n'
 end
 
 function Translator:nodeExpression(ast)

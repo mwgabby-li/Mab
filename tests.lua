@@ -530,7 +530,7 @@ return b
   errorReporter, code = module.toStackVM.translate(ast)
   lu.assertNotEquals(code, nil)
   local parameters = {show ={trace = true}}
-  local errorReporter, result, trace = module.interpreter.execute(code, parameters)
+  errorReporter, result, trace = module.interpreter.execute(code, parameters)
   local divide = false
   for _, v in ipairs(trace) do
     if v:gmatch('divide')() then

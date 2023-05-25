@@ -465,7 +465,7 @@ function TypeChecker:checkExpression(ast)
     local testType = self:checkExpression(ast.test)
     if not self:typeMatches(testType, kBooleanType) then
       self:addError('Ternary condition expression must evaluate to boolean.\n'..
-                    'This expression evalulates to "'..self:toReadable(testType)..
+                    'This expression evaluates to "'..self:toReadable(testType)..
                     '."', ast.testPosition)
     end
 
@@ -477,7 +477,7 @@ function TypeChecker:checkExpression(ast)
                     self:toReadable(trueBranchType)..
                     ',"\n and the type of the false branch is "'..
                     self:toReadable(falseBranchType)..'."\n'..
-                    ' Further type checks in this run will assume this evaulated to "'..
+                    ' Further type checks in this run will assume this evaluated to "'..
                     self:toReadable(trueBranchType)..'."', ast)
     end
 

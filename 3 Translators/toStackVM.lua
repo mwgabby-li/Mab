@@ -352,7 +352,7 @@ function Translator:codeAssignment(ast)
   local target = ast.target
   if target.tag == 'variable' then
     self:codeExpression(ast.assignment)
-    local index = self:findLocal(ast.target.name)
+    local index = (self:findLocal(ast.target.name))
     if index then
       self:addCode('storeLocal')
       self:addCode(index)
