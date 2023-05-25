@@ -243,7 +243,7 @@ function common.toReadableType(type_)
     for i = 1,numDimensions do
       explicitDimensions = explicitDimensions..'['..type_.dimensions[i]..']'
     end
-    return dimensionString .. 'array ('..explicitDimensions..') of "'.. common.toReadableType(type_.elementType)..'"s'
+    return dimensionString .. 'array ('..explicitDimensions..') of \''.. common.toReadableType(type_.elementType)..'\'s'
   end
 end
 
