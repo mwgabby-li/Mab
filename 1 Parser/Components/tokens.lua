@@ -50,6 +50,7 @@ module.op.comparison = T((C(l.op.greaterOrEqual) + C(l.op.greater) +
 module.op.unarySign = T(C(P(l.op.positive) + l.op.negate))
 module.op.not_ = T(C(l.op.not_))
 module.op.print = T(l.op.print)
+module.op.indexByOffset = T(l.op.indexByOffset)
 module.op.logical = T(C(l.op.and_) + C(l.op.or_))
 module.op.ternary = T(l.op.ternary)
 module.op.ternaryBranch = T(l.op.ternaryBranch)

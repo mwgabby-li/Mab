@@ -186,7 +186,11 @@ function Translator:codeExpression(ast)
   elseif ast.tag == 'arrayElement' then
     self:codeExpression(ast.array)
     self:codeExpression(ast.index)
-    self:addCode('getArray')
+    if ast.indexByOffset then
+      self:addCode('getArrayOffset')
+    else
+      self:addCode('getArray')
+    end
   elseif ast.tag == 'newArray' then
     if ast.size.tag ~= 'number' then
       self:addError('New array sizes must be literal numbers.', ast)
@@ -366,7 +370,12 @@ function Translator:codeAssignment(ast)
     self:codeExpression(ast.target.array)
     self:codeExpression(ast.target.index)
     self:codeExpression(ast.assignment)
-    self:addCode('setArray')
+
+    if ast.target.indexByOffset then
+      self:addCode('setArrayOffset')
+    else
+      self:addCode('setArray')
+    end
   else
     self:addError('Unknown write target type, tag was "'..tostring(ast.tag)..'."', ast)
   end

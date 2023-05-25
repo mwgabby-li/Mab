@@ -29,7 +29,7 @@ local phases = {
     name = 'Type Checker',
     actionName = 'type checking',
     inputName = 'AST',
-    version = 3645030261,
+    version = 3006704176,
   },
 
   graphviz = {
@@ -45,7 +45,7 @@ local phases = {
     name = 'Stack VM',
     actionName = 'generating Stack VM code',
     inputName = 'AST',
-    version = 3645030261,
+    version = 3006704176,
     abortOnFailure = 'Failed to generate StackVM code from AST.',
   },
 
@@ -58,7 +58,7 @@ local phases = {
     -- for the program to output, then prints
     -- the completion message.
     separatedOutput = true,
-    version = 2159614884,
+    version = 1035539704,
   },
 }
 

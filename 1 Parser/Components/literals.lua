@@ -4,6 +4,7 @@ local module = { op = {}, delim = {}, sep = {}, comments = {}  }
 --  Operators
 module.op.assign = '=' -- Assign is a special case. It's a statement operator.
 module.op.print = '@'  -- Same with print.
+module.op.indexByOffset = '+' -- Indicates an array should be offset-indexed. (Length minus one is the last element.)
 
 -- Literals for binary operators
 module.op.add = '+'

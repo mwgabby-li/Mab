@@ -216,14 +216,18 @@ function StackVM:run(code)
       -- then overwrite the next one!
       self.stack[self.top] = array
       -- We consumed our default value from the stack, then pushed ourself, so no changes to the stack size.
-    elseif code[pc] == 'setArray' then
+    elseif code[pc] == 'setArray' or code[pc] == 'setArrayOffset' then
       -- Which array we're getting is two elements below
       local array = self.stack[self.top - 2]
       -- The index in the array is one element below
       local index = self.stack[self.top - 1]
       -- Finally, the value we're setting to the array is at the top.
       local value = self.stack[self.top - 0]
-      
+
+      if code[pc] == 'setArrayOffset' then
+        index = index + 1
+      end
+
       self:traceCustom(code[pc] .. ' ' .. '[' .. index .. '] = ' .. tostring(value))
 
       if index > array.size or index < 1 then
@@ -235,14 +239,18 @@ function StackVM:run(code)
 
       -- Pop the three things
        self:popStack(3)
-   elseif code[pc] == 'getArray' then
+   elseif code[pc] == 'getArray' or code[pc] == 'getArrayOffset' then
       -- The array we are getting is one element below 
       local array = self.stack[self.top - 1]
       -- The index we're getting from the array is at the top
       local index = self.stack[self.top - 0]
+      
+      if code[pc] == 'getArrayOffset' then
+        index = index + 1
+      end
 
       self:traceCustom(code[pc] .. ' ' .. '[' .. index .. ']')
-      
+
       -- We have consumed two things, but we're about to add one:
       -- so just decrement by one to simulate popping two and pushing one.
       self:popStack(1)

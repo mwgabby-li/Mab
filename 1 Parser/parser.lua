@@ -107,8 +107,9 @@ end
 
 local function foldArrayElement(list)
   local tree = list[1]
-  for i = 2, #list, 2 do
-    tree = { tag = 'arrayElement', array = tree, position = list[i], index = list[i + 1] }
+  local indexByOffset = list[2]
+  for i = 3, #list, 2 do
+    tree = { tag = 'arrayElement', array = tree, position = list[i], index = list[i + 1], indexByOffset = indexByOffset }
   end
   return tree
 end
@@ -185,7 +186,7 @@ blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.clos
 elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
 variable = Cp() * identifier / nodeVariable,
-target = Ct(variable * (delim.openArray * Cp() * expression * delim.closeArray)^0) / foldArrayElement,
+target = Ct(variable * (((op.indexByOffset * Cc(true)) + Cc(false)) * (delim.openArray * Cp() * expression * delim.closeArray)^1)^0) / foldArrayElement,
 functionCall = target * Cp() * delim.openFunctionParameterList * arguments * delim.closeFunctionParameterList / nodeFunctionCall,
 arguments = Ct((expression * (sep.argument * expression)^0)^-1),
 

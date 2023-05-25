@@ -1543,6 +1543,39 @@ entry point: -> number {
 
 end
 
+function module:testOffsetIndexing()
+  local input =
+[[entry point: -> number {
+    a: new [2][2] 3;
+    a+[0][0] = 0;
+    a+[0][1] = 1;
+    a+[1][0] = 10;
+    a+[1][1] = 11;
+
+    return a+[0][0] + a+[0][1] + a+[1][0] + a+[1][1];
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 22)
+
+  -- Test with an array with different sizes in each dimension:
+  input =
+[[entry point: -> number {
+    a: new [2][3] 3;
+    a+[0][0] = 0;
+    a+[0][1] = 1;
+    a+[0][2] = 2;
+    a+[1][0] = 10;
+    a+[1][1] = 11;
+    a+[1][2] = 12;
+
+    return a+[0][0] + a+[0][1] + a+[0][2] + a+[1][0] + a+[1][1] + a+[1][2];
+}
+]]
+
+  lu.assertEquals(self:fullTest(input), 36)
+end
+
 -- Aspirational. The issue is that expressions can't contain blocks.
 -- Basically, this is a test of lambdas.
 --function module:testCreateFunctionWithTernaryExpressionBodies()
