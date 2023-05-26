@@ -55,8 +55,8 @@ function Translator:nodeFunctionCall(ast, depth)
   while target.tag == 'arrayElement' do
     target = target.array
   end
-  
-  local argumentList = '()'
+
+  local argumentList = 'none'
   if #ast.arguments > 0 then
     argumentList = '(...)'
   end
@@ -68,8 +68,10 @@ function Translator:nodeFunctionCall(ast, depth)
 end
 
 function Translator:nodeExpression(ast, depth)
-  if ast.tag == 'number' or ast.tag =='boolean' or ast.tag == 'string' then
+  if ast.tag == 'number' or ast.tag =='boolean' then
     self:appendNode(ast, false, tostring(ast.value))
+  elseif ast.tag == 'string' then
+    self:appendNode(ast, false, string.gsub(ast.value, '"', '\\"'))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.name)
   elseif ast.tag == 'functionCall' then
@@ -115,7 +117,7 @@ function Translator:appendNode(ast, sequence, label, ...)
   
   local arguments = table.pack(...)
   local firstChild = arguments[1]
-  local secondChild = arguments[2]
+  local secondChild = type(arguments[2]) == 'table' and arguments[2] or nil
 
   local parentPortFirst = ''
   local childPortFirst = ''
@@ -137,7 +139,7 @@ function Translator:appendNode(ast, sequence, label, ...)
   
   local labelsStart
   for i = 1, arguments.n do
-    if type(arguments[i]) ~= 'table' then
+    if arguments[i] and type(arguments[i]) ~= 'table' then
       labelsStart = i
       break
     end
@@ -224,13 +226,14 @@ function Translator:nodeStatement(ast, depth, fromIf)
       scopeLabel = ' '
     end
     if ast.assignment then
-      self:appendNode(ast, false, ast.name .. ':'..scopeLabel..'\n'..common.toReadableType(ast.type_), ast.assignment)
-      
       if ast.assignment.tag == 'block' then
         depth = depth + 1;
+        self:appendNode(ast, false, ast.name .. ':'..scopeLabel..'\n'..common.toReadableType(ast.type_), ast.assignment.body, '{...}')
+        self:nodeStatement(ast.assignment.body, depth)
+      else
+        self:appendNode(ast, false, ast.name .. ':'..scopeLabel..'\n'..common.toReadableType(ast.type_), ast.assignment)
+        self:nodeExpression(ast.assignment, depth)
       end
-      self:nodeExpression(ast.assignment, depth)       
-      
     else
       self:appendNode(ast, false, ast.name..':'..scopeLabel..'\n'..common.toReadableType(ast.type_))
     end
@@ -262,13 +265,6 @@ function Translator:nodeStatement(ast, depth, fromIf)
   else
     self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
   end
-end
-
-function Translator:nodeFunction(ast)
-  local label = '() ➔ ' .. ast.resultType.tag .. ':\n' .. ast.target.name
-
-  self:appendNode(ast, false, label, ast.block)
-  self:nodeStatement(ast.block)
 end
 
 function Translator:translate(ast)

@@ -229,12 +229,21 @@ if parameters.show.graphviz then
   if success then
     local prefix = parameters.inputFile or 'temp'
     local dotFileName = prefix .. '.dot'
-    local dotFile = io.open(dotFileName, 'wb')
+    local dotFile = io.open(dotFileName, 'w')
     dotFile:write(graphviz)
     dotFile:close()
     local svgFileName = prefix .. '.svg'
-    os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
-    os.execute('firefox "'.. svgFileName .. '" &')
+    local retries = 5
+    for i=1,retries do
+      local result = os.execute('dot ' .. '"' .. dotFileName .. '" -Tsvg -o "' .. svgFileName .. '"')
+      if result then
+        break
+      else
+        -- GraphViz has been known to crash on valid input.
+        io.stderr:write('GraphViz failure. Retry attempt '..i..' of '..retries..'...\n')
+      end
+    end
+    os.execute('"'.. svgFileName .. '" &')
   else
     io.stderr:write('GraphViz failed.')
     if typeCheckerSuccess then
