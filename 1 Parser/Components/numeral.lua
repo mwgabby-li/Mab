@@ -11,7 +11,7 @@ local decimalDigit = R'09'
 
 local naturalNumber = decimalDigit * (P' '^-1 * decimalDigit)^0
 local fraction = ('.' * (P' '^-1 * decimalDigit)^0)
-local numeralExponent = S'eE' * '^' * S('+-')^-1 * decimalDigit * (P' '^-1 * decimalDigit)^0
+local numeralExponent = P'b^' * S('+-')^-1 * decimalDigit * (P' '^-1 * decimalDigit)^0
 
 -- It's rather important that this always include something required that's not allowed in
 -- base numerals, or else it might capture part of a base numeral number.
@@ -55,7 +55,7 @@ local baseNumeral = baseDigit * (P' '^-1 * baseDigit)^0
 
 local function stripToNumber(capture)
   capture = capture:gsub('%s+', '')
-  capture = capture:gsub('%^', '')
+  capture = capture:gsub('b%^', 'e')
 
   return tonumber(capture)
 end
