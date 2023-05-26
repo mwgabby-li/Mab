@@ -14,6 +14,44 @@ in a dress, her feet straight down,
 and below her feet a single star.
 "Queen Mab" is written in the middle in script,
 one word on either side of the figure.](Artwork/QueenMabDark.png#gh-dark-mode-only "Queen Mab, Illustration by Willy Pogany")
+_Image from_ A Treasury of Verse for Little Children, _illustrated by William Andrew Pogany, stories selected by
+M. G. Edgar_.
+
+## On Names
+
+One of the things Mab is named after is [a moon, Uranus XXVI](https://solarsystem.nasa.gov/moons/uranus-moons/mab/in-depth/).
+A moon reference was chosen as a nod to the Lua programming language, and to Roberto Ierusalimschy.
+
+Mab's translation suite and interpreter is written in [Lua](https://www.lua.org/) and uses [LPeg](https://www.inf.puc-rio.br/~roberto/lpeg/),
+and the class where Mab was constructed was led by Roberto.
+
+Uranus XXVI and and Mab are both also named after the fairy queen that is referenced in Shakespeare's _Romeo and Juliet_.
+
+Reasons for the name:
+* A moon reference, as a tip of the hat to Lua. 
+* Not used by any other technology as far as I could tell. 
+* Diminutive character: The language is a tiny toy for a class, and Mab is tiny in the story. 
+* A thing of dreams and fantasies: It is an experiment in some of the PL fantasies I've dreamt of. 
+* Tricks, fate, and the dark side of dreams: I'm not expecting everything to work out. The fact that it's only a mirrored character away from "Mad" is another thing beyond the story that plays into this.
+
+The [original poem (known as _Mercutio's speech_) can be found on Wikipedia](https://en.wikipedia.org/wiki/Queen_Mab#Mercutio's_speech).
+
+An extremely shortened form of the poem, which was composed for the Mab programming language, is below:
+
+> _In dreams, Queen Mab arrives unseen,_\
+ _A dainty fairy, slight and lean._\
+_Upon a carven hazelnut,_\
+_With insect steeds, reigns finely cut._
+>
+> _Through slumber's realm, she softly flies,_\
+_Bestowing dreams before our eyes._\
+_To lovers' hearts, brings sweet amour,_\
+_To soldiers, scenes of battles' roar._
+>
+> _Beware her touch, enchanting still,_\
+_For fickle fate may bend at will._\
+_In dreams, delight may find its cost,_\
+_As morning breaks, and all is lost._
 
 ## Instructions for Using Language, Input Program, and Test Suite
 
@@ -38,6 +76,7 @@ You can also invoke Mab like this if it's marked executable (which it should be 
 ```
 ./mab.lua input
 ```
+
 
 ## Language Syntax
 
