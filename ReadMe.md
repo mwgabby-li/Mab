@@ -856,7 +856,7 @@ Mab supports a robust array of command-line options:
 * `--trace`/`-t`: Output an execution trace, with stack state after each instruction.
 * `--result`/`-r`: Output the result of the program. (The return value from `entry point`.)
 * `--echo-input`/`-e`: Output what was sent in to translate.
-* `--graphviz`/`-g`: Generate a graphviz visualization and open it in Firefox. (Unstable.)
+* `--graphviz`/`-g`: Generate a graphviz visualization and open it in the default application.
 * `--pegdebug`/`-p`: Annotate the grammar with PegDebug before translating.
 * `--stop-on-first-error`/`-s`: Stop outputting errors after the first.
 * `--verbose`/`-v`: Output detailed information about stage execution.
