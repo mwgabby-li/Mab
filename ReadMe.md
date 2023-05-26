@@ -1053,6 +1053,8 @@ whether to make changes.
   * Seems to conflict with other goals. Maybe have a construct that indicates
   a statement should produce a result?
   * This could replace `return`...
+  * Maybe the idea of having blocks being assigned to variables as long as they return a value
+  would accomplish this in practice?
 * Mix static and dynamic type checking.
   * See earlier idea of language profiles.
 * Fix-ups for undefined globals and exports, or whatever concept is used for modules.
