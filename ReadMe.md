@@ -86,8 +86,15 @@ The grammar examples are in Extended Backus-Naur Form,
 
 ### Identifiers
 
-In Mab, identifiers may not start with digits, but are allowed to contain the letters
+In Mab, identifiers are allowed to contain the letters
 `A`-`Z`, `a`-`z`, the digits `0`-`9`, and underscores.
+
+They may start with digits, but must contain at least one letter,
+and may not end with the following suffix, as it indicates a number in base notation:
+
+```
+' b' digit {[' '] digit}
+```
 
 In addition to this, Mab supports single spaces and dashes in identifiers with more
 rules.
@@ -110,6 +117,15 @@ dashed-identifier: 10;
 # Valid, but maybe avoid this.
 _-_: 10;
 
+# Valid:
+1st: 1;
+
+# Valid:
+Blob10: true;
+
+# Invalid, ending in ' b<digits>` is not allowed.
+Blo b10: true;
+
 # Invalid:
 -leading-dash-identifier: 10;
 
@@ -131,30 +147,62 @@ Bree Over-the-Water: 10;
 Boolean literals are `true` and `false`.
 
 #### Numerals
-Mab indicates a number of a specific base with the following format:
 
-`0n<digits>`, where `n` is the last digit in the base. For example, `09 128` is the
-number 128 in base 10, and `07 200` is 128 in base 8. `0F 80` is the same number in
+##### Base 10
+For base 10 numerals, Mab is typical, other than allowing single spaces between digits:
+
+```
+digit {[' '] digit}
+```
+
+The single spaces are supported for digit grouping. For example, `1 000 000` is
+valid as a way of writing the number one million.
+
+Numerals in base 10 without a base prefix may also have a fractional part, denoted by:
+```
+'.' [digit {[' '] digit}]
+```
+They may also have an exponent, denoted by:
+```
+'b^' ['+' | '-'] digit {[' '] digit}
+```
+Note that `b^` must be included, not just `b`. ` b^` is meant to suggest 'number's base to power.'
+
+Some examples:
+```
+112.       # 112
+112.0      # 112
+112b^7     # 1 120 000 000
+112.1 b^+7 # 1 121 000 000
+112.1b^-3  # 0.1121
+```
+
+##### Bases 1-37
+
+Mab indicates a numeral of a specific base with the following format, up to base 37:
+
+```
+digitOrLetter {[' '] digitOrLetter} ' b' digit {digit}
+```
+
+Base 37 is the limit because that's the maximum numeral that can be represented with digits
+composed of `0-9`, `a-z`, starting from `a` as 10 to `z` as 36.
+
+The trailing `' b' digit {digit}` is the base. For example, `128 b10` is the
+number 128 in base 10, and `200 b8` is 128 in base 8. `80 b16` is the same number in
 hexidecimal.
 
-Mab supports single spaces in numerals for digit grouping. For example, `1 000 000` is
-valid as a way of writing the number one million.
-This also works with base notation, and in fact the separator between the base prefix
-and the rest of the number is just part of this feature.
+Note that a single space between the number and the base indicator is required.\
 
-For example, one might write `0F FF FF 00` to group a 3-byte (24-bit) color,
-or `01 1000 0110 1111` to write out a boolean mask in a readable way.
+`b` is meant to suggest the word 'base.'
 
-The default base in Mab is base 10, and in this base, no base prefix is necessary.
+In base 37—the maximum supported—128 would be `3h b37`.
 
-Numerals in base 10 without a base prefix may also have a fractional part and an
-exponent:
-```
-112.10e10;
-112.0
-112.
-.01e-3
-```
+Digit grouping with spaces is also supported for numbers written in arbitrary base notation.
+
+For example, one might write `FF FF 00 b16` to group a 3-byte (24-bit) color,
+or `1000 0110 1111 b2` to write out a boolean mask in a readable way.
+
 > *Background*
 > 
 > Digit grouping with spaces is supported by many standards organizations.
@@ -1067,10 +1115,6 @@ whether to make changes.
 * Use keywords for block delimiters rather than symbols.
   * A capture that looks at an entire line that starts with an identifier character
   in a location that an identifier is allowed could work for this.
-* Support trailing base notation for numbers, rather than prefix.
-  * `1000 b2`, for example.
-  * Allow identifiers to start with numbers, as long as they contain at least one letter or underscore,
-  and don't contain a trailing `b<n>`.
 * Enumerations.
 * For version hashing, strip irrelevant information like comments and whitespace out of the file first.
   * Considered using hash of Lua bytecode, but it's not portable and not stable across versions.
@@ -1105,6 +1149,7 @@ whether to make changes.
 * Report source line on interpreter errors.
 * Full debugger support.
 * Bitwise operators with the same operator as booleans.
+* Exponents and fractions for all numbers, not just base 10.
 
 ## References
 Some links relevant to languages and development of the Mab language.
