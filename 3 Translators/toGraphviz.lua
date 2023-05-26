@@ -1,6 +1,8 @@
 local module = {}
 local common = require 'common'
 
+local kSIMPLIFIED_OUTPUT = false
+
 local Translator = {}
 
 function Translator:new(o)
@@ -20,6 +22,44 @@ function Translator:addError(...)
   if self.errorReporter then
     self.errorReporter:addError(...)
   end
+end
+
+local function append(table, ...)
+  for _, toAppend in ipairs{...} do
+    for i, value in ipairs(toAppend) do
+      table[#table + 1] = value
+    end
+  end
+  return table
+end
+
+local function hasSimpleLabel(ast)
+  return ast.tag == 'number' or ast.tag =='boolean' or
+         ast.tag == 'string' or ast.tag == 'variable'
+end
+
+function Translator:getAsLabel(ast)
+  if ast.tag == 'number' or ast.tag =='boolean' then
+    return tostring(ast.value)
+  elseif ast.tag == 'string' then
+    return string.gsub(ast.value, '"', '\\"')
+  elseif ast.tag == 'variable' then
+    return ast.name
+  end
+end
+
+function Translator:labelOrArgs(expression, name, fullLabel, args, labels, depth)
+  local label = self:getAsLabel(expression)
+
+  if label then
+    fullLabel = fullLabel..label
+  else
+    fullLabel = fullLabel..name
+    args[#args+1] = expression
+    labels[#labels+1] = name
+    self:nodeExpression(expression, depth)
+  end
+  return fullLabel, label ~= nil
 end
 
 function Translator:getID(ast)
@@ -80,22 +120,110 @@ function Translator:nodeExpression(ast, depth)
     self:appendNode(ast, false, '{...}', ast.body)
     self:nodeStatement(ast.body, depth)
   elseif ast.tag == 'newArray' then
-    self:appendNode(ast, false, 'new[...]', ast.size, ast.initialValue )
-    self:nodeExpression(ast.size, depth)
-    self:nodeExpression(ast.initialValue, depth)
+    local simpleLabel = true
+    local seek = ast
+    while seek.tag == 'newArray' do
+      if not hasSimpleLabel(seek.size) then
+        simpleLabel = false
+        break
+      end
+      seek = seek.initialValue
+    end
+
+    if simpleLabel and kSIMPLIFIED_OUTPUT then
+      local original = ast
+      local args = {}
+      local labels = {}
+      local fullLabel = 'new'
+      while ast.tag == 'newArray' do
+        fullLabel = fullLabel..'['
+        fullLabel = self:labelOrArgs(ast.size, 'Size', fullLabel, args, labels, depth)
+        fullLabel = fullLabel .. ']'
+        ast = ast.initialValue
+      end
+      fullLabel = fullLabel..' '
+
+      fullLabel = self:labelOrArgs(ast, 'Initial', fullLabel, args, labels, depth)
+
+      self:appendNode(original, false, fullLabel, table.unpack(append(args, labels)))
+    else
+      self:appendNode(ast, false, 'new[...]', ast.size, ast.initialValue )
+      self:nodeExpression(ast.size, depth)
+      self:nodeExpression(ast.initialValue, depth)
+    end
   elseif ast.tag == 'arrayElement' then
-    self:appendNode(ast, false, '[...]', ast.array, ast.index, nil, '...')
-    self:nodeExpression(ast.array, depth)
-    self:nodeExpression(ast.index, depth)
+    local reversed = {}
+    local seek = ast
+    while seek.tag == 'arrayElement' do
+      reversed[#reversed + 1] = seek
+      seek = seek.array
+    end
+
+    for i = 1,#reversed // 2 do
+      local temp = reversed[i]
+      local inverted = #reversed - i + 1
+      reversed[i] = reversed[inverted]
+      reversed[inverted] = temp
+    end
+
+    -- If all of the index elements are simple, just display it as a string.
+    local simpleLabel = true
+    for _, element in ipairs(reversed) do
+      if not hasSimpleLabel(element.index) then
+        simpleLabel = false
+        break
+      end
+    end
+
+    if simpleLabel and kSIMPLIFIED_OUTPUT then
+      local args = {}
+      local labels = {}
+      local fullLabel = ''
+      fullLabel = self:labelOrArgs(seek, 'Target', fullLabel, args, labels, depth)
+      for i, element in ipairs(reversed) do
+        fullLabel = fullLabel..'['
+        fullLabel = self:labelOrArgs(element.index, ' ['..i..'] ', fullLabel, args, labels, depth)
+        fullLabel = fullLabel .. ']'
+      end
+
+      self:appendNode(ast, false, fullLabel, table.unpack(append(args, labels)))
+    else
+      self:appendNode(ast, false, '[...]', ast.array, ast.index, nil, '...')
+      self:nodeExpression(ast.array, depth)
+      self:nodeExpression(ast.index, depth)
+    end
   elseif ast.tag == 'ternary' then
-    self:appendNode(ast, false, '?:', ast.test, ast.trueExpression, ast.falseExpression)
-    self:nodeExpression(ast.test, depth)
-    self:nodeExpression(ast.trueExpression, depth)
-    self:nodeExpression(ast.falseExpression, depth)
+    if kSIMPLIFIED_OUTPUT then
+      local ternaryLabel = ''
+      local args = {}
+      local labels = {}
+
+      local label, added= self:labelOrArgs(ast.test, 'Test', '', args, labels, depth)
+      label = label..' ? '
+      label = self:labelOrArgs(ast.trueExpression, 'If True', label, args, labels, depth)
+      label = label..' : '
+      label, addedLabel = self:labelOrArgs(ast.falseExpression, 'If False', label, args, labels, depth)
+    else
+      self:appendNode(ast, false, '?:', ast.test, ast.trueExpression, ast.falseExpression)
+      self:nodeExpression(ast.test, depth)
+      self:nodeExpression(ast.trueExpression, depth)
+      self:nodeExpression(ast.falseExpression, depth)
+    end
+
+    self:appendNode(ast, false, label, table.unpack(append(args, labels)))
   elseif ast.tag == 'binaryOp' then
-    self:appendNode(ast, false, ast.op, ast.firstChild, ast.secondChild)
-    self:nodeExpression(ast.firstChild, depth)
-    self:nodeExpression(ast.secondChild, depth)
+    if kSIMPLIFIED_OUTPUT and hasSimpleLabel(ast.firstChild) and hasSimpleLabel(ast.secondChild) then
+      local args = {}
+      local labels = {}
+      local label, added = self:labelOrArgs(ast.firstChild, '[1]', '', args, labels, depth)
+      label = label..' '..ast.op..' '
+      label = self:labelOrArgs(ast.secondChild, '[2]', label, args, labels, depth)
+      self:appendNode(ast, false, label, table.unpack(append(args, labels)))
+    else
+      self:appendNode(ast, false, ast.op, ast.firstChild, ast.secondChild)
+      self:nodeExpression(ast.firstChild, depth)
+      self:nodeExpression(ast.secondChild, depth)
+    end
   elseif ast.tag == 'unaryOp' then
     self:appendNode(ast, false, ast.op, ast.child)
     self:nodeExpression(ast.child, depth)
