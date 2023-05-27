@@ -106,41 +106,41 @@ The variables `delta x:number` and `deltax:number` are two different identifiers
 and this line of code is a syntax error, because it contains more than one space
 between `delta` and `x`:
 ```
-delta    x:number;
+delta    x:number
 ```
 
 Dashes may only be placed between two other alphanumeric characters+underscores in a
 variable name:
 ```
 # Valid
-dashed-identifier: 10;
+dashed-identifier: 10
 
 # Valid, but maybe avoid this.
-_-_: 10;
+_-_: 10
 
 # Valid:
-1st: 1;
+1st: 1
 
 # Valid:
-Blob10: true;
+Blob10: true
 
 # Invalid, ending in ' b<digits>` is not allowed.
-Blo b10: true;
+Blo b10: true
 
 # Invalid:
--leading-dash-identifier: 10;
+-leading-dash-identifier: 10
 
 # Invalid:
-trailing-dash-identifier-: 10;
+trailing-dash-identifier-: 10
 
 # Invalid:
-dash-and- space-identifier: 10;
+dash-and- space-identifier: 10
 
 # Invalid:
-dash-and -space-identifier: 10;
+dash-and -space-identifier: 10
 
 # Valid:
-Bree Over-the-Water: 10;
+Bree Over-the-Water: 10
 ```
 ### Literals
 
@@ -227,25 +227,25 @@ For example:
 
 ```
 entry point: -> number {
-  a string: '# Let''s have fun!';
+  a string: '# Let''s have fun!'
 
   an embedded program:
     '
     # Our favorite recursive program
     entry point: -> number {
       return factorial(10)
-    };
+    }
     
     factorial: (n:number) -> number {
       if n = 0 {
-        return 1;
-      };
-      return n * factorial(n - 1);
+        return 1
+      }
+      return n * factorial(n - 1)
     }
-    ';
+    '
 
-  @a string;
-  @an embedded program;
+  @a string
+  @an embedded program
 }
 ```
 
@@ -256,14 +256,14 @@ Will output:
 # Our favorite recursive program
 entry point: -> number {
   return factorial(10)
-};
+}
 
 factorial: (n:number) -> number {
   if n = 0 {
-    return 1;
-  };
-  return n * factorial(n - 1);
-};
+    return 1
+  }
+  return n * factorial(n - 1)
+}
 
 ```
 
@@ -271,10 +271,17 @@ factorial: (n:number) -> number {
 
 In Mab, as functions are first-class, variable definitions and function definitions are fundamentally identical:
 ```
-identifier ':' [scope] [type] [['='] value]
+identifier ':' [scope] ([type] ['='] value | 'default' type)
 ```
 
 `value` is either an expression, or a block.
+
+If no value is specified, then the `default` keyword must be used, followed by a type:
+```
+x: default number
+
+y: default boolean
+```
 
 The equals sign is optional, and may be omitted. However, it can be more natural to
 include after scope or type keywords to make it clearer that it's an assignment.
@@ -287,15 +294,15 @@ This is a consequence of not supporting default values for array types.
 More or less natural:
 ```
 # This is valid:
-variable:global number 12;
+variable:global number 12
 
 # But this may be more readable:
-variable2:global number = 12;
+variable2:global number = 12
 ```
 
 Disambiguation:
 ```
-global style: false;
+global style: false
 
 # This will fail, because it will be
 # read as:
@@ -304,11 +311,11 @@ global style: false;
 # 'failed style' being assigned the
 # value of  another variable named
 # 'style,' which doesn't exist.
-failed style: global style;
+failed style: global style
 
 # This will work, because the equals
 # sign disambiguates.
-successful style := global style;
+successful style := global style
 ```
 
 The `identifier` is the name of the variable or function. `scope` and `type` are
@@ -316,12 +323,10 @@ described in following sections.
 
 ### Top-Level
 
-A Mab program is a series of new variable statements separated by semicolons.
+A Mab program is a series of new variable statements.
 
 All variables at the top level are global by default, and particularly functions must be global.
 It's currently an error to specify a top-level function as anything else.
-
-Unfortunately, this means that yes, you do need semicolons after function blocks:
 
 ```
 factorial: (n:number) -> number {
@@ -330,11 +335,11 @@ factorial: (n:number) -> number {
     } else {
         return n * factorial(n - 1)
     }
-}; # < Don't forget this semicolon!
+}
 
 entry point: () -> number {
     return factorial(5)
-} # < The final definition's semicolon is optional.
+}
 ```
 
 #### The Entry Point
@@ -403,9 +408,9 @@ An example of some functions and variables in this syntax:
 # `call` keyword, any other use
 # would be a type checker error.
 global container: -> {
-    g:global = 12;
-    @g;
-};
+    g:global = 12
+    @g
+}
 
 factorial: (n:number) -> number {
     if n = 0 {
@@ -413,31 +418,31 @@ factorial: (n:number) -> number {
     } else {
         return n * factorial(n - 1)
     }
-};
+}
 
 sum: (a:number b:number) -> number = {
     return a + b
-};
+}
 
 # Commas can also be added if
 # desired:
 div: (a:number, b:number) -> number {
     return a / b
-};
+}
 
 # This could also be written as
 #   entry point: -> number
 entry point: () -> number {
-    call global container();
+    call global container()
 
     # Fully specified variable
-    a:local number = 2;
+    a:local number = 2
     # Scope and type are optional...
-    b:= 2;
+    b:= 2
     # Equals also optional...
     # Other than the name, the same
     # as the two previous.
-    c: 2;
+    c: 2
 
     return factorial( div( sum( a, b ) * c, 2 ) )
 }
@@ -459,13 +464,13 @@ again, just a thing that *evaluates* to a number.)
 
 A couple of basic assignment examples:
 ```
-a:number;
+a:default number
 
-a = 3 * 6 + 4;
+a = 3 * 6 + 4
 
-b: new[2][2] boolean;
+b: new[2][2] boolean
 
-b[1][1] = true;
+b[1][1] = true
 ```
 
 ### Unary and Binary Operators
@@ -475,13 +480,13 @@ Particularly, using a boolean operator with a number is an error.
 
 If you're familiar with C or C++, you might tend to do this:
 ```
-a:number = 0;
+a:number = 0
 
 # Operations on a...
 
 if a {
     # ...
-};
+}
 ```
 But that's an error.
 
@@ -489,7 +494,7 @@ This is probably what you want:
 ```
 if a ~= 0 {
     # ...
-};
+}
 ```
 
 Mab contains the following unary operators:
@@ -548,10 +553,10 @@ expression '?' expression ':' expression
 
 An example of usage:
 ```
-a: 10;
-b: 12;
+a: 10
+b: 12
 
-c: a < b ? true : false;
+c: a < b ? true : false
 ```
 
 ### Operator Precedence
@@ -587,7 +592,7 @@ print: (n:number) -> {
 }
 
 entry point: -> number {
-    call print(10);
+    call print(10)
 }
 ```
 
@@ -601,27 +606,27 @@ Syntax for returns is as follows:
 
 A basic example:
 ```
-a: 12;
-b: 10;
+a: 12
+b: 10
 
-return a * b;
+return a * b
 ```
 
 One issue with return is that return can be confused with assignment in some cases.
 The optional colon can be used to prevent this.
 ```
-a: true;
-b: false;
+a: true
+b: false
 
 # This will be read as:
-#   (return a) = b;
+#   (return a) = b
 # (Note that the parentheses above
    are for clarification,
    they aren't supported.)
-return a = b;
+return a = b
 
 # You can correct this with the optional colon:
-return: a = b;
+return: a = b
 ```
 
 ### Arrays
@@ -643,11 +648,11 @@ The optional `+` before the first `[]` is array offset notation, aka zero-indexi
 ```
 # This sets the first element of 'a'
 # to 12:
-a+[0] = 12;
+a+[0] = 12
 
 # A single '+' will make all indices
 # in the list offset-indexed:
-b+[0][1] = 10;
+b+[0][1] = 10
 ```
 
 When creating an array, you use the `new` keyword:
@@ -659,7 +664,7 @@ When creating an array, you use the `new` keyword:
 The expression here is the default value of all the elements of the array.
 
 ```
-a: new [2][2][3];
+a: new [2][2][3]
 ```
 
 > *Note*
@@ -686,17 +691,17 @@ The expressions must evaluate to booleans.
 
 An example of usage:
 ```
-a: 12;
-b: 10;
+a: 12
+b: 10
 
 # Output the lesser of the two:
 if a < b {
-    @a;
+    @a
 } elseif a > b {
-    @b;
+    @b
 # If equal, output the sum:
 } else {
-    @a + b;
+    @a + b
 }
 ```
 
@@ -710,14 +715,14 @@ The while loop is also typical. The syntax is as follows:
 
 An example of usage:
 ```
-a: 1;
-b: 10;
+a: 1
+b: 10
 
 # This will print the numbers
 # 1 through 10 inclusive:
 while a <= b {
-    @a;
-    a = a + 1;
+    @a
+    a = a + 1
 }
 ```
 
@@ -727,13 +732,13 @@ The print statement is the character `@` followed by an expression:
 
 ```
 entry point: -> number {
-    n: 12;
-    @n;
+    n: 12
+    @n
     
-    a: new [2][2] true;
-    a[1][1] = false;
+    a: new [2][2] true
+    a[1][1] = false
     @a
-};
+}
 ```
 
 The output from the example above is:
@@ -764,8 +769,8 @@ Example of usage:
     # This code will not be executed
     # because it is commented out in
     # this block comment:
-    a: 10;
-    @a;
+    a: 10
+    @a
 #}
 ```
 
@@ -784,7 +789,7 @@ ternary match in type (which they don't!) and then return the type of the first 
 order to continue checking, whether the check passed.
 
 ```
-test: true ? 1 : false;
+test: true ? 1 : false
 ```
 
 Variables are assigned types, or types are inferred from their assignments.
@@ -792,102 +797,103 @@ Further type inference is not performed.
 
 Inferred to be a number:
 ```
-var: 12;
+var: 12
 ```
-Specified as a number, can be assigned a number later:
+Specified as a number, can be assigned a number later.
+Note the `default` keyword is required for variables without assignments:
 ```
-var:number;
-var = 15;
+var:default number
+var = 15
 ```
 
 This is not valid; variables must have a type or an initializer when first created:
 ```
-var:;
-var = true;
+var:
+var = true
 ```
 
 Conditionals only accept expressions that evaluate to booleans:
 
 ```
 # Valid code
-this is a boolean: true;
+this is a boolean: true
 if this is a boolean {
     # The type checker is...
     #   pleased!
-};
+}
 
 # Fails the type check:
-this is a number: 12;
+this is a number: 12
 if this is a number {
     # Sadness and tears.
-};
+}
 ```
 
 Boolean operators may only be used with boolean types:
 ```
-number: 12;
-another one: 15;
+number: 12
+another one: 15
 
 # Fails type check!
 #   Can't use & with numbers.
-a boolean: number & another one;
+a boolean: number & another one
 ```
 
 However, logical operators will cause a type conversion of the expression to a boolean, 
 which will then be acceptable for conditionals or assignment to booleans:
 ``` 
-a boolean = another number > number;
+a boolean = another number > number
 ```
 
 Arrays are also typed in both their number of dimensions and the size of each dimension.
 ```
 # This is valid code.
-array: = new[2][2] true;
-subarray: = new[2] false;
+array: = new[2][2] true
+subarray: = new[2] false
 
 # We can assign here because
 # array[1] is a 2-element array of
 # booleans, the same as subarray.
-array[1] = subarray;
+array[1] = subarray
 
-mismatched array: [3] true;
+mismatched array: [3] true
 
 # This will fail in the type checker
 # because the array sizes are
 # different:
-array[2] = mismatched array;
+array[2] = mismatched array
 ```
 
 Array types can be specified, which is necessary for functions since the language is
 strongly typed and has no support for anything like automatic generics:
 ```
 is identity: matrix:[2][2] number -> boolean {
-  i: 1;
+  i: 1
   while i <= 2 {
-    j: 1;
+    j: 1
     while j <= 2 {
       if i = j & matrix[i][j] ~= 1 {
         return false
-      };
+      }
       elseif i ~= j & matrix[i][j] ~= 0 {
-        return false;
-      };
-    };
-  };
-  return true;
+        return false
+      }
+    }
+  }
+  return true
 }
 ```
 
 But currently redundant and useless for variables:
 ```
 entry point: -> number {
-    matrix:[2][2] number = new[2][2] 0;
-    # Same as matrix: new[2][2] 0;
+    matrix:[2][2] number = new[2][2] 0
+    # Same as matrix: new[2][2] 0
 
-    matrix[1][1] = 1;
-    matrix[2][2] = 1;
-    return is identity(matrix);
-};
+    matrix[1][1] = 1
+    matrix[2][2] = 1
+    return is identity(matrix)
+}
 ```
 Notably, array types are required to have initializers because default values are not
 supported for them, making type specifiers even more useless.
@@ -908,7 +914,7 @@ collects all top-level functions before proceeding, and sets them as global.
 For example, this is valid Mab code:
 ```
 entry point: -> number {
-  n:global = 10;
+  n:global = 10
   if even() = true {
     return 1
   } else {
@@ -917,7 +923,7 @@ entry point: -> number {
 }
 even: -> boolean {
   if n ~= 0 {
-    n = n - 1;
+    n = n - 1
     return odd()
   } else {
     return true
@@ -925,7 +931,7 @@ even: -> boolean {
 }
 odd: -> boolean {
   if n ~= 0 {
-    n = n - 1;
+    n = n - 1
     return even()
   } else {
     return false
@@ -1077,6 +1083,7 @@ but were outside the scope of my free time during the course.
   See also the *Language profiles* idea.
 * String improvements.
   * Support for escape sequences.
+  * ('a, 'b, 'f, 'n, 'r, 't, 'v 'nnn, 'xhh, 'unnnn, 'Unnnnnnnn)?
 * Disallow globals in default arguments, or remove default arguments.
 * Do a pass over different keyword and symbol literals and consider
 whether to make changes.
@@ -1088,6 +1095,7 @@ whether to make changes.
 * A different way to specify array default values, such as a `default` keyword?\
   Maybe `array [2] default(0)`?
 * Error phase before type checking.
+* Remove extra empty statements.
 
 #### Medium
 * Make Language Loopier
@@ -1101,6 +1109,14 @@ whether to make changes.
   * `while`/`otherwise` loop.
     * If the loop condition fails immediately, the `otherwise` clause is executed.
 * `goto`.
+* Lua style: Remove entry point, just execute everything?
+  * Change parser to be a sequence of statements again, do statements in the stages.
+    * Change documentation, too.
+  * More elegant. Can remove the hack with globals pre-scanned and make pre-scanning a feature?
+  * What does it mean in a compiled language?
+  * Add the `after`, `block`, and `export` keywords?
+    * What does it mean for a variable to have `block` scope as far as initialization?
+      * Run the code first? What about dependencies?
 * Way of returning nothing, for functions that have no return type.
   * `exit` statement?
 * Ability to get size of array, since it's static.
@@ -1113,7 +1129,6 @@ whether to make changes.
 * `recurse` keyword to indicate a function that calls itself.
 * Make variables being undefined before usage an error.
   * Remove default values.
-* Remove semicolons from the language.
 * Use keywords for block delimiters rather than symbols.
   * A capture that looks at an entire line that starts with an identifier character
   in a location that an identifier is allowed could work for this.

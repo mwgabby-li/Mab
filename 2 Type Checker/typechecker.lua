@@ -673,7 +673,7 @@ function TypeChecker:check(ast)
   -- Two-pass compilation style for functions at the top level.
   for i = 1, #ast do
     local type_ = ast[i].type_
-    if type_.tag == 'function' then
+    if ast[i].tag == 'newVariable' and type_.tag == 'function' then
       -- Just infer the scope for the errors it generates...
       local scope = self:inferScope(ast[i])
       if scope ~= 'global' then

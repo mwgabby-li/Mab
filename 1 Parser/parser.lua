@@ -174,14 +174,14 @@ local grammar =
 {
 'program',
 program = endToken * Ct(newVariableList)^-1 * -1,
-newVariableList = (newVariable^-1 * (sep.statement * newVariableList)^-1),
+newVariableList = (newVariable * newVariableList^-1) + Cc{tag='emptyStatement'},
 
 parameter = Cp() * identifier * sep.parameter * type_ / nodeParameter,
 parameters = Ct((parameter * (sep.argument^-1 * parameter)^0)^-1),
 
-statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
+statementList = ((statement * statementList^-1) + Cc{tag='emptyStatement'}) / nodeStatementSequence,
 
-blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock / nodeBlock,
+blockStatement = delim.openBlock * statementList * delim.closeBlock / nodeBlock,
 
 elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
@@ -190,7 +190,16 @@ target = Ct(variable * (((op.indexByOffset * Cc(true)) + Cc(false)) * (delim.ope
 functionCall = target * Cp() * delim.openFunctionParameterList * arguments * delim.closeFunctionParameterList / nodeFunctionCall,
 arguments = Ct((expression * (sep.argument * expression)^0)^-1),
 
-newVariable = Cp() * identifier * sep.newVariable * (KWc'export' + KWc'global' + KWc'local' + Cc'unspecified') * (type_ + inferType) * (op.assign^-1 * (expression + blockStatement))^-1 / nodeNewVariable,
+              -- ID:
+newVariable = Cp() * identifier * sep.newVariable *
+              -- Scope (or unspecified)
+              (KWc'export' + KWc'global' + KWc'local' + Cc'unspecified') *
+                (
+                  -- 'default' and then type, no initializer in this notation
+                  (KW'default' * type_) +
+                  -- Explicit or inferred type
+                  ((type_ + inferType) * (op.assign^-1 * (expression + blockStatement))) 
+                )/ nodeNewVariable,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.

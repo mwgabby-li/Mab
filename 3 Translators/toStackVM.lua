@@ -557,7 +557,9 @@ function Translator:translate(ast)
   local firstPositions = {}
 
   for i = 1,#ast do
-    if not self.globals[ast[i].name] then
+    if ast[i].tag == 'emptyStatement' then
+      -- Do nothing!
+    elseif not self.globals[ast[i].name] then
       self:globalToID(ast[i])
       firstPositions[ast[i].name] = ast[i].position
     -- Otherwise, duplication detected!
@@ -594,8 +596,14 @@ function Translator:translate(ast)
   end
 
   for i = 1,#ast do
-    self:codeNewVariable(ast[i])
-  end
+    if ast[i].tag == 'newVariable' then
+      self:codeNewVariable(ast[i])
+    elseif ast[i].tag == 'emptyStatement' then
+      -- Do nothing
+    else
+      self:addError('Unhandled tag "'..ast[i].tag.. '" at top level. Ignoring...')
+    end
+ end
   -- 
 
   local fakeEntryPointNode = {name=literals.entryPointName}  
