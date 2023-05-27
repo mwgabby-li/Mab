@@ -758,15 +758,18 @@ The output from the example above is:
 
 Comments are denoted by `--` and continue to the end of the line.
 
-Block comments are denoted by `--/` and `--\` and can span multiple lines.
+Block comments are denoted by `--/` and `--\ ` and can span multiple lines.
 Nesting block comments is not supported.
+
+Anything in between the `--/` and `--\ ` will be ignored.
 
 Example of usage:
 ```
 -- This is a comment
 
---And a block comment:
---/
+-- And a block comment:
+--/ Title of Block Comment
+
     This is a block comment.
     It can span multiple lines.
 
@@ -775,7 +778,7 @@ Example of usage:
     -- this block comment:
     a: 10
     @a
---\
+--\ b: 10 -- < This code is outside
 ```
 
 ## Other Notes on Features
