@@ -1,21 +1,21 @@
 # The Mab Programming Language
 
 ![An illustration of Queen Mab by Willy Pogany,
- a line drawing of a fairy in black and white with butterfly wings,
-holding a rod and wearing a crown,
-in a dress, her feet straight down,
-and below her feet a single star.
- "Queen Mab" is written in the middle in script,
-one word on either side of the figure.](Artwork/QueenMab.png#gh-light-mode-only "Queen Mab, Illustration by Willy Pogany")
-![An illustration of Queen Mab by Willy Pogany,
 a line drawing of a fairy in black and white with butterfly wings,
 holding a rod and wearing a crown,
 in a dress, her feet straight down,
 and below her feet a single star.
 "Queen Mab" is written in the middle in script,
 one word on either side of the figure.](Artwork/QueenMabDark.png#gh-dark-mode-only "Queen Mab, Illustration by Willy Pogany")
-_Image from_ A Treasury of Verse for Little Children, _illustrated by William Andrew Pogany, stories selected by
-M. G. Edgar_.
+![An illustration of Queen Mab by Willy Pogany,
+ a line drawing of a fairy in black and white with butterfly wings,
+holding a rod and wearing a crown,
+in a dress, her feet straight down,
+and below her feet a single star.
+ "Queen Mab" is written in the middle in script,
+one word on either side of the figure.](Artwork/QueenMab.png#gh-light-mode-only "Queen Mab, Illustration by Willy Pogany")
+<p style="text-align: center;"><i>Image from</i> A Treasury of Verse for Little Children, <i>illustrated by William Andrew Pogany, stories selected by
+M. G. Edgar</i>.</p>
 
 ## On Names
 
@@ -25,14 +25,15 @@ A moon reference was chosen as a nod to the Lua programming language, and to Rob
 Mab's translation suite and interpreter is written in [Lua](https://www.lua.org/) and uses [LPeg](https://www.inf.puc-rio.br/~roberto/lpeg/),
 and the class where Mab was constructed was led by Roberto.
 
-Uranus XXVI and and Mab are both also named after the fairy queen that is referenced in Shakespeare's _Romeo and Juliet_.
+Uranus XXVI and Mab are both also named after the fairy queen that is referenced in Shakespeare's _Romeo and Juliet_.
 
-Reasons for the name:
-* A moon reference, as a tip of the hat to Lua. 
+Other reasons for the name:
 * Not used by any other technology as far as I could tell. 
 * Diminutive character: The language is a tiny toy for a class, and Mab is tiny in the story. 
 * A thing of dreams and fantasies: It is an experiment in some of the PL fantasies I've dreamt of. 
-* Tricks, fate, and the dark side of dreams: I'm not expecting everything to work out. The fact that it's only a mirrored character away from "Mad" is another thing beyond the story that plays into this.
+* Tricks, fate, and the dark side of dreams: I'm not expecting everything to work out.
+  * The fact that it's only a mirrored letter away from "Mad" is another thing
+  beyond the story that plays into this.
 
 The [original poem (known as _Mercutio's speech_) can be found on Wikipedia](https://en.wikipedia.org/wiki/Queen_Mab#Mercutio's_speech).
 
@@ -177,7 +178,7 @@ Some examples:
 112.1b^-3  # 0.1121
 ```
 
-##### Bases 1-37
+##### Bases 1-36
 
 Mab indicates a numeral of a specific base with the following format, up to base 37:
 
@@ -185,8 +186,8 @@ Mab indicates a numeral of a specific base with the following format, up to base
 digitOrLetter {[' '] digitOrLetter} ' b' digit {digit}
 ```
 
-Base 37 is the limit because that's the maximum numeral that can be represented with digits
-composed of `0-9`, `a-z`, starting from `a` as 10 to `z` as 36.
+Base 36 is the limit because that's the maximum numeral that can be represented with digits
+composed of `0-9`, `a-z`, starting from `a` as 10 to `z` as 35.
 
 The trailing `' b' digit {digit}` is the base. For example, `128 b10` is the
 number 128 in base 10, and `200 b8` is 128 in base 8. `80 b16` is the same number in
@@ -196,7 +197,7 @@ Note that a single space between the number and the base indicator is required.\
 
 `b` is meant to suggest the word 'base.'
 
-In base 37—the maximum supported—128 would be `3h b37`.
+In base 36—the maximum supported—128 would be `3k b36`.
 
 Digit grouping with spaces is also supported for numbers written in arbitrary base notation.
 
@@ -1068,6 +1069,7 @@ but were outside the scope of my free time during the course.
 * When hashing and versioning, include an explicit version number and size of the files.
 
 #### Easy
+* Run the ReadMe examples as part of the test suite.
 * Error themes. (After *Error changes* above.)
 * Localization support (see *Error changes* above.)
 * Constant support
@@ -1118,7 +1120,9 @@ whether to make changes.
 * Enumerations.
 * For version hashing, strip irrelevant information like comments and whitespace out of the file first.
   * Considered using hash of Lua bytecode, but it's not portable and not stable across versions.
-* Type aliases: numeral:type number; true or false:type boolean.
+* Type aliases:
+  * `numeral:type number`.
+  * `true or false:type boolean`.
   * Interesting problem, if I do this, maybe function parameter lists will need to have commas.
 * Anonymous functions (Lambdas).
 * Backtrack comments and whitespace on error, not just whitespace.
