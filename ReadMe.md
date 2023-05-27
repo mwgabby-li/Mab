@@ -124,7 +124,8 @@ _-_: 10
 -- Valid:
 Blob10: true
 
--- Invalid, ending in ' b<digits>` is not allowed.
+-- Invalid, ending in ' b<digits>`
+-- is not allowed.
 Blo b10: true
 
 -- Invalid:
@@ -304,13 +305,15 @@ Disambiguation:
 ```
 global style: false
 
--- This will fail, because it will be
--- read as:
---  "failed style: global (style),"
--- that is, a global variable named 
--- 'failed style' being assigned the
--- value of  another variable named
--- 'style,' which doesn't exist.
+--/ Failure Case
+This will fail, because it will be
+read as:
+ "failed style: global (style),"
+ that is, a global variable named
+ 'failed style' being assigned the
+ value of  another variable named
+ 'style,' which doesn't exist.
+--\
 failed style: global style
 
 -- This will work, because the equals
@@ -625,7 +628,8 @@ b: false
    they aren't supported.)
 return a = b
 
--- You can correct this with the optional colon:
+-- You can correct this with the
+-- optional colon:
 return: a = b
 ```
 
@@ -1087,7 +1091,7 @@ but were outside the scope of my free time during the course.
 * Disallow globals in default arguments, or remove default arguments.
 * Do a pass over different keyword and symbol literals and consider
 whether to make changes.
-  * `~=`, `!`, comments. Others...
+  * `~=`, `!`. Others...
 * Add options for unicode symbols for math and types instead of ASCII.
 * Colon after conditionals instead of open block?
   * Just seems a little more natural to me...
