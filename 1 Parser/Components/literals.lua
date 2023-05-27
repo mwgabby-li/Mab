@@ -30,9 +30,9 @@ module.op.positive = '+'
 module.op.negate = '-'
 
 --  Comments
-module.comments.startLine = '#'
-module.comments.openBlock = '#{'
-module.comments.closeBlock = '#}'
+module.comments.startLine = '--'
+module.comments.openBlock = '--/'
+module.comments.closeBlock = '--\\'
 
 --  Delimiters
 module.delim.openArray = '['

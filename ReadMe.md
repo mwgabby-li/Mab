@@ -112,34 +112,34 @@ delta    x:number
 Dashes may only be placed between two other alphanumeric characters+underscores in a
 variable name:
 ```
-# Valid
+-- Valid
 dashed-identifier: 10
 
-# Valid, but maybe avoid this.
+-- Valid, but maybe avoid this.
 _-_: 10
 
-# Valid:
+-- Valid:
 1st: 1
 
-# Valid:
+-- Valid:
 Blob10: true
 
-# Invalid, ending in ' b<digits>` is not allowed.
+-- Invalid, ending in ' b<digits>` is not allowed.
 Blo b10: true
 
-# Invalid:
+-- Invalid:
 -leading-dash-identifier: 10
 
-# Invalid:
+-- Invalid:
 trailing-dash-identifier-: 10
 
-# Invalid:
+-- Invalid:
 dash-and- space-identifier: 10
 
-# Invalid:
+-- Invalid:
 dash-and -space-identifier: 10
 
-# Valid:
+-- Valid:
 Bree Over-the-Water: 10
 ```
 ### Literals
@@ -171,11 +171,11 @@ Note that `b^` must be included, not just `b`. ` b^` is meant to suggest 'number
 
 Some examples:
 ```
-112.       # 112
-112.0      # 112
-112b^7     # 1 120 000 000
-112.1 b^+7 # 1 121 000 000
-112.1b^-3  # 0.1121
+112.       -- 112
+112.0      -- 112
+112b^7     -- 1 120 000 000
+112.1 b^+7 -- 1 121 000 000
+112.1b^-3  -- 0.1121
 ```
 
 ##### Bases 1-36
@@ -227,11 +227,11 @@ For example:
 
 ```
 entry point: -> number {
-  a string: '# Let''s have fun!'
+  a string: '-- Let''s have fun!'
 
   an embedded program:
     '
-    # Our favorite recursive program
+    -- Our favorite recursive program
     entry point: -> number {
       return factorial(10)
     }
@@ -252,8 +252,8 @@ entry point: -> number {
 Will output:
 
 ```
-# Let's have fun!
-# Our favorite recursive program
+-- Let's have fun!
+-- Our favorite recursive program
 entry point: -> number {
   return factorial(10)
 }
@@ -293,10 +293,10 @@ This is a consequence of not supporting default values for array types.
 
 More or less natural:
 ```
-# This is valid:
+-- This is valid:
 variable:global number 12
 
-# But this may be more readable:
+-- But this may be more readable:
 variable2:global number = 12
 ```
 
@@ -304,17 +304,17 @@ Disambiguation:
 ```
 global style: false
 
-# This will fail, because it will be
-# read as:
-#  "failed style: global (style),"
-# that is, a global variable named 
-# 'failed style' being assigned the
-# value of  another variable named
-# 'style,' which doesn't exist.
+-- This will fail, because it will be
+-- read as:
+--  "failed style: global (style),"
+-- that is, a global variable named 
+-- 'failed style' being assigned the
+-- value of  another variable named
+-- 'style,' which doesn't exist.
 failed style: global style
 
-# This will work, because the equals
-# sign disambiguates.
+-- This will work, because the equals
+-- sign disambiguates.
 successful style := global style
 ```
 
@@ -394,7 +394,7 @@ The end result is something like this, where `[2][2] number` is an array type:
 
 ```
 is identity: (matrix:[2][2] number) -> boolean {
-  # Contents
+  -- Contents
 }
 ```
 
@@ -402,11 +402,11 @@ is identity: (matrix:[2][2] number) -> boolean {
 
 An example of some functions and variables in this syntax:
 ```
-# This function has no input or
-# return types.
-# It can only be called with the
-# `call` keyword, any other use
-# would be a type checker error.
+-- This function has no input or
+-- return types.
+-- It can only be called with the
+-- `call` keyword, any other use
+-- would be a type checker error.
 global container: -> {
     g:global = 12
     @g
@@ -424,24 +424,24 @@ sum: (a:number b:number) -> number = {
     return a + b
 }
 
-# Commas can also be added if
-# desired:
+-- Commas can also be added if
+-- desired:
 div: (a:number, b:number) -> number {
     return a / b
 }
 
-# This could also be written as
-#   entry point: -> number
+-- This could also be written as
+--   entry point: -> number
 entry point: () -> number {
     call global container()
 
-    # Fully specified variable
+    -- Fully specified variable
     a:local number = 2
-    # Scope and type are optional...
+    -- Scope and type are optional...
     b:= 2
-    # Equals also optional...
-    # Other than the name, the same
-    # as the two previous.
+    -- Equals also optional...
+    -- Other than the name, the same
+    -- as the two previous.
     c: 2
 
     return factorial( div( sum( a, b ) * c, 2 ) )
@@ -482,10 +482,10 @@ If you're familiar with C or C++, you might tend to do this:
 ```
 a:number = 0
 
-# Operations on a...
+-- Operations on a...
 
 if a {
-    # ...
+    -- ...
 }
 ```
 But that's an error.
@@ -493,7 +493,7 @@ But that's an error.
 This is probably what you want:
 ```
 if a ~= 0 {
-    # ...
+    -- ...
 }
 ```
 
@@ -618,14 +618,14 @@ The optional colon can be used to prevent this.
 a: true
 b: false
 
-# This will be read as:
-#   (return a) = b
-# (Note that the parentheses above
+-- This will be read as:
+--   (return a) = b
+-- (Note that the parentheses above
    are for clarification,
    they aren't supported.)
 return a = b
 
-# You can correct this with the optional colon:
+-- You can correct this with the optional colon:
 return: a = b
 ```
 
@@ -646,12 +646,12 @@ array identifier ['+']'[' expression ']'{ '[' expression ']' }
 The optional `+` before the first `[]` is array offset notation, aka zero-indexing:
 
 ```
-# This sets the first element of 'a'
-# to 12:
+-- This sets the first element of 'a'
+-- to 12:
 a+[0] = 12
 
-# A single '+' will make all indices
-# in the list offset-indexed:
+-- A single '+' will make all indices
+-- in the list offset-indexed:
 b+[0][1] = 10
 ```
 
@@ -694,12 +694,12 @@ An example of usage:
 a: 12
 b: 10
 
-# Output the lesser of the two:
+-- Output the lesser of the two:
 if a < b {
     @a
 } elseif a > b {
     @b
-# If equal, output the sum:
+-- If equal, output the sum:
 } else {
     @a + b
 }
@@ -718,8 +718,8 @@ An example of usage:
 a: 1
 b: 10
 
-# This will print the numbers
-# 1 through 10 inclusive:
+-- This will print the numbers
+-- 1 through 10 inclusive:
 while a <= b {
     @a
     a = a + 1
@@ -752,26 +752,26 @@ The output from the example above is:
 
 ### Comments
 
-Comments are denoted by `#` and continue to the end of the line.
+Comments are denoted by `--` and continue to the end of the line.
 
-Block comments are denoted by `#{` and `#}` and can span multiple lines.
+Block comments are denoted by `--/` and `--\` and can span multiple lines.
 Nesting block comments is not supported.
 
 Example of usage:
 ```
-# This is a comment
+-- This is a comment
 
-# And a block comment:
-#{
+--And a block comment:
+--/
     This is a block comment.
     It can span multiple lines.
 
-    # This code will not be executed
-    # because it is commented out in
-    # this block comment:
+    -- This code will not be executed
+    -- because it is commented out in
+    -- this block comment:
     a: 10
     @a
-#}
+--\
 ```
 
 ## Other Notes on Features
@@ -815,17 +815,17 @@ var = true
 Conditionals only accept expressions that evaluate to booleans:
 
 ```
-# Valid code
+-- Valid code
 this is a boolean: true
 if this is a boolean {
-    # The type checker is...
-    #   pleased!
+    -- The type checker is...
+    --   pleased!
 }
 
-# Fails the type check:
+- Fails the type check:
 this is a number: 12
 if this is a number {
-    # Sadness and tears.
+    - Sadness and tears.
 }
 ```
 
@@ -834,8 +834,8 @@ Boolean operators may only be used with boolean types:
 number: 12
 another one: 15
 
-# Fails type check!
-#   Can't use & with numbers.
+-- Fails type check!
+--   Can't use & with numbers.
 a boolean: number & another one
 ```
 
@@ -847,20 +847,20 @@ a boolean = another number > number
 
 Arrays are also typed in both their number of dimensions and the size of each dimension.
 ```
-# This is valid code.
+-- This is valid code.
 array: = new[2][2] true
 subarray: = new[2] false
 
-# We can assign here because
-# array[1] is a 2-element array of
-# booleans, the same as subarray.
+-- We can assign here because
+-- array[1] is a 2-element array of
+-- booleans, the same as subarray.
 array[1] = subarray
 
 mismatched array: [3] true
 
-# This will fail in the type checker
-# because the array sizes are
-# different:
+-- This will fail in the type checker
+-- because the array sizes are
+-- different:
 array[2] = mismatched array
 ```
 
@@ -888,7 +888,7 @@ But currently redundant and useless for variables:
 ```
 entry point: -> number {
     matrix:[2][2] number = new[2][2] 0
-    # Same as matrix: new[2][2] 0
+    -- Same as matrix: new[2][2] 0
 
     matrix[1][1] = 1
     matrix[2][2] = 1

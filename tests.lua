@@ -151,7 +151,7 @@ function module:testWhitespaceInterspersed()
 end
 
 function module:testComplexSequenceResult()
-    local input = 
+    local input =
 [[
 x value: 12 / 2
 y value: 12 * 12 / 2
@@ -170,28 +170,28 @@ end
 function module:testBlockAndLineComments()
   local input =
 [[
-# Start comment
+-- Start comment
 
-a: 10 + 4   # End of line comment
-#{#} # Single-line block comment
+a: 10 + 4 -- End of line comment
+--/ Single-line block comment --\
 
-# Block comment inside line comment: #{ blah blah blah #}
+-- Block comment inside line comment: --/ blah blah blah --\
 
-#{
-# Comments nested in block comment
-# Another one
-b: b * 10 # Commented-out line of code
-#}
+--/
+-- Comments nested in block comment
+-- Another one
+b: b * 10 -- Commented-out line of code
+--\
 b: a * a
 c: a/b
 
-# Disabled block comment
+-- Disabled block comment
 
-##{
+---/
 a = a * 2
-#}
+--\
 return a
-# Final comment
+-- Final comment
 ]]
   lu.assertEquals(self:fullTest(input, true), 28)
 end
@@ -214,13 +214,13 @@ end
 function module:testFullProgram()
   local input =
 [[
-# a is 14
+-- a is 14
 a: 10 + 4
-#{
+--/
   14 * 14 - 10 = 186
-#}
+--\
 b: a * a - 10
-# (186 + 10)/14
+-- (186 + 10)/14
 c: (b + 10)/a
 return c
 ]]
@@ -245,40 +245,41 @@ function module:testLessonFourEdgeCases()
   lu.assertEquals(result, false)
   errorReporter, result = module.parse(
     [[
-      #{
+      --/
       bla bla
     ]])
   lu.assertEquals(result, false)
-  errorReporter, result = module.parse(wrapWithEntrypoint'#{##}')
+  errorReporter, result = module.parse(wrapWithEntrypoint'--/--\\')
   lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
 
-  errorReporter, result = module.parse(wrapWithEntrypoint'#{#{#}')
+  errorReporter, result = module.parse(wrapWithEntrypoint'--/--/--\\')
   lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
 
   errorReporter, result = module.parse(wrapWithEntrypoint[[
-      #{
+      --/
       :x=1
-      #}
+      --\
     ]])
   lu.assertEquals(result[1].assignment.body, {tag = 'emptyStatement'})
 
   lu.assertEquals(self:fullTest(
     [[
-      #{#}x:1
+      --/--\x:1
       return x
     ]], true), 1)
 
   lu.assertEquals(self:fullTest(
     [[
-      #{#} x:10   #{#}
+      --/--\ x:10 --/--\
       return x
     ]], true), 10)
   lu.assertEquals(self:fullTest(
         [[
-        ##{
+        ---/
         x:10
-        #}
-        ]], true), 0)
+        --\
+        return x
+        ]], true), 10)
 end
 
 function module:testNot()
@@ -573,7 +574,7 @@ testReturnArray: () -> [2][2] boolean {
 
 entry point: () -> number {
   array: new[2][2] true
-  #array[1][1] = false
+  --array[1][1] = false
   result: = test11(testReturnArray())
 
   if result = true {
@@ -599,7 +600,7 @@ testReturnArray: () -> [2][2] boolean {
 
 entry point: () -> number {
   array: new[2][2] true
-  #array[1][1] = false
+  --array[1][1] = false
   result: test11(testReturnArray())
 
   if result = true {
@@ -1155,20 +1156,20 @@ function module:testExampleProgram()
       return a + b
   }
 
-  # Commas can be included:
+  -- Commas can be included:
   div: (a:number, b:number) -> number {
       return a / b
   }
 
-  # This could also be written as " entry point: -> number ."
+  -- This could also be written as " entry point: -> number ."
   entry point: () -> number {
       call global container()
 
-      # Fully specified variable
+      -- Fully specified variable
       a:local number = 2
-      # Equals is optional...
+      -- Equals is optional...
       b:= 2
-      # Other than the name, the same as the two previous.
+      -- Other than the name, the same as the two previous.
       c: 2
 
       return factorial( div( sum( a, b ) * c, 2) )
