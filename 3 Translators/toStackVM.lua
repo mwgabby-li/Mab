@@ -179,6 +179,9 @@ function Translator:codeExpression(ast)
   if ast.tag == 'number' or ast.tag == 'boolean' or ast.tag == 'string' then
     self:addCode('push')
     self:addCode(ast.value)
+  elseif ast.tag == 'none' then
+    self:addCode('push')
+    self:addCode(false)
   elseif ast.tag == 'variable' then
     self:codeLoadVariable(ast)
   elseif ast.tag == 'functionCall' then

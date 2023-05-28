@@ -113,8 +113,12 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
       call set(x, current y, value to draw)
       current y <- current y + y increment
     }
+    --/ Done drawing:
+    --\
+    return
+  }
   -- Zero delta in the Y means this is a line going straight along X.
-  } elseif delta y = 0 {
+  if delta y = 0 {
     y: start point[2]
     start x: start point[1]
     end x: end point[1]
@@ -124,12 +128,12 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
       call set(current x, y, value to draw)
       current x <- current x + x increment
     }
-  --/
-      It would be nice to early return instead of indenting here,
-      BUT THERE'S NO WAY TO DO THAT WITH THIS KIND OF FUNCTION!
-      Haha. (since it doesn't have a return type.)
-  --\
-  } elseif delta x > delta y {
+    --/ Done drawing:
+    --\
+    return
+  }
+
+  if delta x > delta y {
     slope: delta y / delta x
 
     while current x ~= end x {

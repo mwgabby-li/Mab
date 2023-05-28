@@ -70,6 +70,8 @@ end
 function Translator:nodeExpression(ast, depth)
   if ast.tag == 'number' or ast.tag =='boolean' then
     self:appendNode(ast, false, tostring(ast.value))
+  elseif ast.tag == 'none' then
+    self:appendNode(ast, false, 'none')
   elseif ast.tag == 'string' then
     self:appendNode(ast, false, string.gsub(ast.value, '"', '\\"'))
   elseif ast.tag == 'variable' then

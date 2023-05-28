@@ -209,7 +209,7 @@ statement = blockStatement +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
-            KW'return' * Cp() * expression / nodeReturn +
+            KW'return' * Cp() * (expression + Cc{tag='none'}) / nodeReturn +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
             -- Call keyword is a solution for functions as statements and whitespace in identifiers,
