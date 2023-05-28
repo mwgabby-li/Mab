@@ -124,7 +124,7 @@ function Translator:codeFunctionCall(ast)
   end
 
   if not functionCodeReference then
-    self:addError('Cannot call function, "'..ast.name..'" is undefined.', ast)
+    self:addError('Cannot call function, "'..target.name..'" is undefined.', target)
     return
   end
 
@@ -148,8 +148,8 @@ function Translator:codeFunctionCall(ast)
   else
     local pCount = #functionType.parameters
     local aCount = #ast.arguments
-    self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pCount, 'parameter')..
-                  ' but was sent '..common.toReadableNumber(aCount, 'argument')..'.', ast)
+    self:addError('Function "'..target.name..'" has '..common.toReadableNumber(pCount, 'parameter')..
+                  ' but was sent '..common.toReadableNumber(aCount, 'argument')..'.', target)
     -- Try to do what they asked, I guess...
     for i=1,#arguments do
       self:codeExpression(arguments[i])
@@ -511,6 +511,7 @@ function Translator:codeFunction(ast)
   -- That's the one we want to use.
   self.functionBlockBase = #self.blockBases + 1
   
+  local previousParameters = self.currentParameters  
   self.currentParameters = ast.type_.parameters
 
   self:duplicateParameterCheck(ast)
@@ -550,6 +551,7 @@ function Translator:codeFunction(ast)
   local generatedCode = self.currentCode
   self.currentCode = previousCode
   self.functionBlockBase = previousBlockBase
+  self.currentParameters = previousParameters
   
   return generatedCode
 end
