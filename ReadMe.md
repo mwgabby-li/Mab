@@ -401,6 +401,21 @@ is identity: (matrix:[2][2] number) -> boolean {
 }
 ```
 
+The last function parameter may have a default argument specified, as an expression.
+This may be removed from the language in the future.
+
+Example:
+
+```
+default arguments: (n:number = 12 * 17) -> number {
+  return n
+}
+
+entry point: -> number {
+  return default arguments()
+}
+```
+
 ### Example of Function and Variable Definitions
 
 An example of some functions and variables in this syntax:
