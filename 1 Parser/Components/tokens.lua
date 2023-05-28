@@ -41,6 +41,7 @@ for key, separator in pairs(l.sep) do
 end
 
 module.op.assign = T(l.op.assign)
+module.op.initialValue = T(l.op.initialValue)
 module.op.sum = T(C(P(l.op.add) + l.op.subtract))
 module.op.term = T(C(P(l.op.multiply) + l.op.divide + l.op.modulus))
 module.op.exponent = T(C(l.op.exponent))

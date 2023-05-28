@@ -198,7 +198,7 @@ newVariable = Cp() * identifier * sep.newVariable *
                   -- 'default' and then type, no initializer in this notation
                   (KW'default' * type_) +
                   -- Explicit or inferred type
-                  ((type_ + inferType) * (op.assign^-1 * (expression + blockStatement))) 
+                  ((type_ + inferType) * (op.initialValue^-1 * (expression + blockStatement)))
                 )/ nodeNewVariable,
 
 statement = blockStatement +
@@ -209,7 +209,7 @@ statement = blockStatement +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
-            KW'return' * sep.returnResult^-1 * Cp() * expression / nodeReturn +
+            KW'return' * Cp() * expression / nodeReturn +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
             -- Call keyword is a solution for functions as statements and whitespace in identifiers,
@@ -225,7 +225,7 @@ noType = Cp() / node('none', 'position'),
 inferType = Cp() / node('infer', 'position'),
 arrayType = Ct((delim.openArray * expression * delim.closeArray)^1) * (functionType + booleanType + numberType + inferType) / makeArrayType,
 
-functionType = ((delim.openFunctionParameterList * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList) + Cc{} * Cc(false)) * Cp() * sep.functionResult * (type_ + noType) / nodeFunctionType,
+functionType = ((delim.openFunctionParameterList * parameters * ((op.initialValue * expression) + Cc(false)) * delim.closeFunctionParameterList) + Cc{} * Cc(false)) * Cp() * sep.functionResult * (type_ + noType) / nodeFunctionType,
 
 type_ = (functionType + booleanType + numberType + arrayType),
 

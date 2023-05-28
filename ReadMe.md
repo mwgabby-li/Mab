@@ -473,7 +473,7 @@ The result of executing the above example is `24.0`.
 The grammar for assignments is:
 
 ```
-identifier {'[' expression ']'} '=' expression
+identifier {'[' expression ']'} '<-' expression
 ```
 
 The middle part is the array index syntax. Note that each array index must evaluate 
@@ -484,11 +484,11 @@ A couple of basic assignment examples:
 ```
 a:default number
 
-a = 3 * 6 + 4
+a <- 3 * 6 + 4
 
 b: new[2][2] boolean
 
-b[1][1] = true
+b[1][1] <- true
 ```
 
 ### Unary and Binary Operators
@@ -619,7 +619,7 @@ entry point: -> number {
 Syntax for returns is as follows:
 
 ```
-'return' [':'] expression
+'return' expression
 ```
 
 A basic example:
@@ -628,24 +628,6 @@ a: 12
 b: 10
 
 return a * b
-```
-
-One issue with return is that return can be confused with assignment in some cases.
-The optional colon can be used to prevent this.
-```
-a: true
-b: false
-
--- This will be read as:
---   (return a) = b
--- (Note that the parentheses above
-   are for clarification,
-   they aren't supported.)
-return a = b
-
--- You can correct this with the
--- optional colon:
-return: a = b
 ```
 
 ### Arrays

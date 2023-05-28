@@ -239,7 +239,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
     end
   elseif ast.tag == 'assignment' then
     self:nodeExpression(ast.assignment, depth)
-    self:appendNode(ast, false, '=', ast.target, ast.assignment)
+    self:appendNode(ast, false, '<-', ast.target, ast.assignment)
     self:nodeExpression(ast.target, depth)
   elseif ast.tag == 'if' then
     self:addNodeName(ast, self.ifNodeNames, depth)
