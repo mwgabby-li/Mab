@@ -97,6 +97,8 @@ and may not end with the following suffix, as it indicates a number in base nota
 ' b' digit {[' '] digit}
 ```
 
+Note the space between the `b` and the digit.
+
 In addition to this, Mab supports single spaces and dashes in identifiers with more
 rules.
 Note that it does not support _whitespace generally_, just single spaces,
@@ -146,7 +148,7 @@ Bree Over-the-Water: 10
 ### Literals
 
 #### Boolean
-Boolean literals are `true` and `false`.
+Boolean literals are `'true'` and `'false'`.
 
 #### Numerals
 
@@ -168,7 +170,7 @@ They may also have an exponent, denoted by:
 ```
 'b^' ['+' | '-'] digit {[' '] digit}
 ```
-Note that `b^` must be included, not just `b`. ` b^` is meant to suggest 'number's base to power.'
+Note that `b^` must be included, not just `b`. `b^` is meant to suggest 'number's base to power.'
 
 Some examples:
 ```
@@ -194,9 +196,9 @@ The trailing `' b' digit {digit}` is the base. For example, `128 b10` is the
 number 128 in base 10, and `200 b8` is 128 in base 8. `80 b16` is the same number in
 hexidecimal.
 
-Note that a single space between the number and the base indicator is required.\
+Note that a single space between the number and the base indicator is required.
 
-`b` is meant to suggest the word 'base.'
+As noted earlier, `b` is meant to suggest the word 'base.'
 
 In base 36—the maximum supported—128 would be `3k b36`.
 
