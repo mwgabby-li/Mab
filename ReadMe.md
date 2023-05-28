@@ -632,6 +632,15 @@ b: 10
 return a * b
 ```
 
+The expression may be omitted if the function returns nothing:
+```
+returns nothing: -> {
+    @'I don't do anything. Wait, I print this string!'
+    
+    return
+}
+```
+
 ### Arrays
 
 Arrays in Mab are indexed from element one, not zero.
