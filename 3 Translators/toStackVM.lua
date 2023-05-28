@@ -45,9 +45,26 @@ function Translator:new(o)
   return o
 end
 
+function getTargetName(ast)
+  local target = ast.target
+  while target.tag == 'arrayElement' do
+    target = target.array
+  end
+  return target.name
+end
+
 function Translator:addError(...)
   if self.errorReporter then
     self.errorReporter:addError(...)
+  end
+end
+
+function Translator:getVariable(name)
+  local index, variable = self:findLocal(name)
+  if index then
+    return variable
+  else
+    return self.globals[name]
   end
 end
 
@@ -180,8 +197,7 @@ function Translator:codeExpression(ast)
     self:addCode('push')
     self:addCode(ast.value)
   elseif ast.tag == 'none' then
-    self:addCode('push')
-    self:addCode(false)
+    -- Don't add anything, this is nothing.
   elseif ast.tag == 'variable' then
     self:codeLoadVariable(ast)
   elseif ast.tag == 'functionCall' then
@@ -411,9 +427,14 @@ function Translator:codeStatement(ast)
     self:addCode((#self.locals - localsBeforeFunctionCodeStart) + #self.currentParameters)
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
+
+    local name = getTargetName(ast)
+    local variable = self:getVariable(name)
     -- Discard return value for function statements, since it's not used by anything.
-    self:addCode('pop')
-    self:addCode(1)
+    if variable.type_.resultType.tag ~= 'none' then
+      self:addCode('pop')
+      self:addCode(1)
+    end
   elseif ast.tag == 'newVariable' then
     self:codeNewVariable(ast)
   elseif ast.tag == 'assignment' then
@@ -519,7 +540,6 @@ function Translator:codeFunction(ast)
   self.codingFunction = true
   self:codeStatement(ast.assignment)
   if self.currentCode[#self.currentCode - 1] ~= 'return' then
-    self:addCode('push')
     -- TODO: Doesn't support creating default returns for arrays.
     local resultTypeTag = ast.type_.resultType.tag
     if resultTypeTag == 'array' then
@@ -528,19 +548,21 @@ function Translator:codeFunction(ast)
     end
 
     if resultTypeTag == 'number' then
+      self:addCode('push')
       self:addCode(0)
     elseif resultTypeTag == 'boolean' then
+      self:addCode('push')
       self:addCode(false)
     elseif resultTypeTag == 'string' then
+      self:addCode('push')
       self:addCode ''
-      -- TODO: Rename 'unknown' to 'unspecified.'
     elseif resultTypeTag == 'none' then
       -- This is valid. Note that a function like this, with no return type,
       -- is only allowed to be executed as a statement.
       -- Any other use will cause a type checker error.
-      self:addCode(false)
     else
       self:addError('Internal error: unknown type "'..resultTypeTag..'" when generating automatic return value.')
+      self:addCode('push')
       self:addCode(0)
     end
     self:addCode('return')

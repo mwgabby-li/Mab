@@ -203,7 +203,7 @@ function module:testKeywordExcludeRules()
   lu.assertEquals(result, false)
   errorReporter, result = module.parse(wrapWithEntrypoint'return <- 1')
   lu.assertEquals(result, false)
-  errorReporter, result = module.parse(wrapWithEntrypoint'return return')
+  errorReporter, result = module.parse(wrapWithEntrypoint'call return()')
   lu.assertEquals(result, false)
 
   lu.assertEquals(self:fullTest('delta x: = 1   return delta x', true), 1)
@@ -1481,6 +1481,45 @@ entry point: -> number {
 }
 ]]
   lu.assertEquals(self:fullTest(input), 55)
+  
+  input =
+[[entry point: -> number {
+  lf: (n:number) -> number { return n }
+
+  return 12
+}]]
+
+  lu.assertEquals(self:fullTest(input), 12)
+
+  -- Function returning nothing
+  input =
+[[test:(a:number, b:number) -> {
+  local variable: 10
+  return
+}
+
+entry point: -> number {
+  call test(7, 12)
+  return 12
+}]]
+  lu.assertEquals(self:fullTest(input), 12)
+
+  -- Function returning nothing,
+  -- and local function defined but not called.
+  input =
+[[test:(a:number, b:number) -> {
+  local variable: 10
+  return
+}
+
+entry point: -> number {
+  lf: (n:number) -> number { return n }
+
+  call test(7, 12)
+  return 12
+}]]
+
+  lu.assertEquals(self:fullTest(input), 12)
 
 end
 
