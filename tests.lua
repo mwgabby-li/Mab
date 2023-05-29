@@ -12,7 +12,7 @@ function module:testIdentifiers()
     lu.assertEquals(identifier:match('0this is not valid b12'), nil)
 end
 
-local numeral = require('common').testGrammar(require 'numeral')
+local numeral = require('common').testGrammar(require('numeral').capture)
 
 function module:testNaturalNumbers()
     lu.assertEquals(numeral:match('0'), 0)
@@ -1388,16 +1388,43 @@ end
 function module:testBasicStringSupport()
   local input =
 [[entry point: -> number {
-    a string: 'a string "this is single quoted" and the end'
-    a string <- 'a string ''this is double quoted'' and the end'
-a string <- 'this is a multiline
-string using the same basic syntax, and you can insert single quotes as ''"'' or double quotes as '''''''
+    a string: ''a string 'this is single quoted' and the end''
+    a string <- ''a string "this is double quoted" and the end''
+a string <- ''this is a multiline
+string using the same basic syntax, and you can insert single quotes as ' or double quotes as "''
 
-a unicode string: 'This is a string in UTF-8: ''いづれの御時にか、女御、更衣あまたさぶらひたまひけるなかに、いとやむごとなき際にはあらぬが、すぐれて時めきたまふありけり。'''
+a unicode string: ''This is a string in UTF-8: 'いづれの御時にか、女御、更衣あまたさぶらひたまひけるなかに、いとやむごとなき際にはあらぬが、すぐれて時めきたまふありけり。'''
+
+a string with the at character as an escape: '@
+        this is a string that will continuing until an @s character appears by itself.@
 
 a string <- a unicode string
 }]]
 
+  lu.assertEquals(self:fullTest(input), 0)
+  
+  input =
+[[entry point: -> number {
+a string: ''a string 'this is single quoted' and the end''
+a string <- ''a string "this is double quoted" and the end''
+a string <- ''this is a multiline
+string using the same basic syntax, and you can insert single quotes as ' or double quotes as "''
+a string with the at character as the end delimiter: '@
+        this is a string that will continue until an @s character appears by itself.@
+
+multiple ats: '3@This string continues until at least three @ characters appear.@@@2@@@
+
+a unicode string: ''This is a string in UTF-8: 'いづれの御時にか、女御、更衣あまたさぶらひたまひけるなかに、いとやむごとなき際にはあらぬが、すぐれて時めきたまふありけり。's''
+
+a more traditional string: ""1This string is enclosed in double quotes."1"
+
+2nd more traditional string: ""sThis string is enclosed in double quotes."s"
+
+a string with leading spaces: ''
+        this string has leading spaces
+        they are all stripped''
+}]]
+  
   lu.assertEquals(self:fullTest(input), 0)
 end
 

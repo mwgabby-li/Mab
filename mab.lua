@@ -37,7 +37,7 @@ local phases = {
     name = 'Graphviz AST',
     actionName = 'generating GraphViz file',
     inputName = 'AST',
-    version = 2197805557,
+    version = 0, -- Strings are outputting with an extra child node?
   },
 
   toStackVM = {
