@@ -2,6 +2,7 @@ local lpeg = require 'lpeg'
 local common = require 'common'
 local endToken = common.endToken
 local numeral = require 'numeral'
+local stringLiteral = require 'stringLiteral'
 local identifierPattern = require 'identifier'
 
 local tokens = require 'tokens'
@@ -42,6 +43,7 @@ local nodeNewVariable = node('newVariable', 'position', 'name', 'scope', 'type_'
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')
+local nodeString = node('string', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'position', 'value')
@@ -67,22 +69,6 @@ local function nodeStatementSequence(first, rest)
   else
     return { tag='statementSequence', firstChild = first, secondChild = rest }
   end
-end
-
-local function nodeString(position, value)
-  value = string.gsub(value, "''", "'")
-
-  local prefix = string.match(value, '^\r?(\n%s+)')
-  if prefix then
-    value = string.gsub(value, prefix, '\n')
-    if string.sub(value, 1, 1) == '\r' then
-      value = string.sub(value, 3, #value)
-    else
-      value = string.sub(value, 2, #value)
-    end
-  end
-
-  return {tag = 'string', position = position, value = value}
 end
 
 local function addUnaryOp(operator, position, expression)
@@ -167,8 +153,6 @@ local newVariable = V'newVariable'
 local functionType = V'functionType'
 local newVariableList = V'newVariableList'
 
-local lStrDelim = lpeg.P(literals.delim.string)
-
 local C, Ct, Cc, Cp = lpeg.C, lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
@@ -231,7 +215,7 @@ type_ = (functionType + booleanType + numberType + arrayType),
 
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 -- Have to use literal string delimiter, or whitespace will be stripped before string opens.
-string = Cp() * lStrDelim * C(((1 - lStrDelim) + (lStrDelim * lStrDelim))^0) * delim.string / nodeString,
+string = stringLiteral / nodeString,
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +
@@ -240,7 +224,7 @@ primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^
           -- and we'll get a syntax error about the open parenthesis.
           functionCall +
           target +
-          Cp() * numeral / nodeNumeral +
+          Cp() * numeral.capture / nodeNumeral +
           -- Literal booleans
           boolean +
           string +

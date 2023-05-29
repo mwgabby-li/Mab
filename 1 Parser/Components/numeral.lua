@@ -1,3 +1,5 @@
+local module = {}
+
 local lpeg = require 'lpeg'
 
 -- Patterns
@@ -22,10 +24,19 @@ local fractionalOrExponent = C(naturalNumber * fraction * numeralExponent^-1 +
                                -- followed by an optional exponent.
                                fraction * numeralExponent^-1)
 
-local function baseNumeralToNumber(subject, position, capture)
+local function baseNumeralToNumberForCmt(subject, position, capture)
+  local number = module.baseNumeralToNumber(capture)
+  if number then
+    return true, number
+  else
+    return false
+  end
+end
+
+function module.baseNumeralToNumber(capture)
   if naturalNumber:match(capture) == #capture + 1 then
     capture = capture:gsub('%s+', '')    
-    return true, tonumber(capture)
+    return tonumber(capture)
   end
   
   -- Remove optional space separators/any captured trailing spaces.
@@ -39,10 +50,10 @@ local function baseNumeralToNumber(subject, position, capture)
   base = tonumber(base)
 
   if base > 1 then
-    return true, tonumber(numeral, base)
+    return tonumber(numeral, base)
   elseif base == 1 then
     if #(numeral:gsub('1', '')) == 0 then
-      return true, #numeral
+      return #numeral
     else error('invalid unary number "' .. numeral .. '"')
     end
   end
@@ -60,4 +71,7 @@ local function stripToNumber(capture)
   return tonumber(capture)
 end
 
-return (fractionalOrExponent / stripToNumber + Cmt(baseNumeral, baseNumeralToNumber)) * endToken
+module.capture = (fractionalOrExponent / stripToNumber + Cmt(baseNumeral, baseNumeralToNumberForCmt)) * endToken
+
+return module
+
