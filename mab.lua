@@ -29,7 +29,7 @@ local phases = {
     name = 'Type Checker',
     actionName = 'type checking',
     inputName = 'AST',
-    version = 2197805557,
+    version = 3833944430,
   },
 
   graphviz = {
@@ -37,7 +37,7 @@ local phases = {
     name = 'Graphviz AST',
     actionName = 'generating GraphViz file',
     inputName = 'AST',
-    version = 0, -- Strings are outputting with an extra child node?
+    version = 3833944430,
   },
 
   toStackVM = {
@@ -45,7 +45,7 @@ local phases = {
     name = 'Stack VM',
     actionName = 'generating Stack VM code',
     inputName = 'AST',
-    version = 2197805557,
+    version = 3833944430,
     abortOnFailure = 'Failed to generate StackVM code from AST.',
   },
 
@@ -58,7 +58,7 @@ local phases = {
     -- for the program to output, then prints
     -- the completion message.
     separatedOutput = true,
-    version = 2345550064,
+    version = 353967440,
   },
 }
 

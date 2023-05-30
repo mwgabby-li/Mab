@@ -73,7 +73,8 @@ function Translator:nodeExpression(ast, depth)
   elseif ast.tag == 'none' then
     self:appendNode(ast, false, 'none')
   elseif ast.tag == 'string' then
-    self:appendNode(ast, false, string.gsub(ast.value, '"', '\\"'))
+    -- Use only first gsub() return value by surrounding with ()
+    self:appendNode(ast, false, (string.gsub(ast.value, '"', '\\"')))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.name)
   elseif ast.tag == 'functionCall' then

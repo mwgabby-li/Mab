@@ -40,13 +40,16 @@ for key, separator in pairs(l.sep) do
   module.sep[key] = T(separator)
 end
 
+-- Special case: Never read <- as '< -':
+local lessToken = C(l.op.less) * -P'-'
+
 module.op.assign = T(l.op.assign)
 module.op.initialValue = T(l.op.initialValue)
 module.op.sum = T(C(P(l.op.add) + l.op.subtract))
 module.op.term = T(C(P(l.op.multiply) + l.op.divide + l.op.modulus))
 module.op.exponent = T(C(l.op.exponent))
 module.op.comparison = T((C(l.op.greaterOrEqual) + C(l.op.greater) +
-                        C(l.op.lessOrEqual) + C(l.op.less) +
+                        C(l.op.lessOrEqual) + lessToken +
                         C(l.op.equal) + C(l.op.notEqual)))
 module.op.unarySign = T(C(P(l.op.positive) + l.op.negate))
 module.op.not_ = T(C(l.op.not_))

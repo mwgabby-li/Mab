@@ -1107,7 +1107,7 @@ function module:testTernaryOperator()
 
       result: x + y ? true : false
 
-      if result <- true {
+      if result = true {
           return 1
       } else {
           return 0
@@ -1126,7 +1126,7 @@ function module:testTernaryOperator()
 
       result: x < y ? true : 0
 
-      if result <- true {
+      if result = true {
           return 1
       } else {
           return 0
@@ -1385,7 +1385,7 @@ entry point: -> number {
   lu.assertEquals(self:fullTest(input), 450)
 end
 
-function module:testBasicStringSupport()
+function module:testStrings()
   local input =
 [[entry point: -> number {
     a string: ''a string 'this is single quoted' and the end''
@@ -1426,6 +1426,29 @@ a string with leading spaces: ''
 }]]
   
   lu.assertEquals(self:fullTest(input), 0)
+
+  input =
+[[entry point: -> number {
+  s:''
+     This string's terminated in two single quotes.
+     You can include "double quotes" and 'single quotes'
+     in this string without needing to escape them.''
+
+  s<-'@This is a string ending at the first @s symbol (other than the escaped one) '"\/!#$%^&*().@
+
+  s<-'3@You don't even need to escape single @s in this string. Only @@@s need to be escaped.@@@
+
+  s<-'2'This is a string ending in two single quotes.''
+  s<-'"This is a string that is terminated by a "s."'
+  s<-'1"This is a string that is terminated by a "s."
+  s<-'1@This is a string that is terminated by an @s.@'
+  s<-'3@This string ends in three @s @@@@@@'
+  s<-'''This string is surrounded by single quotes.'''
+  s<-'3@This string ends in three @s @@@s@@@'
+}]]
+  
+  lu.assertEquals(self:fullTest(input), 0)
+
 end
 
 function module:testComplexFirstClassFunctions()

@@ -1,6 +1,7 @@
 local LPeg = require 'lpeg'
 local common = require 'common'
 local numeral = require 'numeral'
+local literals = require 'literals'
 
 local P = LPeg.P
 local Cp, Cmt = LPeg.Cp, LPeg.Cmt
@@ -16,38 +17,13 @@ end
 
 local function captureString(subject, position, capture)
   local remainder = subject:sub(position)
-  -- Escapes are:
-  -- a for bell.
-  -- b for backspace.
-  -- f for form feed.
-  -- n for newline.
-  -- r for carriage return.
-  -- t for horizontal tab.
-  -- v for vertical tab.
-  -- [1-9] for that many repeats of the original character. (Up to nine.)
-  --       While the ending may be specified in the beginning of the string as:
-  --       start number character (where start is the single quote character)
-  --       this will repeat only the character itself n times.
-  --       For double-quoted strings, this will repeat the double quote n times.
-  -- 0 for null. (Technically \0 is null in 'base 8')
-  -- 0[1-9]+ for a character literal in base 8.
-  -- [xX][0-9a-fA-F]+ for a character literal in base 16.
 
-  -- A string starting with double quotes continues until a double
-  -- quote not followed by an escape sequence.
   local result, escape, character, number, offset
   if capture == '"' then
     character = '"'
     number = 1
     offset = 0
   else
-    -- A string starting with two single quotes continues until two single
-    -- quotes not followed by an escape sequence.
-    -- A string starting with a single quote, then a number n, 
-    -- then a special character, will end when n repetitions of the special
-    -- character are not followed by an escape sequence.
-    -- Two single quotes is actually the same as writing a string in the second format like so:
-    --  '2'This is a string ending in two single quotes.''
     local numberLength = 0
     character = remainder:match '^[^%w%s]'
     if character == "'" then
@@ -73,8 +49,6 @@ local function captureString(subject, position, capture)
   --  Any non-alphanumeric character
   --  (including all punctuation characters, even the non-magical)
   --  can be preceded by a '%' to represent itself in a pattern.
-  -- Default to 2 repeats for the escape if the 'character' is a single quote,
-  -- otherwise default to 1.
   escapedCharacter = '%'..character
 
   local notEscapes = '[^abfnrtv0-9a-fA-FxXsS'..escapedCharacter..']'
@@ -115,11 +89,19 @@ local function captureString(subject, position, capture)
   result = result:gsub(escape..'r', '\r')
   result = result:gsub(escape..'t', '\t')
   result = result:gsub(escape..'v', '\v')
-  result = result:gsub(escape..'s', character)
+  result = result:gsub(escape..'s', character:rep(number))
   result = result:gsub(escape..'[xX0][0-9]+', toLiteral)
   result = result:gsub('('..escape..')([1-9])', toRepeats)
+
+  -- Ignore ending quotes that it's natural to add mistakenly:
+  -- Don't do this for double quotes, as adding an extra in that
+  -- case is likely to be a sign of a more serious oversight.
+  -- (If the delimiter is a single quote, no need to test, as those are always all consumed.)
+  if capture ~= '"' and character ~= "'" and subject:sub(position + offset, position + offset) == "'" then
+    offset = offset + 1
+  end
 
   return position + offset, result
 end
 
-return Cp() * Cmt(P"'" + '"', captureString) * common.endToken
+return Cp() * Cmt(P(literals.delim.string1) + literals.delim.string2, captureString) * common.endToken

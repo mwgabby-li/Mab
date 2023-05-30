@@ -44,7 +44,8 @@ module.delim.openBlock = '{'
 module.delim.closeBlock = '}'
 module.delim.openFunctionParameterList = '('
 module.delim.closeFunctionParameterList = ')'
-module.delim.string = "'"
+module.delim.string1 = "'"
+module.delim.string2 = '"'
 
 --  Separators
 module.sep.statement = ';'
