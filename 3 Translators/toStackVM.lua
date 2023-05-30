@@ -420,8 +420,18 @@ function Translator:codeStatement(ast)
     self:codeStatement(ast.firstChild)
     self:codeStatement(ast.secondChild)
   elseif ast.tag == 'return' then
+    -- If this function has no return values,
+    -- we need to code an 'exit' instead of a 'return,'
+    -- so the interpreter doesn't try to preserve a return
+    -- value that doesn't exist and put the stack in an
+    -- inconsistent state.
+    local numInstructions = #self.currentCode
     self:codeExpression(ast.sentence)
-    self:addCode('return')
+    if #self.currentCode > numInstructions then
+      self:addCode 'return'
+    else
+      self:addCode 'exit'
+    end
     -- Add the number of locals at this time so we can update the stack.
     local localsBeforeFunctionCodeStart = self.blockBases[self.functionBlockBase] - 1
     self:addCode((#self.locals - localsBeforeFunctionCodeStart) + #self.currentParameters)
@@ -539,33 +549,33 @@ function Translator:codeFunction(ast)
 
   self.codingFunction = true
   self:codeStatement(ast.assignment)
-  if self.currentCode[#self.currentCode - 1] ~= 'return' then
-    -- TODO: Doesn't support creating default returns for arrays.
+  -- If the function doesn't have a 'return' or 'exit,' we need to add one:
+  local penultimateInstruction = self.currentCode[#self.currentCode - 1]
+  if not (penultimateInstruction == 'return' or penultimateInstruction == 'exit') then
     local resultTypeTag = ast.type_.resultType.tag
-    if resultTypeTag == 'array' then
-      self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
-                    ast.name or 'anonymous function' .. '."', ast.assignment)
-    end
-
-    if resultTypeTag == 'number' then
-      self:addCode('push')
-      self:addCode(0)
-    elseif resultTypeTag == 'boolean' then
-      self:addCode('push')
-      self:addCode(false)
-    elseif resultTypeTag == 'string' then
-      self:addCode('push')
-      self:addCode ''
-    elseif resultTypeTag == 'none' then
-      -- This is valid. Note that a function like this, with no return type,
-      -- is only allowed to be executed as a statement.
-      -- Any other use will cause a type checker error.
+    -- Code 'exit' if we don't have a return value,
+    -- so the VM will know not to preserve the
+    -- top stack value when the function ends.
+    if resultTypeTag == 'none' then
+      self:addCode('exit')
     else
-      self:addError('Internal error: unknown type "'..resultTypeTag..'" when generating automatic return value.')
       self:addCode('push')
-      self:addCode(0)
+      -- TODO: Doesn't support creating default returns for arrays.
+      if resultTypeTag == 'array' then
+        self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
+                ast.name or 'anonymous function' .. '."', ast.assignment)
+      elseif resultTypeTag == 'number' then
+        self:addCode(0)
+      elseif resultTypeTag == 'boolean' then
+        self:addCode(false)
+      elseif resultTypeTag == 'string' then
+        self:addCode ''
+      else
+        self:addError('Internal error: unknown type "'..resultTypeTag..'" when generating automatic return value.')
+        self:addCode(0)
+      end
+      self:addCode('return')
     end
-    self:addCode('return')
     self:addCode(self.functionLocalsToRemove + #self.currentParameters)
     self.functionLocalsToRemove = nil
   end
