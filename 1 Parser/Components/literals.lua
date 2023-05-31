@@ -3,7 +3,7 @@ local module = { op = {}, delim = {}, sep = {}, comments = {}  }
 -- Language literals, they can be customized here.
 --  Operators
 module.op.initialValue = '=' -- Used only for initial values. Currently optional.
-module.op.assign = '<-' -- Assign is a special case. It's a statement operator.
+module.op.assign = '=' -- Assign is a special case. It's a statement operator.
 module.op.print = '@'  -- Same with print.
 module.op.indexByOffset = '+' -- Indicates an array should be offset-indexed. (Length minus one is the last element.)
 

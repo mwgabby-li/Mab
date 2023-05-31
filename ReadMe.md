@@ -90,6 +90,14 @@ The grammar examples are in Extended Backus-Naur Form,
 In Mab, identifiers are allowed to contain the letters
 `A`-`Z`, `a`-`z`, the digits `0`-`9`, and underscores.
 
+Identifiers may not start with `'return'`. Identifiers that refer to functions
+additionally may not start with any conditional keywords, such as `'if'` and `'while'`.
+
+This removes some ambiguity, preventing `return a = b` from being read as `(return a) = b`, `return function name()`
+from being read as `(return function name)()`, and `if ( a ) {}` from being read as `(if a)() {}`.\
+Note that the parenthesis grouping is for explanatory purposes only, to show how the parser might falsely group
+things. Calling a function in parentheses is not valid Mab syntax, nor is assigning to a value in parentheses.
+
 They may start with digits, but must contain at least one letter,
 and may not end with the following suffix, as it indicates a number in base notation:
 
@@ -129,6 +137,21 @@ Blob10: true
 -- Invalid, ending in ' b<digits>`
 -- is not allowed.
 Blo b10: true
+
+-- Not valid, identifiers may not start with 'return .'
+return test: 12
+
+-- This is OK, though:
+returnTest: 12
+
+-- Valid. It's not a function type.
+if test: true
+
+-- Not valid, it's a function type.
+if function: -> {}
+
+-- This is OK, since there's no space.
+ifFunction: -> ()
 
 -- Invalid:
 -leading-dash-identifier: 10
@@ -549,9 +572,6 @@ An example of some functions and variables in this syntax:
 ```
 -- This function has no input or
 -- return types.
--- It can only be called with the
--- `call` keyword, any other use
--- would be a type checker error.
 global container: -> {
     g:global = 12
     @g
@@ -578,7 +598,7 @@ div: (a:number, b:number) -> number {
 -- This could also be written as
 --   entry point: -> number
 entry point: () -> number {
-    call global container()
+    global container()
 
     -- Fully specified variable
     a:local number = 2
@@ -600,7 +620,7 @@ The result of executing the above example is `24.0`.
 The grammar for assignments is:
 
 ```
-identifier {'[' expression ']'} '<-' expression
+identifier {'[' expression ']'} '=' expression
 ```
 
 The middle part is the array index syntax. Note that each array index must evaluate 
@@ -611,11 +631,11 @@ A couple of basic assignment examples:
 ```
 a:default number
 
-a <- 3 * 6 + 4
+a = 3 * 6 + 4
 
 b: new[2][2] boolean
 
-b[1][1] <- true
+b[1][1] = true
 ```
 
 ### Unary and Binary Operators
@@ -718,28 +738,6 @@ From lowest to highest:
 | <center>`*` `/` `%` </center>                | Multiplication, Division, and Modulus |
 | <center>`-` </center>                        | Unary Minus                           |
 | <center>`^` </center>                        | Exponent                              |
-
-### Statement Function Calls
-
-A function whose return value is discarded after being called is a statement.
-
-Mab requires a special keyword for this case, unlike most other languages:
-
-```
-'call' identifier '(' [ expression { ',' expression } ] ')'
-```
-
-Example of usage. Note that `print()` here has no return type, so it actually can only
-be invoked with `call`:
-```
-print: (n:number) -> {
-    @n
-}
-
-entry point: -> number {
-    call print(10)
-}
-```
 
 ### Return
 

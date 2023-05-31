@@ -30,9 +30,14 @@ local function getIdentifier(subject, position, match)
   -- Identifiers may not be the same as keywords.
   if tokens.kw[match] then
     return false
-  else
-    return position + #match, match
   end
+  
+  -- Identifiers may not start with 'return .'
+  if match:match('^return ') then
+    return false
+  end
+    
+  return position + #match, match
 end
 
 return Cmt(P(true), getIdentifier)* endToken

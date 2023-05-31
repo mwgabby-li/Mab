@@ -553,6 +553,12 @@ function TypeChecker:checkNewVariable(ast)
   -- in the later translator unless it's stored here,
   -- so just overwrite the type in the AST.
   ast.type_ = inferredType
+  
+  if inferredType.tag == 'function' then
+    if ast.name:match '^if ' or ast.name:match '^while ' then
+      self:addError('"'..ast.name..'" starts with the conditional keyword "'..ast.name:match('^(.*) ')..'," and is type "'..common.toReadableType(inferredType)..'." Function types may not start with conditional keywords, sorry.', ast)
+    end
+  end
 
   local scope = self:inferScope(ast)
 

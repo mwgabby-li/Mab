@@ -14,59 +14,59 @@ entry point: -> number {
     point count:24
 
     -- A big circle.
-    points[ 1][1] <- 12  points[ 1][2] <- 14
-    points[ 2][1] <- 16  points[ 2][2] <- 14
-    points[ 3][1] <- 17  points[ 3][2] <- 13
-    points[ 4][1] <- 18  points[ 4][2] <- 13
-    points[ 5][1] <- 19  points[ 5][2] <- 12
-    points[ 6][1] <- 19  points[ 6][2] <- 11
-    points[ 7][1] <- 20  points[ 7][2] <- 10
-    points[ 8][1] <- 20  points[ 8][2] <-  6
-    points[ 9][1] <- 19  points[ 9][2] <-  5
-    points[10][1] <- 19  points[10][2] <-  4
-    points[11][1] <- 18  points[11][2] <-  3
-    points[12][1] <- 17  points[12][2] <-  3
-    points[13][1] <- 16  points[13][2] <-  2
-    points[14][1] <- 12  points[14][2] <-  2
-    points[15][1] <- 11  points[15][2] <-  3
-    points[16][1] <- 10  points[16][2] <-  3
-    points[17][1] <-  9  points[17][2] <-  4
-    points[18][1] <-  9  points[18][2] <-  5
-    points[19][1] <-  8  points[19][2] <-  6
-    points[20][1] <-  8  points[20][2] <- 10
-    points[21][1] <-  9  points[21][2] <- 11
-    points[22][1] <-  9  points[22][2] <- 12
-    points[23][1] <- 10  points[23][2] <- 13
-    points[24][1] <- 11  points[24][2] <- 13
+h    points[ 1][1] = 12  points[ 1][2] = 14
+    points[ 2][1] = 16  points[ 2][2] = 14
+    points[ 3][1] = 17  points[ 3][2] = 13
+    points[ 4][1] = 18  points[ 4][2] = 13
+    points[ 5][1] = 19  points[ 5][2] = 12
+    points[ 6][1] = 19  points[ 6][2] = 11
+    points[ 7][1] = 20  points[ 7][2] = 10
+    points[ 8][1] = 20  points[ 8][2] =  6
+    points[ 9][1] = 19  points[ 9][2] =  5
+    points[10][1] = 19  points[10][2] =  4
+    points[11][1] = 18  points[11][2] =  3
+    points[12][1] = 17  points[12][2] =  3
+    points[13][1] = 16  points[13][2] =  2
+    points[14][1] = 12  points[14][2] =  2
+    points[15][1] = 11  points[15][2] =  3
+    points[16][1] = 10  points[16][2] =  3
+    points[17][1] =  9  points[17][2] =  4
+    points[18][1] =  9  points[18][2] =  5
+    points[19][1] =  8  points[19][2] =  6
+    points[20][1] =  8  points[20][2] = 10
+    points[21][1] =  9  points[21][2] = 11
+    points[22][1] =  9  points[22][2] = 12
+    points[23][1] = 10  points[23][2] = 13
+    points[24][1] = 11  points[24][2] = 13
     
-    call closed polygon(points, 24, trace value)
+    closed polygon(points, 24, trace value)
     
     -- A smaller circle. Kind of like a moon or something.
-    points[1][1] <- 21  points[1][2] <- 17
-    points[2][1] <- 23  points[2][2] <- 17
-    points[3][1] <- 24  points[3][2] <- 16
-    points[4][1] <- 24  points[4][2] <- 14
-    points[5][1] <- 23  points[5][2] <- 13
-    points[6][1] <- 21  points[6][2] <- 13
-    points[7][1] <- 20  points[7][2] <- 14
-    points[8][1] <- 20  points[8][2] <- 16
+    points[1][1] = 21  points[1][2] = 17
+    points[2][1] = 23  points[2][2] = 17
+    points[3][1] = 24  points[3][2] = 16
+    points[4][1] = 24  points[4][2] = 14
+    points[5][1] = 23  points[5][2] = 13
+    points[6][1] = 21  points[6][2] = 13
+    points[7][1] = 20  points[7][2] = 14
+    points[8][1] = 20  points[8][2] = 16
     
-    call closed polygon(points, 8, trace value)
+    closed polygon(points, 8, trace value)
     
     -- A smaller circle inside the bigger circle, what?
-    points[1][1] <- 16  points[1][2] <-  8
-    points[2][1] <- 17  points[2][2] <-  8
-    points[3][1] <- 18  points[3][2] <-  9
-    points[4][1] <- 18  points[4][2] <- 10
-    points[5][1] <- 17  points[5][2] <- 11
-    points[6][1] <- 16  points[6][2] <- 11
-    points[7][1] <- 15  points[7][2] <- 10
-    points[8][1] <- 15  points[8][2] <-  9
+    points[1][1] = 16  points[1][2] =  8
+    points[2][1] = 17  points[2][2] =  8
+    points[3][1] = 18  points[3][2] =  9
+    points[4][1] = 18  points[4][2] = 10
+    points[5][1] = 17  points[5][2] = 11
+    points[6][1] = 16  points[6][2] = 11
+    points[7][1] = 15  points[7][2] = 10
+    points[8][1] = 15  points[8][2] =  9
 
-    call closed polygon(points, 8, trace value)
+    closed polygon(points, 8, trace value)
 
-    call fill()
-    call finalize()
+    fill()
+    finalize()
     
     @display
 }
@@ -80,9 +80,9 @@ closed polygon: (points:[24][2] number, point count:number, value to draw:number
         start point:points[i]
         end point:points[(i%point count)+1]
 
-        call line(start point, end point, value to draw)
+        line(start point, end point, value to draw)
 
-        i <- i + 1
+        i = i + 1
     }
     
 }
@@ -94,8 +94,8 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
 
   y increment: delta y > 0 ? 1 : -1
   x increment: delta x > 0 ? 1 : -1
-  delta x <- x increment > 0 ? delta x : -delta x
-  delta y <- y increment > 0 ? delta y : -delta y
+  delta x = x increment > 0 ? delta x : -delta x
+  delta y = y increment > 0 ? delta y : -delta y
   current x: start point[1]
   current y: start point[2]
   end x: end point[1]
@@ -110,8 +110,8 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
 
     current y: start y
     while current y ~= end y {
-      call set(x, current y, value to draw)
-      current y <- current y + y increment
+      set(x, current y, value to draw)
+      current y = current y + y increment
     }
     --/ Done drawing:
     --\
@@ -125,8 +125,8 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
     
     current x: start x
     while current x ~= end x {
-      call set(current x, y, value to draw)
-      current x <- current x + x increment
+      set(current x, y, value to draw)
+      current x = current x + x increment
     }
     --/ Done drawing:
     --\
@@ -137,28 +137,28 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
     slope: delta y / delta x
 
     while current x ~= end x {
-      call set(current x, current y, value to draw)
-      current x <- current x + x increment
+      set(current x, current y, value to draw)
+      current x = current x + x increment
 
-      error <- error + slope
+      error = error + slope
 
       if error > 0.5 {
-        current y <- current y + y increment
-        error <- error - 1
+        current y = current y + y increment
+        error = error - 1
       }
     }
   } else {
     slope: delta x / delta y
 
     while current y ~= end y {
-      call set(current x, current y, value to draw)
-      current y <- current y + y increment
+      set(current x, current y, value to draw)
+      current y = current y + y increment
 
-      error <- error + slope
+      error = error + slope
 
       if error > 0.5 {
-        current x <- current x + x increment
-        error <- error - 1
+        current x = current x + x increment
+        error = error - 1
       }
     }
   }
@@ -177,33 +177,33 @@ fill: -> {
 
         if get(x, y) = trace value {
           if !entered {
-            entered <- true
-            enter state <- get enter state(x, y)
-            enter x <- x
+            entered = true
+            enter state = get enter state(x, y)
+            enter x = x
           }
         } else {
           if entered {
-            entered <- false
+            entered = false
 
             -- We just entered!
             if enter x + 1 = x {
               if enter state = 0 {
-                drawing <- !drawing
+                drawing = !drawing
               }
             } elseif enter state ~= 0 & (enter state + get enter state(x - 1, y) = 0) {
-              drawing <- !drawing
+              drawing = !drawing
             }
           }
           if drawing {
-            call set(x,y,filled value)
+            set(x,y,filled value)
           }
         }
 
-        x <- x + 1
+        x = x + 1
       }
-      drawing <- false
-      entered <- false
-      y <- y + 1
+      drawing = false
+      entered = false
+      y = y + 1
     }
 }
 
@@ -218,11 +218,11 @@ finalize: -> {
       x: 1
       while x <= display width {
         if get(x, y) = trace value {
-          call set(x, y, filled value)
+          set(x, y, filled value)
         }
-        x <- x + 1
+        x = x + 1
       }
-      y <- y + 1
+      y = y + 1
     }
 }
 
@@ -247,34 +247,34 @@ get enter state: (x:number y:number) -> number {
   if x - 1 >= 1 {
     if y + 1 <= display height {
       if get(x - 1, y + 1) = trace value {
-        above <- true
+        above = true
       }
     }
     if y - 1 >= 1 {
       if get(x - 1, y - 1) = trace value {
-        below <- true
+        below = true
       }
     }
   }
   if y + 1 <= display height {
     if get(x, y + 1) = trace value {
-      above <- true
+      above = true
     }
   }
   if y - 1 >= 1 {
     if get(x, y - 1) = trace value {
-      below <- true
+      below = true
     }
   }
   if x + 1 <= display width {
     if y + 1 <= display height {
       if get(x + 1, y + 1) = trace value {
-        above <- true
+        above = true
       }
     }
     if y - 1 >= 1 {
       if get(x + 1, y - 1) = trace value {
-        below <- true
+        below = true
       }
     }
   }
@@ -298,6 +298,6 @@ get: (x:number y:number) -> number {
 
 set: (x:number y:number value:number) -> {
   -- To fix graphviz, swap these two lines..
-  display[18 - y + 1][x] <- value
+  display[18 - y + 1][x] = value
   --display[y][x] = value
 }
