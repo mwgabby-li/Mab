@@ -206,6 +206,28 @@ function module:testKeywordExcludeRules()
   errorReporter, result = module.parse(wrapWithEntrypoint'return()')
   lu.assertEquals(result, false)
 
+  -- Not OK, keyword prefixes:
+  lu.assertEquals(self:fullTest('if function: -> {}', true), 'Type checking failed!')
+  lu.assertEquals(self:fullTest('while function: -> {}', true), 'Type checking failed!')
+  lu.assertEquals(self:fullTest('return function: -> {}', true), 'Parsing failed!')
+
+  -- Not OK
+  lu.assertEquals(self:fullTest('return ID: 0', true), 'Parsing failed!')
+
+  -- OK, prefixes aren't followed by spaces:
+  local input =
+[[whileFunction: -> {}
+returnFunction: -> {}
+ifFunction: -> {}
+
+returnID: 0
+
+-- OK, these are not function identifiers:
+if ID: 0
+while ID: 0]]
+
+  lu.assertEquals(self:fullTest(input, true), 0)
+
   lu.assertEquals(self:fullTest('delta x: = 1   return delta x', true), 1)
 
   lu.assertEquals(self:fullTest('return of the variable: 1   return return of the variable', true), 'Parsing failed!')
@@ -532,6 +554,15 @@ function module:testArrays()
 }
 ]]
   lu.assertEquals(self:fullTest(input), 1)
+
+  -- Not OK, types mismatch
+  lu.assertEquals(self:fullTest('array: new[10][12] false  array[1] = new[12] 0', true), 'Type checking failed!')
+
+  -- Not OK, size mismatch
+  lu.assertEquals(self:fullTest('array: new[10][12] false  array[1] = new[10] true', true), 'Type checking failed!')
+
+  -- OK, size and type are correct.
+  lu.assertEquals(self:fullTest('array: new[10][12] false  array[1] = new[12] true', true), 0)
 end
 
 function module:testArrayNonNumeralIndexing()
