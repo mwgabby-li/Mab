@@ -415,8 +415,8 @@ include after scope or type keywords to make it clearer that it's an assignment.
 In certain cases, such as assigning to variables that start with scope or type
 keywords, it can be included to disambiguate.
 
-Variables with types specified do not need assignments, other than array types, which are required to have them.\
-This is a consequence of not supporting default values for array types.
+Variables with types specified do not need assignments, other than array and function types.\
+This is a consequence of not supporting default values for these types.
 
 More or less natural:
 ```
@@ -482,7 +482,8 @@ This entry point will be executed when the program starts.
 Scope is `global` or `local`. If no scope is specified,
 `global` is assumed at top-level and `local` otherwise.
 
-`global` variables are accessible everywhere in the file after the location they are defined.
+`global` variables are accessible everywhere in the file after the location they are defined,
+except for functions at the top level, which are available before and after their definitions.
 
 ### Type 
 
@@ -1231,7 +1232,7 @@ whether to make changes.
 * Colon after conditionals instead of open block?
   * Just seems a little more natural to me...
 * Disallow names composed entirely of keywords.
-* A different way to specify array default values, such as a `default` keyword?\
+* A different way to specify array default values, such as another use of the `default` keyword?\
   Maybe `array [2] default(0)`?
 * Error phase before type checking.
 * Remove extra empty statements.
@@ -1256,8 +1257,6 @@ whether to make changes.
   * Add the `after`, `block`, and `export` keywords?
     * What does it mean for a variable to have `block` scope as far as initialization?
       * Run the code first? What about dependencies?
-* Way of returning nothing, for functions that have no return type.
-  * `exit` statement?
 * Ability to get size of array, since it's static.
 * Language profiles with different rules.
   * Lua style, default `global`.
