@@ -14,7 +14,7 @@ entry point: -> number {
     point count:24
 
     -- A big circle.
-h    points[ 1][1] = 12  points[ 1][2] = 14
+    points[ 1][1] = 12  points[ 1][2] = 14
     points[ 2][1] = 16  points[ 2][2] = 14
     points[ 3][1] = 17  points[ 3][2] = 13
     points[ 4][1] = 18  points[ 4][2] = 13
