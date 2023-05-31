@@ -273,7 +273,7 @@ Or the repeated special character format, like so:
 '1"This is a string that is terminated by a double quote."
 ```
 
-Which is the for any special character; omitting the number is as if a `1` had been specified:
+Which is the same for any special character; omitting the number is as if a `1` had been specified:
 ```
 '1@This is a string that is terminated by an @s.@
 ```
