@@ -196,13 +196,15 @@ statement = blockStatement +
             newVariable +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
-            -- Return
-            KW'return' * Cp() * (expression + noValue) / nodeReturn +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
-            -- Call keyword is a solution for functions as statements and whitespace in identifiers,
-            -- while retaining the ability of identifiers to start with keywords.
-            KW'call' * functionCall +
+
+            functionCall * op.evalTo * KW'none' +
+
+            Cp() * expression * op.evalTo * KW'result' / nodeReturn +
+
+            Cp() * noValue * KW'exit' / nodeReturn +
+
             -- Print
             op.print * Cp() * expression / nodePrint,
 

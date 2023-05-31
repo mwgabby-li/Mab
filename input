@@ -39,7 +39,7 @@ entry point: -> number {
     points[23][1] <- 10  points[23][2] <- 13
     points[24][1] <- 11  points[24][2] <- 13
     
-    call closed polygon(points, 24, trace value)
+    closed polygon(points, 24, trace value) -> none
     
     -- A smaller circle. Kind of like a moon or something.
     points[1][1] <- 21  points[1][2] <- 17
@@ -51,7 +51,7 @@ entry point: -> number {
     points[7][1] <- 20  points[7][2] <- 14
     points[8][1] <- 20  points[8][2] <- 16
     
-    call closed polygon(points, 8, trace value)
+    closed polygon(points, 8, trace value) -> none
     
     -- A smaller circle inside the bigger circle, what?
     points[1][1] <- 16  points[1][2] <-  8
@@ -63,10 +63,10 @@ entry point: -> number {
     points[7][1] <- 15  points[7][2] <- 10
     points[8][1] <- 15  points[8][2] <-  9
 
-    call closed polygon(points, 8, trace value)
+    closed polygon(points, 8, trace value) -> none
 
-    call fill()
-    call finalize()
+    fill() -> none
+    finalize() -> none
     
     @display
 }
@@ -80,7 +80,7 @@ closed polygon: (points:[24][2] number, point count:number, value to draw:number
         start point:points[i]
         end point:points[(i%point count)+1]
 
-        call line(start point, end point, value to draw)
+        line(start point, end point, value to draw) -> none
 
         i <- i + 1
     }
@@ -110,12 +110,12 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
 
     current y: start y
     while current y ~= end y {
-      call set(x, current y, value to draw)
+      set(x, current y, value to draw) -> none
       current y <- current y + y increment
     }
     --/ Done drawing:
     --\
-    return
+    exit
   }
   -- Zero delta in the Y means this is a line going straight along X.
   if delta y = 0 {
@@ -125,19 +125,19 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
     
     current x: start x
     while current x ~= end x {
-      call set(current x, y, value to draw)
+      set(current x, y, value to draw) -> none
       current x <- current x + x increment
     }
     --/ Done drawing:
     --\
-    return
+    exit
   }
 
   if delta x > delta y {
     slope: delta y / delta x
 
     while current x ~= end x {
-      call set(current x, current y, value to draw)
+      set(current x, current y, value to draw) -> none
       current x <- current x + x increment
 
       error <- error + slope
@@ -151,7 +151,7 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
     slope: delta x / delta y
 
     while current y ~= end y {
-      call set(current x, current y, value to draw)
+      set(current x, current y, value to draw) -> none
       current y <- current y + y increment
 
       error <- error + slope
@@ -195,7 +195,7 @@ fill: -> {
             }
           }
           if drawing {
-            call set(x,y,filled value)
+            set(x,y,filled value) -> none
           }
         }
 
@@ -218,7 +218,7 @@ finalize: -> {
       x: 1
       while x <= display width {
         if get(x, y) = trace value {
-          call set(x, y, filled value)
+          set(x, y, filled value) -> none
         }
         x <- x + 1
       }
@@ -280,19 +280,19 @@ get enter state: (x:number y:number) -> number {
   }
   
   if above & below {
-    return 0
+    0 -> result
   } elseif above {
-    return +1
+    +1 -> result
   } elseif below {
-    return -1
+    -1 -> result
   }
   
-  return 0
+  0 -> result
 }
 
 get: (x:number y:number) -> number {
   -- To fix graphviz, swap these two lines..
-  return display[18 - y + 1][x]
+  display[18 - y + 1][x] -> result
   --return display[y][x]
 }
 

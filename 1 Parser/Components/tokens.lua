@@ -58,4 +58,5 @@ module.op.indexByOffset = T(l.op.indexByOffset)
 module.op.logical = T(C(l.op.and_) + C(l.op.or_))
 module.op.ternary = T(l.op.ternary)
 module.op.ternaryBranch = T(l.op.ternaryBranch)
+module.op.evalTo = T(l.op.evalTo)
 return module
