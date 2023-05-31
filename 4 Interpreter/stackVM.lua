@@ -327,6 +327,11 @@ function StackVM:run(code)
 end
 
 function StackVM:execute(code)
+  if #code == 0 then
+    self:addError 'Empty program. Aborting...'
+    return false
+  end
+  
   self:run(code)
   
   if self.top ~= 1 then

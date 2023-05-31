@@ -641,11 +641,12 @@ function Translator:translate(ast)
       self:addError('Unhandled tag "'..ast[i].tag.. '" at top level. Ignoring...')
     end
  end
-  -- 
 
-  local fakeEntryPointNode = {name=literals.entryPointName}  
-  self:codeLoadVariable(fakeEntryPointNode)
-  self:addCode('callFunction')
+  if entryPoint then
+    local fakeEntryPointNode = {name=literals.entryPointName}  
+    self:codeLoadVariable(fakeEntryPointNode)
+    self:addCode('callFunction')
+  end
 
   self.currentCode.version = common.toStackVMVersionHash()
 

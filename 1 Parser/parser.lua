@@ -166,6 +166,7 @@ local ternaryExpr = V'ternaryExpr'
 local newVariable = V'newVariable'
 local functionType = V'functionType'
 local newVariableList = V'newVariableList'
+local emptyStatement = V'emptyStatement'
 
 local lStrDelim = lpeg.P(literals.delim.string)
 
@@ -173,15 +174,17 @@ local C, Ct, Cc, Cp = lpeg.C, lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
 'program',
-program = endToken * Ct(newVariableList)^-1 * -1,
-newVariableList = (newVariable * newVariableList^-1) + Cc{tag='emptyStatement'},
+program = endToken * (Ct(newVariableList) + Ct(emptyStatement)) * -1,
+newVariableList = newVariable * newVariableList^-1,
 
 parameter = Cp() * identifier * sep.parameter * type_ / nodeParameter,
 parameters = Ct((parameter * (sep.argument^-1 * parameter)^0)^-1),
 
-statementList = ((statement * statementList^-1) + Cc{tag='emptyStatement'}) / nodeStatementSequence,
+statementList = ((statement * statementList^-1)) / nodeStatementSequence,
 
-blockStatement = delim.openBlock * statementList * delim.closeBlock / nodeBlock,
+blockStatement = delim.openBlock * (statementList + emptyStatement) * delim.closeBlock / nodeBlock,
+
+emptyStatement = lpeg.P(true) / node('emptyStatement'),
 
 elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
