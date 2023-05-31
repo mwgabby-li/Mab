@@ -281,21 +281,20 @@ Which is the same for any special character; omitting the number is as if a `1` 
 ##### Closing Quote
 
 Because it's easy to forgot that you don't have to balance the closing quote,
-if it's added it will be ignored if the string began with a single quote.
+special character delimited strings will ignore trailing single quotes:
 
-This doesn't apply to string delimited by single quotes already, as the ending characters will always be all consumed,
-and even included as noted in the [section covering this](#ending-character-quirk).
-
-This is an example of a string that doesn't need a closing quote, but was given one anyway:
 ```
 '1@This is a string that is terminated by an @s.@'
 ```
+
+This doesn't apply to string delimited by single quotes already, as the ending characters will always be all consumed,
+and even included as noted in the [section covering this](#ending-character-quirk).
 
 ##### Ending Character Quirk
 
 As noted, the string will end at the first delimiter that isn't followed by an escape sequence or the delimiter itself.
 This means that if you have multiple delimiters at the end of the string, they will all be included except for the
-*n* last ones, where *n* is the multipicity of the delimiter.
+*n* last ones, where *n* is the multiplicity of the delimiter.
 
 This means that you don't ever need to escape single quotes with the repeated single quote
 format, even if they're at the end:
