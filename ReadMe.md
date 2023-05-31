@@ -218,9 +218,134 @@ parts of the number and digit grouping.
 
 #### Strings
 
-Strings are delimited by single quotes. To insert a single quote in a string, use two single quotes.
+##### Double-Quoted
+A string starting with double quotes continues until a double quote not followed by an escape character or
+another double quote:
+```
+"This string's terminated in a double quote."
+```
 
-Strings may span multiple lines.
+##### Double-Quoted (With Single Quotes)
+If you start a string with two single quotes, it will continue until two single quotes not followed by an
+escape character or another single quote. This includes line breaks:
+```
+''This string's terminated in two single quotes.
+You can include "double quotes" and 'single quotes'
+in this string without needing to escape them.''
+```
+##### Special Character Delimited
+If you start a string with a single quote and a non-alphanumeric, non-whitespace character, it will continue until
+that character not followed by escape characters or repetitions of that character itself:
+
+```
+'@Put all the characters you like, no escapes needed except for @s: '"\/!#$%^&*().@
+```
+
+Because `delimiter 's'` is an escape sequence meaning 'the delimiter itself,' this string is valid. It becomes:
+```
+Put all the characters you like, no escapes needed except for @: '"\/!#$%^&*().
+```
+
+##### Repeated Special Character Delimited
+A string starting with a single quote, then a number n, then a special character, will end when n repetitions of 
+the special character are not followed by an escape sequence or that special character.
+```
+'3@You don't even need to escape single @s in this string. Only @@@s needs to be escaped.@@@'
+```
+In this string, `@s` is not an escape sequence, because `@` is not the delimiter, `@@@` is. It becomes:
+```
+You don't even need to escape single @s in this string. Only @@@ needs to be escaped.
+```
+
+##### Format Analogies
+Two single quotes is analogous to writing a string in the repeated delimited format like so:
+```
+'2'This is a string ending in two single quotes.''
+```
+
+Starting with a double quote is like writing a string in the special character delimited form like so:
+```
+'"This is a string that is terminated by a double quote."
+```
+
+Or the repeated special character format, like so:
+```
+'1"This is a string that is terminated by a double quote."
+```
+
+Which is the for any special character; omitting the number is as if a `1` had been specified:
+```
+'1@This is a string that is terminated by an @s.@
+```
+
+##### Closing Quote
+
+Because it's easy to forgot that you don't have to balance the closing quote,
+if it's added it will be ignored if the string began with a single quote.
+
+This doesn't apply to string delimited by single quotes already, as the ending characters will always be all consumed,
+and even included as noted in the [section covering this](#ending-character-quirk).
+
+This is an example of a string that doesn't need a closing quote, but was given one anyway:
+```
+'1@This is a string that is terminated by an @s.@'
+```
+
+##### Ending Character Quirk
+
+As noted, the string will end at the first delimiter that isn't followed by an escape sequence or the delimiter itself.
+This means that if you have multiple delimiters at the end of the string, they will all be included except for the
+*n* last ones, where *n* is the multipicity of the delimiter.
+
+This means that you don't ever need to escape single quotes with the repeated single quote
+format, even if they're at the end:
+
+```
+'''This string is surrounded by single quotes.'''
+```
+This results in:
+```
+'This string is surrounded by single quotes.'
+```
+
+The same is true of other delimiters:
+
+```
+'3@This string ends in three @s @@@@@@
+```
+This results in:
+```
+This string ends in three @s @@@
+```
+This string also produces the above result, without using the quirk:
+```
+'3@This string ends in three @s @@@s@@@
+```
+
+Finally, this quirk actually holds for any number of delimiters before an escape sequence.
+
+##### Escape Characters
+
+Include these escape characters after the specified delimiter in strings to produce the following results:
+
+| Character                    | Meaning                                                               |
+|------------------------------|-----------------------------------------------------------------------|
+| `a`                          | Bell                                                                  |
+| `b`                          | Backspace                                                             |
+| `f`                          | Form Feed                                                             |
+| `n`                          | New line                                                              |
+| `r`                          | Carriage Return                                                       |
+| `t`                          | Horizontal Tab                                                        |
+| `v`                          | Vertical Tab                                                          |
+| `1`-`9`                      | Repeats of Delimiter Character<br/>(Not repeated delimiter sequence.) |
+| `0`                          | Null<br/>(Technically \0 is null in 'base 8')                         |
+| `'0'{octal digit}`           | Literal Value in Base 8                                               |
+| `'x'\|'X'{hex digit}`        | Literal Value in Base 16                                              |
+
+##### Multi-line Strings and Whitespace Stripping
+
+Any of the above string formats can be used for multi-line strings, and additionally, they all support the leading
+whitespace stripping feature.
 
 If the first line in a string is a newline followed by some whitespace,
 said whitespace will be stripped from the start of all lines,
@@ -230,10 +355,10 @@ For example:
 
 ```
 entry point: -> number {
-  a string: '-- Let''s have fun!'
+  a string: ''-- Let's have "fun!"''
 
   an embedded program:
-    '
+    ''
     -- Our favorite recursive program
     entry point: -> number {
       return factorial(10)
@@ -245,7 +370,7 @@ entry point: -> number {
       }
       return n * factorial(n - 1)
     }
-    '
+    ''
 
   @a string
   @an embedded program
@@ -255,7 +380,7 @@ entry point: -> number {
 Will output:
 
 ```
--- Let's have fun!
+-- Let's have "fun!"
 -- Our favorite recursive program
 entry point: -> number {
   return factorial(10)
@@ -1056,7 +1181,7 @@ standard ways of communicating with other languages would be vital.
 `while` is not enough. Needs more loops, iterators, etc.
 
 #### More Data Types
-Some way of representing and working with strings is vital.
+Working with strings is vital.
 
 Separating integer and floating point is useful.
 
@@ -1097,8 +1222,8 @@ but were outside the scope of my free time during the course.
   * Maybe limit default `const` to function parameters?\
   See also the *Language profiles* idea.
 * String improvements.
-  * Support for escape sequences.
-  * ('a, 'b, 'f, 'n, 'r, 't, 'v 'nnn, 'xhh, 'unnnn, 'Unnnnnnnn)?
+  * Support for literal escape sequences.
+  * (`'0' octal digit, octal digit, octal digit`, `'x'|'X'hex digit, hex digit`)
 * Disallow globals in default arguments, or remove default arguments.
 * Do a pass over different keyword and symbol literals and consider
 whether to make changes.

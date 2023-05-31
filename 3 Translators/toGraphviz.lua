@@ -75,6 +75,7 @@ function Translator:nodeExpression(ast, depth)
   elseif ast.tag == 'none' then
     self:appendNode(ast, false, 'none')
   elseif ast.tag == 'string' then
+    -- Use only first gsub() return value by surrounding with ()
     self:appendNode(ast, false, (string.gsub(ast.value, '"', '\\"')))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.name)
@@ -123,7 +124,7 @@ function Translator:appendNode(ast, sequence, label, ...)
   local firstChild = arguments[1]
   local secondChild = type(arguments[2]) == 'table' and arguments[2] or nil
   local thirdChild = type(arguments[3]) == 'table' and arguments[3] or nil
-  
+
   local parentPortFirst = ''
   local childPortFirst = ''
   local parentPortSecond = ''
@@ -142,19 +143,19 @@ function Translator:appendNode(ast, sequence, label, ...)
     if self.mode == 'vertical' then
       parentPortFirst = ':ne '
       childPortFirst = ':w '
-      
+
       parentPortSecond = ':e '
       childPortSecond = ':w '
-      
+
       parentPortThird = ':se '
       childPortThird = ':w '
     else
       parentPortFirst = ':sw '
       childPortFirst = ':ne '
-      
+
       parentPortSecond = ':s '
       childPortSecond = ':n '
-      
+
       parentPortThird = ':se '
       childPortThird = ':nw '
     end
@@ -162,13 +163,13 @@ function Translator:appendNode(ast, sequence, label, ...)
     if self.mode == 'vertical' then
       parentPortFirst = ':ne '
       childPortFirst = ':w '
-      
+
       parentPortSecond = ':se '
       childPortSecond = ':w '
     else
       parentPortFirst = ':sw '
       childPortFirst = ':ne '
-      
+
       parentPortSecond = ':se '
       childPortSecond = ':nw '
     end
@@ -211,7 +212,7 @@ function Translator:appendNode(ast, sequence, label, ...)
     label = (thirdLabel and ('[ label = "' .. thirdLabel  .. '" ];') or ';')
     self.file = self.file .. nodeName .. parentPortThird ..  ' -> ' .. self:nodeName(thirdChild) .. childPortThird .. label .. '\n'
   end
-  
+
   for i = 4, arguments.n do
     if type(arguments[i]) == 'table' then
       label = ';'
