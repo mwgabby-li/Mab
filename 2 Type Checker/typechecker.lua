@@ -254,6 +254,9 @@ function TypeChecker:typeMatches(apple, orange, allowNone)
   end
   
   if apple.tag == 'array' then
+    if apple.elementType.tag ~= orange.elementType.tag then
+      return false
+    end
     if #apple.dimensions ~= #orange.dimensions then
       return false
     end

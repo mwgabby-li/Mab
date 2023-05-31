@@ -220,9 +220,9 @@ function common.toReadableType(type_)
     return 'invalid type'
   elseif type_.tag == 'function' then
     local parameterCount = #type_.parameters
-    local result
+    local result = '(function) '
     if parameterCount > 0 then
-      result = '('
+      result = result..'('
       for i = 1, parameterCount do
         result = result..common.toReadableType(type_.parameters[i].type_)
         if i ~= parameterCount then
@@ -231,19 +231,18 @@ function common.toReadableType(type_)
       end
       result = result ..')'
     else
-      result = 'none'
+      result = result .. 'none'
     end
     return result..' -> '..common.toReadableType(type_.resultType)
   elseif not type_.dimensions then
     return type_.tag
   else
     local numDimensions = #type_.dimensions
-    local dimensionString = numDimensions == 1 and '' or numDimensions .. 'D '
     local explicitDimensions = ''
     for i = 1,numDimensions do
       explicitDimensions = explicitDimensions..'['..type_.dimensions[i]..']'
     end
-    return dimensionString .. 'array ('..explicitDimensions..') of \''.. common.toReadableType(type_.elementType)..'\'s'
+    return 'array '..explicitDimensions..' of \''.. common.toReadableType(type_.elementType)..'s\''
   end
 end
 
