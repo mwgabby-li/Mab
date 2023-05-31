@@ -2,6 +2,7 @@ local lpeg = require 'lpeg'
 local common = require 'common'
 local endToken = common.endToken
 local numeral = require 'numeral'
+local stringLiteral = require 'stringLiteral'
 local identifierPattern = require 'identifier'
 
 local tokens = require 'tokens'
@@ -42,6 +43,7 @@ local nodeNewVariable = node('newVariable', 'position', 'name', 'scope', 'type_'
 local nodePrint = node('print', 'position', 'toPrint')
 local nodeReturn = node('return', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')
+local nodeString = node('string', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
 local nodeWhile = node('while', 'position', 'expression', 'body')
 local nodeBoolean = node('boolean', 'position', 'value')
@@ -67,22 +69,6 @@ local function nodeStatementSequence(first, rest)
   else
     return { tag='statementSequence', firstChild = first, secondChild = rest }
   end
-end
-
-local function nodeString(position, value)
-  value = string.gsub(value, "''", "'")
-
-  local prefix = string.match(value, '^\r?(\n%s+)')
-  if prefix then
-    value = string.gsub(value, prefix, '\n')
-    if string.sub(value, 1, 1) == '\r' then
-      value = string.sub(value, 3, #value)
-    else
-      value = string.sub(value, 2, #value)
-    end
-  end
-
-  return {tag = 'string', position = position, value = value}
 end
 
 local function addUnaryOp(operator, position, expression)
@@ -161,27 +147,29 @@ local booleanType = V'booleanType'
 local numberType = V'numberType'
 local inferType = V'inferType'
 local noType = V'noType'
+local noValue = V'noValue'
 local arrayType = V'arrayType'
 local ternaryExpr = V'ternaryExpr'
 local newVariable = V'newVariable'
 local functionType = V'functionType'
 local newVariableList = V'newVariableList'
-
-local lStrDelim = lpeg.P(literals.delim.string)
+local emptyStatement = V'emptyStatement'
 
 local C, Ct, Cc, Cp = lpeg.C, lpeg.Ct, lpeg.Cc, lpeg.Cp
 local grammar =
 {
 'program',
-program = endToken * Ct(newVariableList)^-1 * -1,
-newVariableList = (newVariable^-1 * (sep.statement * newVariableList)^-1),
+program = endToken * (Ct(newVariableList) + Ct(emptyStatement)) * -1,
+newVariableList = newVariable * newVariableList^-1,
 
 parameter = Cp() * identifier * sep.parameter * type_ / nodeParameter,
 parameters = Ct((parameter * (sep.argument^-1 * parameter)^0)^-1),
 
-statementList = statement^-1 * (sep.statement * statementList)^-1 / nodeStatementSequence,
+statementList = ((statement * statementList^-1)) / nodeStatementSequence,
 
-blockStatement = delim.openBlock * statementList * sep.statement^-1 * delim.closeBlock / nodeBlock,
+blockStatement = delim.openBlock * (statementList + emptyStatement) * delim.closeBlock / nodeBlock,
+
+emptyStatement = lpeg.P(true) / node('emptyStatement'),
 
 elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
 
@@ -190,7 +178,16 @@ target = Ct(variable * (((op.indexByOffset * Cc(true)) + Cc(false)) * (delim.ope
 functionCall = target * Cp() * delim.openFunctionParameterList * arguments * delim.closeFunctionParameterList / nodeFunctionCall,
 arguments = Ct((expression * (sep.argument * expression)^0)^-1),
 
-newVariable = Cp() * identifier * sep.newVariable * (KWc'export' + KWc'global' + KWc'local' + Cc'unspecified') * (type_ + inferType) * (op.assign^-1 * (expression + blockStatement))^-1 / nodeNewVariable,
+              -- ID:
+newVariable = Cp() * identifier * sep.newVariable *
+              -- Scope (or unspecified)
+              (KWc'export' + KWc'global' + KWc'local' + Cc'unspecified') *
+                (
+                  -- 'default' and then type, no initializer in this notation
+                  (KW'default' * type_) +
+                  -- Explicit or inferred type
+                  ((type_ + inferType) * (op.initialValue^-1 * (expression + blockStatement)))
+                )/ nodeNewVariable,
 
 statement = blockStatement +
             -- Assignment - must be first to allow variables that contain keywords as prefixes.
@@ -200,7 +197,7 @@ statement = blockStatement +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
-            KW'return' * sep.returnResult^-1 * Cp() * expression / nodeReturn +
+            KW'return' * Cp() * (expression + noValue) / nodeReturn +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
             -- Call keyword is a solution for functions as statements and whitespace in identifiers,
@@ -216,13 +213,14 @@ noType = Cp() / node('none', 'position'),
 inferType = Cp() / node('infer', 'position'),
 arrayType = Ct((delim.openArray * expression * delim.closeArray)^1) * (functionType + booleanType + numberType + inferType) / makeArrayType,
 
-functionType = ((delim.openFunctionParameterList * parameters * ((op.assign * expression) + Cc(false)) * delim.closeFunctionParameterList) + Cc{} * Cc(false)) * Cp() * sep.functionResult * (type_ + noType) / nodeFunctionType,
+functionType = ((delim.openFunctionParameterList * parameters * ((op.initialValue * expression) + Cc(false)) * delim.closeFunctionParameterList) + Cc{} * Cc(false)) * Cp() * sep.functionResult * (type_ + noType) / nodeFunctionType,
 
 type_ = (functionType + booleanType + numberType + arrayType),
 
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 -- Have to use literal string delimiter, or whitespace will be stripped before string opens.
-string = Cp() * lStrDelim * C(((1 - lStrDelim) + (lStrDelim * lStrDelim))^0) * delim.string / nodeString,
+string = stringLiteral / nodeString,
+noValue = Cp() / node('none', 'position'),
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +
@@ -231,7 +229,7 @@ primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^
           -- and we'll get a syntax error about the open parenthesis.
           functionCall +
           target +
-          Cp() * numeral / nodeNumeral +
+          Cp() * numeral.capture / nodeNumeral +
           -- Literal booleans
           boolean +
           string +

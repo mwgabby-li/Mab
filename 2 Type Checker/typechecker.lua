@@ -181,7 +181,7 @@ function TypeChecker:new(o)
 end
 
 function isBasicType(tag)
-  return tag == 'number' or tag == 'boolean' or tag == 'string'
+  return tag == 'number' or tag == 'boolean' or tag == 'string' or tag == 'none'
 end
 
 function isSpecialType(tag)
@@ -228,8 +228,8 @@ function TypeChecker:getVariablesType(variable)
   return kNoType
 end
 
-function TypeChecker:typeValid(apple)
-  if apple.tag == 'none' then
+function TypeChecker:typeValid(apple, allowNone)
+  if apple.tag == 'none' and not allowNone then
     return false
   end
 
@@ -244,8 +244,8 @@ function TypeChecker:typeValid(apple)
   return true
 end
 
-function TypeChecker:typeMatches(apple, orange)
-  if not self:typeValid(apple) or not self:typeValid(orange) then
+function TypeChecker:typeMatches(apple, orange, allowNone)
+  if not self:typeValid(apple, allowNone) or not self:typeValid(orange, allowNone) then
     return false
   end
   
@@ -254,6 +254,9 @@ function TypeChecker:typeMatches(apple, orange)
   end
   
   if apple.tag == 'array' then
+    if apple.elementType.tag ~= orange.elementType.tag then
+      return false
+    end
     if #apple.dimensions ~= #orange.dimensions then
       return false
     end
@@ -583,9 +586,11 @@ function TypeChecker:checkStatement(ast)
     self:checkStatement(ast.secondChild)
   elseif ast.tag == 'return' then
     local returnType = self:checkExpression(ast.sentence)
-    if not self:typeValid(returnType) then
+    -- Allow none: true
+    if not self:typeValid(returnType, true) then
       self:addError('Could not determine type of return type.', ast)
-    elseif not self:typeMatches(returnType, self.currentFunction.resultType) then
+    -- Allow none: true
+    elseif not self:typeMatches(returnType, self.currentFunction.resultType, true) then
       self:addError('Mismatched types with return, function "' .. self.currentFunction.name .. '" returns "' ..
                     common.toReadableType(self.currentFunction.resultType) .. '," but returning type "' ..
                     common.toReadableType(returnType) .. '."', ast)
@@ -673,7 +678,7 @@ function TypeChecker:check(ast)
   -- Two-pass compilation style for functions at the top level.
   for i = 1, #ast do
     local type_ = ast[i].type_
-    if type_.tag == 'function' then
+    if ast[i].tag == 'newVariable' and type_.tag == 'function' then
       -- Just infer the scope for the errors it generates...
       local scope = self:inferScope(ast[i])
       if scope ~= 'global' then

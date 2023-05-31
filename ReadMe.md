@@ -1,19 +1,58 @@
 # The Mab Programming Language
 
 ![An illustration of Queen Mab by Willy Pogany,
- a line drawing of a fairy in black and white with butterfly wings,
-holding a rod and wearing a crown,
-in a dress, her feet straight down,
-and below her feet a single star.
- "Queen Mab" is written in the middle in script,
-one word on either side of the figure.](Artwork/QueenMab.png#gh-light-mode-only "Queen Mab, Illustration by Willy Pogany")
-![An illustration of Queen Mab by Willy Pogany,
 a line drawing of a fairy in black and white with butterfly wings,
 holding a rod and wearing a crown,
 in a dress, her feet straight down,
 and below her feet a single star.
 "Queen Mab" is written in the middle in script,
 one word on either side of the figure.](Artwork/QueenMabDark.png#gh-dark-mode-only "Queen Mab, Illustration by Willy Pogany")
+![An illustration of Queen Mab by Willy Pogany,
+ a line drawing of a fairy in black and white with butterfly wings,
+holding a rod and wearing a crown,
+in a dress, her feet straight down,
+and below her feet a single star.
+ "Queen Mab" is written in the middle in script,
+one word on either side of the figure.](Artwork/QueenMab.png#gh-light-mode-only "Queen Mab, Illustration by Willy Pogany")
+<p style="text-align: center;"><i>Image from</i> A Treasury of Verse for Little Children, <i>illustrated by William Andrew Pogany, stories selected by
+M. G. Edgar</i>.</p>
+
+## On Names
+
+One of the things Mab is named after is [a moon, Uranus XXVI](https://solarsystem.nasa.gov/moons/uranus-moons/mab/in-depth/).
+A moon reference was chosen as a nod to the Lua programming language, and to Roberto Ierusalimschy.
+
+Mab's translation suite and interpreter is written in [Lua](https://www.lua.org/) and uses [LPeg](https://www.inf.puc-rio.br/~roberto/lpeg/),
+and the class where Mab was constructed was led by Roberto.
+
+Uranus XXVI and Mab are both also named after the fairy queen that is referenced in Shakespeare's _Romeo and Juliet_.
+
+Other reasons for the name:
+* Not used by any other technology as far as I could tell. 
+* Diminutive character: The language is a tiny toy for a class, and Mab is tiny in the story. 
+* A thing of dreams and fantasies: It is an experiment in some of the PL fantasies I've dreamt of. 
+* Tricks, fate, and the dark side of dreams: I'm not expecting everything to work out.
+  * The fact that it's only a mirrored letter away from "Mad" is another thing
+  beyond the story that plays into this.
+
+The [original poem (known as _Mercutio's speech_) can be found on Wikipedia](https://en.wikipedia.org/wiki/Queen_Mab#Mercutio's_speech).
+
+An extremely shortened form of the poem, which was composed for the Mab programming language, is below:
+
+> _In dreams, Queen Mab arrives unseen,_\
+ _A dainty fairy, slight and lean._\
+_Upon a carven hazelnut,_\
+_With insect steeds, reigns finely cut._
+>
+> _Through slumber's realm, she softly flies,_\
+_Bestowing dreams before our eyes._\
+_To lovers' hearts, brings sweet amour,_\
+_To soldiers, scenes of battles' roar._
+>
+> _Beware her touch, enchanting still,_\
+_For fickle fate may bend at will._\
+_In dreams, delight may find its cost,_\
+_As morning breaks, and all is lost._
 
 ## Instructions for Using Language, Input Program, and Test Suite
 
@@ -39,6 +78,7 @@ You can also invoke Mab like this if it's marked executable (which it should be 
 ./mab.lua input
 ```
 
+
 ## Language Syntax
 
 ### Note on Grammar Notation
@@ -47,8 +87,17 @@ The grammar examples are in Extended Backus-Naur Form,
 
 ### Identifiers
 
-In Mab, identifiers may not start with digits, but are allowed to contain the letters
+In Mab, identifiers are allowed to contain the letters
 `A`-`Z`, `a`-`z`, the digits `0`-`9`, and underscores.
+
+They may start with digits, but must contain at least one letter,
+and may not end with the following suffix, as it indicates a number in base notation:
+
+```
+' b' digit {[' '] digit}
+```
+
+Note the space between the `b` and the digit.
 
 In addition to this, Mab supports single spaces and dashes in identifiers with more
 rules.
@@ -59,63 +108,105 @@ The variables `delta x:number` and `deltax:number` are two different identifiers
 and this line of code is a syntax error, because it contains more than one space
 between `delta` and `x`:
 ```
-delta    x:number;
+delta    x:number
 ```
 
 Dashes may only be placed between two other alphanumeric characters+underscores in a
 variable name:
 ```
-# Valid
-dashed-identifier: 10;
+-- Valid
+dashed-identifier: 10
 
-# Valid, but maybe avoid this.
-_-_: 10;
+-- Valid, but maybe avoid this.
+_-_: 10
 
-# Invalid:
--leading-dash-identifier: 10;
+-- Valid:
+1st: 1
 
-# Invalid:
-trailing-dash-identifier-: 10;
+-- Valid:
+Blob10: true
 
-# Invalid:
-dash-and- space-identifier: 10;
+-- Invalid, ending in ' b<digits>`
+-- is not allowed.
+Blo b10: true
 
-# Invalid:
-dash-and -space-identifier: 10;
+-- Invalid:
+-leading-dash-identifier: 10
 
-# Valid:
-Bree Over-the-Water: 10;
+-- Invalid:
+trailing-dash-identifier-: 10
+
+-- Invalid:
+dash-and- space-identifier: 10
+
+-- Invalid:
+dash-and -space-identifier: 10
+
+-- Valid:
+Bree Over-the-Water: 10
 ```
 ### Literals
 
 #### Boolean
-Boolean literals are `true` and `false`.
+Boolean literals are `'true'` and `'false'`.
 
 #### Numerals
-Mab indicates a number of a specific base with the following format:
 
-`0n<digits>`, where `n` is the last digit in the base. For example, `09 128` is the
-number 128 in base 10, and `07 200` is 128 in base 8. `0F 80` is the same number in
+##### Base 10
+For base 10 numerals, Mab is typical, other than allowing single spaces between digits:
+
+```
+digit {[' '] digit}
+```
+
+The single spaces are supported for digit grouping. For example, `1 000 000` is
+valid as a way of writing the number one million.
+
+Numerals in base 10 without a base prefix may also have a fractional part, denoted by:
+```
+'.' [digit {[' '] digit}]
+```
+They may also have an exponent, denoted by:
+```
+'b^' ['+' | '-'] digit {[' '] digit}
+```
+Note that `b^` must be included, not just `b`. `b^` is meant to suggest 'number's base to power.'
+
+Some examples:
+```
+112.       -- 112
+112.0      -- 112
+112b^7     -- 1 120 000 000
+112.1 b^+7 -- 1 121 000 000
+112.1b^-3  -- 0.1121
+```
+
+##### Bases 1-36
+
+Mab indicates a numeral of a specific base with the following format, up to base 37:
+
+```
+digitOrLetter {[' '] digitOrLetter} ' b' digit {digit}
+```
+
+Base 36 is the limit because that's the maximum numeral that can be represented with digits
+composed of `0-9`, `a-z`, starting from `a` as 10 to `z` as 35.
+
+The trailing `' b' digit {digit}` is the base. For example, `128 b10` is the
+number 128 in base 10, and `200 b8` is 128 in base 8. `80 b16` is the same number in
 hexidecimal.
 
-Mab supports single spaces in numerals for digit grouping. For example, `1 000 000` is
-valid as a way of writing the number one million.
-This also works with base notation, and in fact the separator between the base prefix
-and the rest of the number is just part of this feature.
+Note that a single space between the number and the base indicator is required.
 
-For example, one might write `0F FF FF 00` to group a 3-byte (24-bit) color,
-or `01 1000 0110 1111` to write out a boolean mask in a readable way.
+As noted earlier, `b` is meant to suggest the word 'base.'
 
-The default base in Mab is base 10, and in this base, no base prefix is necessary.
+In base 36—the maximum supported—128 would be `3k b36`.
 
-Numerals in base 10 without a base prefix may also have a fractional part and an
-exponent:
-```
-112.10e10;
-112.0
-112.
-.01e-3
-```
+Digit grouping with spaces is also supported for numbers written in arbitrary base notation.
+
+For example, one might write `FF FF 00 b16` to group a 3-byte (24-bit) color,
+or `1000 0110 1111 b2` to write out a boolean mask in a readable way.
+
 > *Background*
 > 
 > Digit grouping with spaces is supported by many standards organizations.
@@ -127,9 +218,133 @@ parts of the number and digit grouping.
 
 #### Strings
 
-Strings are delimited by single quotes. To insert a single quote in a string, use two single quotes.
+##### Double-Quoted
+A string starting with double quotes continues until a double quote not followed by an escape character or
+another double quote:
+```
+"This string's terminated in a double quote."
+```
 
-Strings may span multiple lines.
+##### Double-Quoted (With Single Quotes)
+If you start a string with two single quotes, it will continue until two single quotes not followed by an
+escape character or another single quote. This includes line breaks:
+```
+''This string's terminated in two single quotes.
+You can include "double quotes" and 'single quotes'
+in this string without needing to escape them.''
+```
+##### Special Character Delimited
+If you start a string with a single quote and a non-alphanumeric, non-whitespace character, it will continue until
+that character not followed by escape characters or repetitions of that character itself:
+
+```
+'@Put all the characters you like, no escapes needed except for @s: '"\/!#$%^&*().@
+```
+
+Because `delimiter 's'` is an escape sequence meaning 'the delimiter itself,' this string is valid. It becomes:
+```
+Put all the characters you like, no escapes needed except for @: '"\/!#$%^&*().
+```
+
+##### Repeated Special Character Delimited
+A string starting with a single quote, then a number n, then a special character, will end when n repetitions of 
+the special character are not followed by an escape sequence or that special character.
+```
+'3@You don't even need to escape single @s in this string. Only @@@s needs to be escaped.@@@'
+```
+In this string, `@s` is not an escape sequence, because `@` is not the delimiter, `@@@` is. It becomes:
+```
+You don't even need to escape single @s in this string. Only @@@ needs to be escaped.
+```
+
+##### Format Analogies
+Two single quotes is analogous to writing a string in the repeated delimited format like so:
+```
+'2'This is a string ending in two single quotes.''
+```
+
+Starting with a double quote is like writing a string in the special character delimited form like so:
+```
+'"This is a string that is terminated by a double quote."
+```
+
+Or the repeated special character format, like so:
+```
+'1"This is a string that is terminated by a double quote."
+```
+
+Which is the same for any special character; omitting the number is as if a `1` had been specified:
+```
+'1@This is a string that is terminated by an @s.@
+```
+
+##### Closing Quote
+
+Because it's easy to forgot that you don't have to balance the closing quote,
+special character delimited strings will ignore trailing single quotes:
+
+```
+'1@This is a string that is terminated by an @s.@'
+```
+
+This doesn't apply to string delimited by single quotes already, as the ending characters will always be all consumed,
+and even included as noted in the [section covering this](#ending-character-quirk).
+
+##### Ending Character Quirk
+
+As noted, the string will end at the first delimiter that isn't followed by an escape sequence or the delimiter itself.
+This means that if you have multiple delimiters at the end of the string, they will all be included except for the
+*n* last ones, where *n* is the multiplicity of the delimiter.
+
+This means that you don't ever need to escape single quotes with the repeated single quote
+format, even if they're at the end:
+
+```
+'''This string is surrounded by single quotes.'''
+```
+This results in:
+```
+'This string is surrounded by single quotes.'
+```
+
+The same is true of other delimiters:
+
+```
+'3@This string ends in three @s @@@@@@
+```
+This results in:
+```
+This string ends in three @s @@@
+```
+This string also produces the above result, without using the quirk:
+```
+'3@This string ends in three @s @@@s@@@
+```
+
+Finally, this quirk actually holds for any number of delimiters before an escape sequence.
+
+##### Escape Characters
+
+Include these escape characters after the specified delimiter in strings to produce the following results:
+
+| Character                    | Meaning                                                               |
+|------------------------------|-----------------------------------------------------------------------|
+| `a`                          | Bell                                                                  |
+| `b`                          | Backspace                                                             |
+| `f`                          | Form Feed                                                             |
+| `n`                          | New line                                                              |
+| `r`                          | Carriage Return                                                       |
+| `t`                          | Horizontal Tab                                                        |
+| `v`                          | Vertical Tab                                                          |
+| `1`-`9`                      | Repeats of Delimiter Character<br/>(Not repeated delimiter sequence.) |
+| `0`                          | Null<br/>(Technically \0 is null in 'base 8')                         |
+| `'0'{octal digit}`           | Literal Value in Base 8                                               |
+| `'x'\|'X'{hex digit}`        | Literal Value in Base 16                                              |
+
+##### Multi-line Strings and Whitespace Stripping
+
+Any of the above string formats can be used for multi-line strings, and additionally, they all support the leading
+whitespace stripping feature.
 
 If the first line in a string is a newline followed by some whitespace,
 said whitespace will be stripped from the start of all lines,
@@ -139,43 +354,43 @@ For example:
 
 ```
 entry point: -> number {
-  a string: '# Let''s have fun!';
+  a string: ''-- Let's have "fun!"''
 
   an embedded program:
-    '
-    # Our favorite recursive program
+    ''
+    -- Our favorite recursive program
     entry point: -> number {
       return factorial(10)
-    };
+    }
     
     factorial: (n:number) -> number {
       if n = 0 {
-        return 1;
-      };
-      return n * factorial(n - 1);
+        return 1
+      }
+      return n * factorial(n - 1)
     }
-    ';
+    ''
 
-  @a string;
-  @an embedded program;
+  @a string
+  @an embedded program
 }
 ```
 
 Will output:
 
 ```
-# Let's have fun!
-# Our favorite recursive program
+-- Let's have "fun!"
+-- Our favorite recursive program
 entry point: -> number {
   return factorial(10)
-};
+}
 
 factorial: (n:number) -> number {
   if n = 0 {
-    return 1;
-  };
-  return n * factorial(n - 1);
-};
+    return 1
+  }
+  return n * factorial(n - 1)
+}
 
 ```
 
@@ -183,10 +398,17 @@ factorial: (n:number) -> number {
 
 In Mab, as functions are first-class, variable definitions and function definitions are fundamentally identical:
 ```
-identifier ':' [scope] [type] [['='] value]
+identifier ':' [scope] ([type] ['='] value | 'default' type)
 ```
 
 `value` is either an expression, or a block.
+
+If no value is specified, then the `default` keyword must be used, followed by a type:
+```
+x: default number
+
+y: default boolean
+```
 
 The equals sign is optional, and may be omitted. However, it can be more natural to
 include after scope or type keywords to make it clearer that it's an assignment.
@@ -198,29 +420,31 @@ This is a consequence of not supporting default values for array types.
 
 More or less natural:
 ```
-# This is valid:
-variable:global number 12;
+-- This is valid:
+variable:global number 12
 
-# But this may be more readable:
-variable2:global number = 12;
+-- But this may be more readable:
+variable2:global number = 12
 ```
 
 Disambiguation:
 ```
-global style: false;
+global style: false
 
-# This will fail, because it will be
-# read as:
-#  "failed style: global (style),"
-# that is, a global variable named 
-# 'failed style' being assigned the
-# value of  another variable named
-# 'style,' which doesn't exist.
-failed style: global style;
+--/ Failure Case
+This will fail, because it will be
+read as:
+ "failed style: global (style),"
+ that is, a global variable named
+ 'failed style' being assigned the
+ value of  another variable named
+ 'style,' which doesn't exist.
+--\
+failed style: global style
 
-# This will work, because the equals
-# sign disambiguates.
-successful style := global style;
+-- This will work, because the equals
+-- sign disambiguates.
+successful style := global style
 ```
 
 The `identifier` is the name of the variable or function. `scope` and `type` are
@@ -228,12 +452,10 @@ described in following sections.
 
 ### Top-Level
 
-A Mab program is a series of new variable statements separated by semicolons.
+A Mab program is a series of new variable statements.
 
 All variables at the top level are global by default, and particularly functions must be global.
 It's currently an error to specify a top-level function as anything else.
-
-Unfortunately, this means that yes, you do need semicolons after function blocks:
 
 ```
 factorial: (n:number) -> number {
@@ -242,11 +464,11 @@ factorial: (n:number) -> number {
     } else {
         return n * factorial(n - 1)
     }
-}; # < Don't forget this semicolon!
+}
 
 entry point: () -> number {
     return factorial(5)
-} # < The final definition's semicolon is optional.
+}
 ```
 
 #### The Entry Point
@@ -301,7 +523,22 @@ The end result is something like this, where `[2][2] number` is an array type:
 
 ```
 is identity: (matrix:[2][2] number) -> boolean {
-  # Contents
+  -- Contents
+}
+```
+
+The last function parameter may have a default argument specified, as an expression.
+This may be removed from the language in the future.
+
+Example:
+
+```
+default arguments: (n:number = 12 * 17) -> number {
+  return n
+}
+
+entry point: -> number {
+  return default arguments()
 }
 ```
 
@@ -309,15 +546,15 @@ is identity: (matrix:[2][2] number) -> boolean {
 
 An example of some functions and variables in this syntax:
 ```
-# This function has no input or
-# return types.
-# It can only be called with the
-# `call` keyword, any other use
-# would be a type checker error.
+-- This function has no input or
+-- return types.
+-- It can only be called with the
+-- `call` keyword, any other use
+-- would be a type checker error.
 global container: -> {
-    g:global = 12;
-    @g;
-};
+    g:global = 12
+    @g
+}
 
 factorial: (n:number) -> number {
     if n = 0 {
@@ -325,31 +562,31 @@ factorial: (n:number) -> number {
     } else {
         return n * factorial(n - 1)
     }
-};
+}
 
 sum: (a:number b:number) -> number = {
     return a + b
-};
+}
 
-# Commas can also be added if
-# desired:
+-- Commas can also be added if
+-- desired:
 div: (a:number, b:number) -> number {
     return a / b
-};
+}
 
-# This could also be written as
-#   entry point: -> number
+-- This could also be written as
+--   entry point: -> number
 entry point: () -> number {
-    call global container();
+    call global container()
 
-    # Fully specified variable
-    a:local number = 2;
-    # Scope and type are optional...
-    b:= 2;
-    # Equals also optional...
-    # Other than the name, the same
-    # as the two previous.
-    c: 2;
+    -- Fully specified variable
+    a:local number = 2
+    -- Scope and type are optional...
+    b:= 2
+    -- Equals also optional...
+    -- Other than the name, the same
+    -- as the two previous.
+    c: 2
 
     return factorial( div( sum( a, b ) * c, 2 ) )
 }
@@ -362,7 +599,7 @@ The result of executing the above example is `24.0`.
 The grammar for assignments is:
 
 ```
-identifier {'[' expression ']'} '=' expression
+identifier {'[' expression ']'} '<-' expression
 ```
 
 The middle part is the array index syntax. Note that each array index must evaluate 
@@ -371,13 +608,13 @@ again, just a thing that *evaluates* to a number.)
 
 A couple of basic assignment examples:
 ```
-a:number;
+a:default number
 
-a = 3 * 6 + 4;
+a <- 3 * 6 + 4
 
-b: new[2][2] boolean;
+b: new[2][2] boolean
 
-b[1][1] = true;
+b[1][1] <- true
 ```
 
 ### Unary and Binary Operators
@@ -387,21 +624,21 @@ Particularly, using a boolean operator with a number is an error.
 
 If you're familiar with C or C++, you might tend to do this:
 ```
-a:number = 0;
+a:number = 0
 
-# Operations on a...
+-- Operations on a...
 
 if a {
-    # ...
-};
+    -- ...
+}
 ```
 But that's an error.
 
 This is probably what you want:
 ```
 if a ~= 0 {
-    # ...
-};
+    -- ...
+}
 ```
 
 Mab contains the following unary operators:
@@ -460,10 +697,10 @@ expression '?' expression ':' expression
 
 An example of usage:
 ```
-a: 10;
-b: 12;
+a: 10
+b: 12
 
-c: a < b ? true : false;
+c: a < b ? true : false
 ```
 
 ### Operator Precedence
@@ -499,7 +736,7 @@ print: (n:number) -> {
 }
 
 entry point: -> number {
-    call print(10);
+    call print(10)
 }
 ```
 
@@ -508,32 +745,24 @@ entry point: -> number {
 Syntax for returns is as follows:
 
 ```
-'return' [':'] expression
+'return' expression
 ```
 
 A basic example:
 ```
-a: 12;
-b: 10;
+a: 12
+b: 10
 
-return a * b;
+return a * b
 ```
 
-One issue with return is that return can be confused with assignment in some cases.
-The optional colon can be used to prevent this.
+The expression may be omitted if the function returns nothing:
 ```
-a: true;
-b: false;
-
-# This will be read as:
-#   (return a) = b;
-# (Note that the parentheses above
-   are for clarification,
-   they aren't supported.)
-return a = b;
-
-# You can correct this with the optional colon:
-return: a = b;
+returns nothing: -> {
+    @'I don't do anything. Wait, I print this string!'
+    
+    return
+}
 ```
 
 ### Arrays
@@ -553,13 +782,13 @@ array identifier ['+']'[' expression ']'{ '[' expression ']' }
 The optional `+` before the first `[]` is array offset notation, aka zero-indexing:
 
 ```
-# This sets the first element of 'a'
-# to 12:
-a+[0] = 12;
+-- This sets the first element of 'a'
+-- to 12:
+a+[0] = 12
 
-# A single '+' will make all indices
-# in the list offset-indexed:
-b+[0][1] = 10;
+-- A single '+' will make all indices
+-- in the list offset-indexed:
+b+[0][1] = 10
 ```
 
 When creating an array, you use the `new` keyword:
@@ -571,7 +800,7 @@ When creating an array, you use the `new` keyword:
 The expression here is the default value of all the elements of the array.
 
 ```
-a: new [2][2][3];
+a: new [2][2][3]
 ```
 
 > *Note*
@@ -598,17 +827,17 @@ The expressions must evaluate to booleans.
 
 An example of usage:
 ```
-a: 12;
-b: 10;
+a: 12
+b: 10
 
-# Output the lesser of the two:
+-- Output the lesser of the two:
 if a < b {
-    @a;
+    @a
 } elseif a > b {
-    @b;
-# If equal, output the sum:
+    @b
+-- If equal, output the sum:
 } else {
-    @a + b;
+    @a + b
 }
 ```
 
@@ -622,14 +851,14 @@ The while loop is also typical. The syntax is as follows:
 
 An example of usage:
 ```
-a: 1;
-b: 10;
+a: 1
+b: 10
 
-# This will print the numbers
-# 1 through 10 inclusive:
+-- This will print the numbers
+-- 1 through 10 inclusive:
 while a <= b {
-    @a;
-    a = a + 1;
+    @a
+    a = a + 1
 }
 ```
 
@@ -639,13 +868,13 @@ The print statement is the character `@` followed by an expression:
 
 ```
 entry point: -> number {
-    n: 12;
-    @n;
+    n: 12
+    @n
     
-    a: new [2][2] true;
-    a[1][1] = false;
+    a: new [2][2] true
+    a[1][1] = false
     @a
-};
+}
 ```
 
 The output from the example above is:
@@ -659,26 +888,29 @@ The output from the example above is:
 
 ### Comments
 
-Comments are denoted by `#` and continue to the end of the line.
+Comments are denoted by `--` and continue to the end of the line.
 
-Block comments are denoted by `#{` and `#}` and can span multiple lines.
+Block comments are denoted by `--/` and `--\ ` and can span multiple lines.
 Nesting block comments is not supported.
+
+Anything in between the `--/` and `--\ ` will be ignored.
 
 Example of usage:
 ```
-# This is a comment
+-- This is a comment
 
-# And a block comment:
-#{
+-- And a block comment:
+--/ Title of Block Comment
+
     This is a block comment.
     It can span multiple lines.
 
-    # This code will not be executed
-    # because it is commented out in
-    # this block comment:
-    a: 10;
-    @a;
-#}
+    -- This code will not be executed
+    -- because it is commented out in
+    -- this block comment:
+    a: 10
+    @a
+--\ b: 10 -- < This code is outside
 ```
 
 ## Other Notes on Features
@@ -696,7 +928,7 @@ ternary match in type (which they don't!) and then return the type of the first 
 order to continue checking, whether the check passed.
 
 ```
-test: true ? 1 : false;
+test: true ? 1 : false
 ```
 
 Variables are assigned types, or types are inferred from their assignments.
@@ -704,102 +936,103 @@ Further type inference is not performed.
 
 Inferred to be a number:
 ```
-var: 12;
+var: 12
 ```
-Specified as a number, can be assigned a number later:
+Specified as a number, can be assigned a number later.
+Note the `default` keyword is required for variables without assignments:
 ```
-var:number;
-var = 15;
+var:default number
+var = 15
 ```
 
 This is not valid; variables must have a type or an initializer when first created:
 ```
-var:;
-var = true;
+var:
+var = true
 ```
 
 Conditionals only accept expressions that evaluate to booleans:
 
 ```
-# Valid code
-this is a boolean: true;
+-- Valid code
+this is a boolean: true
 if this is a boolean {
-    # The type checker is...
-    #   pleased!
-};
+    -- The type checker is...
+    --   pleased!
+}
 
-# Fails the type check:
-this is a number: 12;
+- Fails the type check:
+this is a number: 12
 if this is a number {
-    # Sadness and tears.
-};
+    - Sadness and tears.
+}
 ```
 
 Boolean operators may only be used with boolean types:
 ```
-number: 12;
-another one: 15;
+number: 12
+another one: 15
 
-# Fails type check!
-#   Can't use & with numbers.
-a boolean: number & another one;
+-- Fails type check!
+--   Can't use & with numbers.
+a boolean: number & another one
 ```
 
 However, logical operators will cause a type conversion of the expression to a boolean, 
 which will then be acceptable for conditionals or assignment to booleans:
 ``` 
-a boolean = another number > number;
+a boolean = another number > number
 ```
 
 Arrays are also typed in both their number of dimensions and the size of each dimension.
 ```
-# This is valid code.
-array: = new[2][2] true;
-subarray: = new[2] false;
+-- This is valid code.
+array: = new[2][2] true
+subarray: = new[2] false
 
-# We can assign here because
-# array[1] is a 2-element array of
-# booleans, the same as subarray.
-array[1] = subarray;
+-- We can assign here because
+-- array[1] is a 2-element array of
+-- booleans, the same as subarray.
+array[1] = subarray
 
-mismatched array: [3] true;
+mismatched array: [3] true
 
-# This will fail in the type checker
-# because the array sizes are
-# different:
-array[2] = mismatched array;
+-- This will fail in the type checker
+-- because the array sizes are
+-- different:
+array[2] = mismatched array
 ```
 
 Array types can be specified, which is necessary for functions since the language is
 strongly typed and has no support for anything like automatic generics:
 ```
 is identity: matrix:[2][2] number -> boolean {
-  i: 1;
+  i: 1
   while i <= 2 {
-    j: 1;
+    j: 1
     while j <= 2 {
       if i = j & matrix[i][j] ~= 1 {
         return false
-      };
+      }
       elseif i ~= j & matrix[i][j] ~= 0 {
-        return false;
-      };
-    };
-  };
-  return true;
+        return false
+      }
+    }
+  }
+  return true
 }
 ```
 
 But currently redundant and useless for variables:
 ```
 entry point: -> number {
-    matrix:[2][2] number = new[2][2] 0;
-    # Same as matrix: new[2][2] 0;
+    matrix:[2][2] number = new[2][2] 0
+    -- Same as matrix: new[2][2] 0
 
-    matrix[1][1] = 1;
-    matrix[2][2] = 1;
-    return is identity(matrix);
-};
+    matrix[1][1] = 1
+    matrix[2][2] = 1
+    return is identity(matrix)
+}
 ```
 Notably, array types are required to have initializers because default values are not
 supported for them, making type specifiers even more useless.
@@ -820,7 +1053,7 @@ collects all top-level functions before proceeding, and sets them as global.
 For example, this is valid Mab code:
 ```
 entry point: -> number {
-  n:global = 10;
+  n:global = 10
   if even() = true {
     return 1
   } else {
@@ -829,7 +1062,7 @@ entry point: -> number {
 }
 even: -> boolean {
   if n ~= 0 {
-    n = n - 1;
+    n = n - 1
     return odd()
   } else {
     return true
@@ -837,7 +1070,7 @@ even: -> boolean {
 }
 odd: -> boolean {
   if n ~= 0 {
-    n = n - 1;
+    n = n - 1
     return even()
   } else {
     return false
@@ -856,7 +1089,7 @@ Mab supports a robust array of command-line options:
 * `--trace`/`-t`: Output an execution trace, with stack state after each instruction.
 * `--result`/`-r`: Output the result of the program. (The return value from `entry point`.)
 * `--echo-input`/`-e`: Output what was sent in to translate.
-* `--graphviz`/`-g`: Generate a graphviz visualization and open it in Firefox. (Unstable.)
+* `--graphviz`/`-g`: Generate a graphviz visualization and open it in the default application.
 * `--pegdebug`/`-p`: Annotate the grammar with PegDebug before translating.
 * `--stop-on-first-error`/`-s`: Stop outputting errors after the first.
 * `--verbose`/`-v`: Output detailed information about stage execution.
@@ -947,7 +1180,7 @@ standard ways of communicating with other languages would be vital.
 `while` is not enough. Needs more loops, iterators, etc.
 
 #### More Data Types
-Some way of representing and working with strings is vital.
+Working with strings is vital.
 
 Separating integer and floating point is useful.
 
@@ -981,17 +1214,19 @@ but were outside the scope of my free time during the course.
 * When hashing and versioning, include an explicit version number and size of the files.
 
 #### Easy
+* Run the ReadMe examples as part of the test suite.
 * Error themes. (After *Error changes* above.)
 * Localization support (see *Error changes* above.)
 * Constant support
   * Maybe limit default `const` to function parameters?\
   See also the *Language profiles* idea.
 * String improvements.
-  * Support for escape sequences.
+  * Support for literal escape sequences.
+  * (`'0' octal digit, octal digit, octal digit`, `'x'|'X'hex digit, hex digit`)
 * Disallow globals in default arguments, or remove default arguments.
 * Do a pass over different keyword and symbol literals and consider
 whether to make changes.
-  * `~=`, `!`, comments. Others...
+  * `~=`, `!`. Others...
 * Add options for unicode symbols for math and types instead of ASCII.
 * Colon after conditionals instead of open block?
   * Just seems a little more natural to me...
@@ -999,6 +1234,7 @@ whether to make changes.
 * A different way to specify array default values, such as a `default` keyword?\
   Maybe `array [2] default(0)`?
 * Error phase before type checking.
+* Remove extra empty statements.
 
 #### Medium
 * Make Language Loopier
@@ -1012,6 +1248,14 @@ whether to make changes.
   * `while`/`otherwise` loop.
     * If the loop condition fails immediately, the `otherwise` clause is executed.
 * `goto`.
+* Lua style: Remove entry point, just execute everything?
+  * Change parser to be a sequence of statements again, do statements in the stages.
+    * Change documentation, too.
+  * More elegant. Can remove the hack with globals pre-scanned and make pre-scanning a feature?
+  * What does it mean in a compiled language?
+  * Add the `after`, `block`, and `export` keywords?
+    * What does it mean for a variable to have `block` scope as far as initialization?
+      * Run the code first? What about dependencies?
 * Way of returning nothing, for functions that have no return type.
   * `exit` statement?
 * Ability to get size of array, since it's static.
@@ -1024,18 +1268,15 @@ whether to make changes.
 * `recurse` keyword to indicate a function that calls itself.
 * Make variables being undefined before usage an error.
   * Remove default values.
-* Remove semicolons from the language.
 * Use keywords for block delimiters rather than symbols.
   * A capture that looks at an entire line that starts with an identifier character
   in a location that an identifier is allowed could work for this.
-* Support trailing base notation for numbers, rather than prefix.
-  * `1000 b2`, for example.
-  * Allow identifiers to start with numbers, as long as they contain at least one letter or underscore,
-  and don't contain a trailing `b<n>`.
 * Enumerations.
 * For version hashing, strip irrelevant information like comments and whitespace out of the file first.
   * Considered using hash of Lua bytecode, but it's not portable and not stable across versions.
-* Type aliases: numeral:type number; true or false:type boolean.
+* Type aliases:
+  * `numeral:type number`.
+  * `true or false:type boolean`.
   * Interesting problem, if I do this, maybe function parameter lists will need to have commas.
 * Anonymous functions (Lambdas).
 * Backtrack comments and whitespace on error, not just whitespace.
@@ -1053,6 +1294,8 @@ whether to make changes.
   * Seems to conflict with other goals. Maybe have a construct that indicates
   a statement should produce a result?
   * This could replace `return`...
+  * Maybe the idea of having blocks being assigned to variables as long as they return a value
+  would accomplish this in practice?
 * Mix static and dynamic type checking.
   * See earlier idea of language profiles.
 * Fix-ups for undefined globals and exports, or whatever concept is used for modules.
@@ -1064,6 +1307,7 @@ whether to make changes.
 * Report source line on interpreter errors.
 * Full debugger support.
 * Bitwise operators with the same operator as booleans.
+* Exponents and fractions for all numbers, not just base 10.
 
 ## References
 Some links relevant to languages and development of the Mab language.

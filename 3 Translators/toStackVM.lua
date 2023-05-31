@@ -45,9 +45,26 @@ function Translator:new(o)
   return o
 end
 
+function getTargetName(ast)
+  local target = ast.target
+  while target.tag == 'arrayElement' do
+    target = target.array
+  end
+  return target.name
+end
+
 function Translator:addError(...)
   if self.errorReporter then
     self.errorReporter:addError(...)
+  end
+end
+
+function Translator:getVariable(name)
+  local index, variable = self:findLocal(name)
+  if index then
+    return variable
+  else
+    return self.globals[name]
   end
 end
 
@@ -124,7 +141,7 @@ function Translator:codeFunctionCall(ast)
   end
 
   if not functionCodeReference then
-    self:addError('Cannot call function, "'..ast.name..'" is undefined.', ast)
+    self:addError('Cannot call function, "'..target.name..'" is undefined.', target)
     return
   end
 
@@ -148,8 +165,8 @@ function Translator:codeFunctionCall(ast)
   else
     local pCount = #functionType.parameters
     local aCount = #ast.arguments
-    self:addError('Function "'..ast.name..'" has '..common.toReadableNumber(pCount, 'parameter')..
-                  ' but was sent '..common.toReadableNumber(aCount, 'argument')..'.', ast)
+    self:addError('Function "'..target.name..'" has '..common.toReadableNumber(pCount, 'parameter')..
+                  ' but was sent '..common.toReadableNumber(aCount, 'argument')..'.', target)
     -- Try to do what they asked, I guess...
     for i=1,#arguments do
       self:codeExpression(arguments[i])
@@ -179,6 +196,8 @@ function Translator:codeExpression(ast)
   if ast.tag == 'number' or ast.tag == 'boolean' or ast.tag == 'string' then
     self:addCode('push')
     self:addCode(ast.value)
+  elseif ast.tag == 'none' then
+    -- Don't add anything, this is nothing.
   elseif ast.tag == 'variable' then
     self:codeLoadVariable(ast)
   elseif ast.tag == 'functionCall' then
@@ -401,16 +420,31 @@ function Translator:codeStatement(ast)
     self:codeStatement(ast.firstChild)
     self:codeStatement(ast.secondChild)
   elseif ast.tag == 'return' then
+    -- If this function has no return values,
+    -- we need to code an 'exit' instead of a 'return,'
+    -- so the interpreter doesn't try to preserve a return
+    -- value that doesn't exist and put the stack in an
+    -- inconsistent state.
+    local numInstructions = #self.currentCode
     self:codeExpression(ast.sentence)
-    self:addCode('return')
+    if #self.currentCode > numInstructions then
+      self:addCode 'return'
+    else
+      self:addCode 'exit'
+    end
     -- Add the number of locals at this time so we can update the stack.
     local localsBeforeFunctionCodeStart = self.blockBases[self.functionBlockBase] - 1
     self:addCode((#self.locals - localsBeforeFunctionCodeStart) + #self.currentParameters)
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
+
+    local name = getTargetName(ast)
+    local variable = self:getVariable(name)
     -- Discard return value for function statements, since it's not used by anything.
-    self:addCode('pop')
-    self:addCode(1)
+    if variable.type_.resultType.tag ~= 'none' then
+      self:addCode('pop')
+      self:addCode(1)
+    end
   elseif ast.tag == 'newVariable' then
     self:codeNewVariable(ast)
   elseif ast.tag == 'assignment' then
@@ -508,38 +542,40 @@ function Translator:codeFunction(ast)
   -- That's the one we want to use.
   self.functionBlockBase = #self.blockBases + 1
   
+  local previousParameters = self.currentParameters  
   self.currentParameters = ast.type_.parameters
 
   self:duplicateParameterCheck(ast)
 
   self.codingFunction = true
   self:codeStatement(ast.assignment)
-  if self.currentCode[#self.currentCode - 1] ~= 'return' then
-    self:addCode('push')
-    -- TODO: Doesn't support creating default returns for arrays.
+  -- If the function doesn't have a 'return' or 'exit,' we need to add one:
+  local penultimateInstruction = self.currentCode[#self.currentCode - 1]
+  if not (penultimateInstruction == 'return' or penultimateInstruction == 'exit') then
     local resultTypeTag = ast.type_.resultType.tag
-    if resultTypeTag == 'array' then
-      self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
-                    ast.name or 'anonymous function' .. '."', ast.assignment)
-    end
-
-    if resultTypeTag == 'number' then
-      self:addCode(0)
-    elseif resultTypeTag == 'boolean' then
-      self:addCode(false)
-    elseif resultTypeTag == 'string' then
-      self:addCode ''
-      -- TODO: Rename 'unknown' to 'unspecified.'
-    elseif resultTypeTag == 'none' then
-      -- This is valid. Note that a function like this, with no return type,
-      -- is only allowed to be executed as a statement.
-      -- Any other use will cause a type checker error.
-      self:addCode(false)
+    -- Code 'exit' if we don't have a return value,
+    -- so the VM will know not to preserve the
+    -- top stack value when the function ends.
+    if resultTypeTag == 'none' then
+      self:addCode('exit')
     else
-      self:addError('Internal error: unknown type "'..resultTypeTag..'" when generating automatic return value.')
-      self:addCode(0)
+      self:addCode('push')
+      -- TODO: Doesn't support creating default returns for arrays.
+      if resultTypeTag == 'array' then
+        self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
+                ast.name or 'anonymous function' .. '."', ast.assignment)
+      elseif resultTypeTag == 'number' then
+        self:addCode(0)
+      elseif resultTypeTag == 'boolean' then
+        self:addCode(false)
+      elseif resultTypeTag == 'string' then
+        self:addCode ''
+      else
+        self:addError('Internal error: unknown type "'..resultTypeTag..'" when generating automatic return value.')
+        self:addCode(0)
+      end
+      self:addCode('return')
     end
-    self:addCode('return')
     self:addCode(self.functionLocalsToRemove + #self.currentParameters)
     self.functionLocalsToRemove = nil
   end
@@ -547,6 +583,7 @@ function Translator:codeFunction(ast)
   local generatedCode = self.currentCode
   self.currentCode = previousCode
   self.functionBlockBase = previousBlockBase
+  self.currentParameters = previousParameters
   
   return generatedCode
 end
@@ -557,7 +594,9 @@ function Translator:translate(ast)
   local firstPositions = {}
 
   for i = 1,#ast do
-    if not self.globals[ast[i].name] then
+    if ast[i].tag == 'emptyStatement' then
+      -- Do nothing!
+    elseif not self.globals[ast[i].name] then
       self:globalToID(ast[i])
       firstPositions[ast[i].name] = ast[i].position
     -- Otherwise, duplication detected!
@@ -594,13 +633,20 @@ function Translator:translate(ast)
   end
 
   for i = 1,#ast do
-    self:codeNewVariable(ast[i])
-  end
-  -- 
+    if ast[i].tag == 'newVariable' then
+      self:codeNewVariable(ast[i])
+    elseif ast[i].tag == 'emptyStatement' then
+      -- Do nothing
+    else
+      self:addError('Unhandled tag "'..ast[i].tag.. '" at top level. Ignoring...')
+    end
+ end
 
-  local fakeEntryPointNode = {name=literals.entryPointName}  
-  self:codeLoadVariable(fakeEntryPointNode)
-  self:addCode('callFunction')
+  if entryPoint then
+    local fakeEntryPointNode = {name=literals.entryPointName}  
+    self:codeLoadVariable(fakeEntryPointNode)
+    self:addCode('callFunction')
+  end
 
   self.currentCode.version = common.toStackVMVersionHash()
 

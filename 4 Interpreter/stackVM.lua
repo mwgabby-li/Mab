@@ -295,12 +295,18 @@ function StackVM:run(code)
       printValue(self.stack[self.top])
       io.write '\n'
       self:popStack(1)
-    elseif code[pc] == 'return' then
-      self:traceCustom('return' .. (code[pc] == 0 and '' or ', pop ' .. code[pc + 1]))
+    -- 'return' outputs something, 'exit' is for functions that don't:
+    elseif code[pc] == 'return' or code[pc] == 'exit' then
+      self:traceCustom(code[pc] .. (code[pc + 1] == 0 and '' or ', pop ' .. code[pc + 1]))
       pc = pc + 1
       local pop = code[pc]
-      for i=self.top - pop,self.top do
-        self.stack[i] = self.stack[i + pop]
+      -- The basic idea here is to put the return values at the new top of the stack.
+      -- This loop is forward-looking for returning multiple values.
+      -- Only do this if we are returning (rather than exiting without return values)
+      if code[pc - 1] == 'return' then
+        for i=self.top - pop,self.top do
+          self.stack[i] = self.stack[i + pop]
+        end
       end
       self:popStack(pop)
       self:traceStack(base)
@@ -321,6 +327,11 @@ function StackVM:run(code)
 end
 
 function StackVM:execute(code)
+  if #code == 0 then
+    self:addError 'Empty program. Aborting...'
+    return false
+  end
+  
   self:run(code)
   
   if self.top ~= 1 then

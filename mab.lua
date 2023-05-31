@@ -29,7 +29,7 @@ local phases = {
     name = 'Type Checker',
     actionName = 'type checking',
     inputName = 'AST',
-    version = 3006704176,
+    version = 2803725984,
   },
 
   graphviz = {
@@ -37,7 +37,7 @@ local phases = {
     name = 'Graphviz AST',
     actionName = 'generating GraphViz file',
     inputName = 'AST',
-    version = 3006704176,
+    version = 2803725984,
   },
 
   toStackVM = {
@@ -45,7 +45,7 @@ local phases = {
     name = 'Stack VM',
     actionName = 'generating Stack VM code',
     inputName = 'AST',
-    version = 3006704176,
+    version = 2803725984,
     abortOnFailure = 'Failed to generate StackVM code from AST.',
   },
 
@@ -58,7 +58,7 @@ local phases = {
     -- for the program to output, then prints
     -- the completion message.
     separatedOutput = true,
-    version = 2717950983,
+    version = 4117909240,
   },
 }
 
@@ -91,13 +91,17 @@ function runPhase(phaseTable, phaseInput, parameters)
   local message
   -- We allow only allow unified output in verbose mode.
   if not phaseTable.separatedOutput and parameters.verbose then
-    message = (string.format('%s: %7.2f milliseconds.\n', success and 'complete' or '  FAILED', (os.clock() - start) * 1000))
+    message = (string.format('%s: %7.2f milliseconds.\n',
+               success and 'complete' or '  FAILED',
+               (os.clock() - start) * 1000))
   -- If not in verbose mode, we only print the message if the phase failed,
   -- and we print the whole thing at once, never in two pieces.
   else
     local extraBuffer = 12 - #phaseTable.name
-    message = string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..' %s: %7.2f milliseconds.\n',
-                  success and 'completed in' or 'FAILED after', (os.clock() - start) * 1000)
+    message = string.format('\n'..(' '):rep(extraBuffer)..phaseTable.name..
+                            ' %s: %7.2f milliseconds.\n',
+                            success and 'completed in' or 'FAILED after',
+                            (os.clock() - start) * 1000)
   end
 
   if success and parameters.verbose then
