@@ -161,6 +161,7 @@ local booleanType = V'booleanType'
 local numberType = V'numberType'
 local inferType = V'inferType'
 local noType = V'noType'
+local noValue = V'noValue'
 local arrayType = V'arrayType'
 local ternaryExpr = V'ternaryExpr'
 local newVariable = V'newVariable'
@@ -212,7 +213,7 @@ statement = blockStatement +
             -- If
             KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
             -- Return
-            KW'return' * Cp() * (expression + Cc{tag='none'}) / nodeReturn +
+            KW'return' * Cp() * (expression + noValue) / nodeReturn +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
             -- Call keyword is a solution for functions as statements and whitespace in identifiers,
@@ -235,6 +236,7 @@ type_ = (functionType + booleanType + numberType + arrayType),
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 -- Have to use literal string delimiter, or whitespace will be stripped before string opens.
 string = Cp() * lStrDelim * C(((1 - lStrDelim) + (lStrDelim * lStrDelim))^0) * delim.string / nodeString,
+noValue = Cp() / node('none', 'position'),
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +

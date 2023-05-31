@@ -5,6 +5,8 @@ local Translator = {}
 
 function Translator:new(o)
   o = o or {
+    mode = 'vertical',
+    --mode = 'horizontal',
     nextID = 1,
     IDs = {},
     statementNodeNames = {},
@@ -47,7 +49,7 @@ end
 function Translator:finalize()
   local rank = self:makeRankString(self.statementNodeNames) .. self:makeRankString(self.ifNodeNames)
   
-  return 'digraph { \n splines=true\n' .. self.file .. '\n\n'.. rank .. '\n}\n'
+  return 'digraph { \n splines=true\n '..(self.mode == 'vertical' and 'rankdir=LR' or '')..'\n' .. self.file .. '\n\n'.. rank .. '\n}\n'
 end
 
 function Translator:nodeFunctionCall(ast, depth)  
@@ -73,7 +75,7 @@ function Translator:nodeExpression(ast, depth)
   elseif ast.tag == 'none' then
     self:appendNode(ast, false, 'none')
   elseif ast.tag == 'string' then
-    self:appendNode(ast, false, string.gsub(ast.value, '"', '\\"'))
+    self:appendNode(ast, false, (string.gsub(ast.value, '"', '\\"')))
   elseif ast.tag == 'variable' then
     self:appendNode(ast, false, ast.name)
   elseif ast.tag == 'functionCall' then
@@ -120,23 +122,64 @@ function Translator:appendNode(ast, sequence, label, ...)
   local arguments = table.pack(...)
   local firstChild = arguments[1]
   local secondChild = type(arguments[2]) == 'table' and arguments[2] or nil
-
+  local thirdChild = type(arguments[3]) == 'table' and arguments[3] or nil
+  
   local parentPortFirst = ''
   local childPortFirst = ''
   local parentPortSecond = ''
   local childPortSecond = ''
+  local parentPortThird = ''
+  local childPortThird = ''
   if sequence then
-    parentPortSecond = ':e '
-    childPortSecond = ':w '
-  elseif not secondChild then
-    parentPortFirst = ':s '
-    childPortFirst = ':n '
+    if self.mode == 'vertical' then
+      parentPortSecond = ':s '
+      childPortSecond = ':n '
+    else
+      parentPortSecond = ':e '
+      childPortSecond = ':w '
+    end
+  elseif thirdChild then
+    if self.mode == 'vertical' then
+      parentPortFirst = ':ne '
+      childPortFirst = ':w '
+      
+      parentPortSecond = ':e '
+      childPortSecond = ':w '
+      
+      parentPortThird = ':se '
+      childPortThird = ':w '
+    else
+      parentPortFirst = ':sw '
+      childPortFirst = ':ne '
+      
+      parentPortSecond = ':s '
+      childPortSecond = ':n '
+      
+      parentPortThird = ':se '
+      childPortThird = ':nw '
+    end
+  elseif secondChild then
+    if self.mode == 'vertical' then
+      parentPortFirst = ':ne '
+      childPortFirst = ':w '
+      
+      parentPortSecond = ':se '
+      childPortSecond = ':w '
+    else
+      parentPortFirst = ':sw '
+      childPortFirst = ':ne '
+      
+      parentPortSecond = ':se '
+      childPortSecond = ':nw '
+    end
   else
-    parentPortFirst = ':sw '
-    childPortFirst = ':n '
-    
-    parentPortSecond = ':se '
-    childPortSecond = ':n '
+    if self.mode == 'vertical' then
+      parentPortFirst = ':e '
+      childPortFirst = ':w '
+    else
+      parentPortFirst = ':s '
+      childPortFirst = ':n '
+    end
   end
   
   local labelsStart
@@ -147,10 +190,11 @@ function Translator:appendNode(ast, sequence, label, ...)
     end
   end
   
-  local firstLabel, secondLabel
+  local firstLabel, secondLabel, thirdLabel
   if labelsStart then
     firstLabel = arguments[labelsStart]
     secondLabel = arguments[labelsStart + 1]
+    thirdLabel = arguments[labelsStart + 2]
   end
 
   if firstChild then
@@ -163,7 +207,12 @@ function Translator:appendNode(ast, sequence, label, ...)
     self.file = self.file .. nodeName .. parentPortSecond ..  ' -> ' .. self:nodeName(secondChild) .. childPortSecond .. label .. '\n'
   end
   
-  for i = 3, arguments.n do
+  if thirdChild then
+    label = (thirdLabel and ('[ label = "' .. thirdLabel  .. '" ];') or ';')
+    self.file = self.file .. nodeName .. parentPortThird ..  ' -> ' .. self:nodeName(thirdChild) .. childPortThird .. label .. '\n'
+  end
+  
+  for i = 4, arguments.n do
     if type(arguments[i]) == 'table' then
       label = ';'
       if labelsStart then
@@ -244,11 +293,12 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:appendNode(ast, false, '<-', ast.target, ast.assignment)
     self:nodeExpression(ast.target, depth)
   elseif ast.tag == 'if' then
-    self:addNodeName(ast, self.ifNodeNames, depth)
+    -- This makes the AST a bit messy.
+    --self:addNodeName(ast, self.ifNodeNames, depth)
     
     local tag = fromIf and 'Else If' or 'If'
     
-    self:appendNode(ast, false, tag, ast.expression, ast.body, ast.elseBody)
+    self:appendNode(ast, false, tag, ast.expression, ast.body, ast.elseBody, 'condition', '{...}', 'else')
     depth = depth + 1
     self:nodeExpression(ast.expression, depth)
     self:nodeStatement(ast.body, depth)
