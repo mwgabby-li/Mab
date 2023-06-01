@@ -38,10 +38,10 @@ end
 --end
 
 local nodeVariable = node('variable', 'position', 'name')
-local nodeAssignment = node('assignment', 'target', 'position', 'assignment')
+local nodeEvalTo = node('evalTo', 'expression', 'position', 'target')
 local nodeNewVariable = node('newVariable', 'position', 'name', 'scope', 'type_', 'assignment')
 local nodePrint = node('print', 'position', 'toPrint')
-local nodeReturn = node('return', 'position', 'sentence')
+local nodeExit = node('exit', 'position', 'sentence')
 local nodeNumeral = node('number', 'position', 'value')
 local nodeString = node('string', 'position', 'value')
 local nodeIf = node('if', 'position', 'expression', 'body', 'elseBody')
@@ -134,7 +134,8 @@ local boolean = V'boolean'
 local string = V'string'
 local variable = V'variable'
 local identifier = V'identifier'
--- Something that can be written to, i.e. assigned to. AKA 'left-hand side'
+-- Something that can be written to, i.e. assigned to.
+-- AKA 'left-hand side,' but it's not on that side in Mab.
 local target = V'target'
 -- Inputs specified in the function type declaration.
 local parameter = V'parameter'
@@ -148,6 +149,8 @@ local numberType = V'numberType'
 local inferType = V'inferType'
 local noType = V'noType'
 local noValue = V'noValue'
+local implicitNoValue = V'implicitNoValue'
+local result = V'result'
 local arrayType = V'arrayType'
 local ternaryExpr = V'ternaryExpr'
 local newVariable = V'newVariable'
@@ -190,8 +193,10 @@ newVariable = Cp() * identifier * sep.newVariable *
                 )/ nodeNewVariable,
 
 statement = blockStatement +
-            -- Assignment - must be first to allow variables that contain keywords as prefixes.
-            target * Cp() * op.assign * expression * -delim.openBlock / nodeAssignment +
+            -- General 'eval to' syntax. This is used for assignment, return,
+            -- and evaluating expressions while ignoring their results.
+            expression * Cp() * op.evalTo * (target + noValue + result) / nodeEvalTo +
+
             -- New variable
             newVariable +
             -- If
@@ -199,11 +204,9 @@ statement = blockStatement +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
 
-            functionCall * op.evalTo * KW'none' +
+            functionCall +
 
-            Cp() * expression * op.evalTo * KW'result' / nodeReturn +
-
-            Cp() * noValue * KW'exit' / nodeReturn +
+            Cp() * implicitNoValue * KW'exit' / nodeExit +
 
             -- Print
             op.print * Cp() * expression / nodePrint,
@@ -222,7 +225,9 @@ type_ = (functionType + booleanType + numberType + arrayType),
 boolean = (Cp() * KW'true' * Cc(true) + Cp() * KW'false' * Cc(false)) / nodeBoolean,
 -- Have to use literal string delimiter, or whitespace will be stripped before string opens.
 string = stringLiteral / nodeString,
-noValue = Cp() / node('none', 'position'),
+noValue = Cp() * KW'none' / node('none', 'position'),
+result = Cp() * KW'result' / node('result', 'position'),
+implicitNoValue = Cp() / node('none', 'position'),
 
           -- Identifiers and numbers
 primary = KW'new' * Ct((delim.openArray * Cp() * expression * delim.closeArray)^1) * primary / foldNewArray +

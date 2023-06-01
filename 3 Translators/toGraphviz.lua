@@ -101,6 +101,8 @@ function Translator:nodeExpression(ast, depth)
     self:appendNode(ast, false, ast.op, ast.firstChild, ast.secondChild)
     self:nodeExpression(ast.firstChild, depth)
     self:nodeExpression(ast.secondChild, depth)
+  elseif ast.tag == 'result' then
+    self:appendNode(ast, false, 'result')
   elseif ast.tag == 'unaryOp' then
     self:appendNode(ast, false, ast.op, ast.child)
     self:nodeExpression(ast.child, depth)
@@ -267,9 +269,12 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:appendNode(ast, true, 'Statement', ast.firstChild, ast.secondChild)
     self:nodeStatement(ast.firstChild, depth)
     self:nodeStatement(ast.secondChild, depth)
-  elseif ast.tag == 'return' then
-    self:appendNode(ast, false, 'Return', ast.sentence)
-    self:nodeExpression(ast.sentence, depth)
+  elseif ast.tag == 'exit' then
+    self:appendNode(ast, false, 'exit')
+  elseif ast.tag == 'evalTo' then
+    self:appendNode(ast, false, '->', ast.expression, ast.target)
+    self:nodeExpression(ast.target, depth)
+    self:nodeExpression(ast.expression, depth)
   elseif ast.tag == 'functionCall' then
     self:nodeFunctionCall(ast, depth)
   elseif ast.tag == 'newVariable' then

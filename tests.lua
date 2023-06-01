@@ -156,7 +156,7 @@ function module:testComplexSequenceResult()
 x value: 12 / 2
 y value: 12 * 12 / 2
 z value: x value * y value % 12
-z value <- y value ^ x value + z value
+y value ^ x value + z value -> z value
 z value -> result]]
 
   lu.assertEquals(self:fullTest(input, true), 139314069504)
@@ -188,7 +188,7 @@ c: a/b
 -- Disabled block comment
 
 ---/
-a <- a * 2
+a * 2 -> a
 --\
 a -> result
 -- Final comment
@@ -201,14 +201,16 @@ function module:testKeywordExcludeRules()
   lu.assertEquals(result, false)
   errorReporter, result = module.parse(wrapWithEntrypoint':a = 1   returna')
   lu.assertEquals(result, false)
-  errorReporter, result = module.parse(wrapWithEntrypoint'result <- 1')
-  lu.assertEquals(result, false)
   errorReporter, result = module.parse(wrapWithEntrypoint'result() -> none')
   lu.assertEquals(result, false)
 
   lu.assertEquals(self:fullTest('delta x: = 1   delta x -> result', true), 1)
 
   lu.assertEquals(self:fullTest('result of the variable: 1   result of the variable -> result', true), 1)
+  
+  lu.assertEquals(self:fullTest('if function: -> {}', true), 'Type checking failed!')
+
+  lu.assertEquals(self:fullTest('while function: -> {}', true), 'Type checking failed!')
 end
 
 function module:testFullProgram()
@@ -300,7 +302,7 @@ b: a * a - -10
 c: a/b
 if c < a {
   this is a long name: 24
-  c <- 12
+  12 -> c
 }
 c -> result
 ]]
@@ -312,7 +314,7 @@ function module:testIfElseElseIf()
 [[a: = 20
 b: 10
 if b < a {
-  b <- 1
+  1 -> b
 }
 b -> result
 ]]
@@ -323,7 +325,7 @@ b -> result
 [[a: = 20
 b: = 100
 if b < a {
-  b <- 1
+  1 -> b
 }
 b -> result
 ]]
@@ -334,9 +336,9 @@ b -> result
 [[a: 20
 b: 10
 if b < a {
-  b <- 1
+  1 -> b
 } else {
-  b <- 2
+  2 -> b
 }
 b -> result
 ]]
@@ -347,9 +349,9 @@ b -> result
 [[a: 20
 b: 100
 if b < a {
-  b <- 1
+  1 -> b
 } else {
-  b <- 2
+  2 -> b
 }
 b -> result
 ]]
@@ -360,9 +362,9 @@ b -> result
 [[a: 20
 b: 10
 if b < a {
-  b <- 1
+  1 -> b
 } elseif b > a {
-  b <- 2
+  2 -> b
 }
 b -> result
 ]]
@@ -373,9 +375,9 @@ b -> result
 [[a: 20
 b: 100
 if b < a {
-  b <- 1
+  1 -> b
 } elseif b > a {
-  b <- 2
+  2 -> b
 }
 b -> result
 ]]
@@ -386,9 +388,9 @@ b -> result
 [[a: 20
 b: a
 if b < a {
-  b <- 1
+  1 -> b
 } elseif b > a {
-  b <- 2
+  2 -> b
 }
 b -> result
 ]]
@@ -398,11 +400,11 @@ b -> result
 [[a: 20
 b: 10
 if b < a {
-  b <- 1
+  1 -> b
 } elseif b > a {
-  b <- 2
+  2 -> b
 } else {
-  b <- 3
+  3 -> b
 }
 b -> result
 ]]
@@ -412,11 +414,11 @@ b -> result
 [[a: 20
 b: 100
 if b < a {
-  b <- 1
+  1 -> b
 } elseif b > a {
-  b <- 2
+  2 -> b
 } else {
-  b <- 3
+  3 -> b
 }
 b -> result
 ]]
@@ -425,11 +427,11 @@ b -> result
 [[a: 20
 b: a
 if b < a {
-b <- 1
+1 -> b
 } elseif b > a {
-b <- 2
+2 -> b
 } else {
-b <- 3
+3 -> b
 }
 b -> result
 ]]
@@ -454,7 +456,7 @@ function module:testShortCircuit()
 a: 20
 b: 10
 if b > a & 1/2 = 0.5 {
-  b <- 100
+  100 -> b
 }
 b -> result
 ]]
@@ -479,7 +481,7 @@ b -> result
 a: 20
 b: 10
 if b < a | 1/2 = 0.5 {
-  b <- 100
+  100 -> b
 }
 b -> result
 ]]
@@ -504,7 +506,7 @@ function module:testWhile()
   a: 1
   b: 10
   while a < b {
-    a <- a + 1
+    a + 1 -> a
   }
 
   a -> result
@@ -517,12 +519,12 @@ function module:testArrays()
   local input =
 [[entry point: () -> number {
   array: new[2][2] true
-  array[1][1] <- false
+  false -> array[1][1]
 
   test: true
-  test <- test & array[1][2]
-  test <- test & array[2][1]
-  test <- test & array[2][2]
+  test & array[1][2] -> test
+  test & array[2][1] -> test
+  test & array[2][2] -> test
 
   if test {
     1 -> result
@@ -538,16 +540,16 @@ function module:testArrayNonNumeralIndexing()
   local input =
 [[entry point: () -> number {
   array: new[2][2 + 2] true
-  array[1][1] <- false
+  false -> array[1][1]
 
   subArray: new[2 + 2] true
 
-  array[1] <- subArray
+  subArray -> array[1]
 
   test: true
-  test <- test & array[1][2]
-  test <- test & array[2][1]
-  test <- test & array[2][2]
+  test & array[1][2] -> test
+  test & array[2][1] -> test
+  test & array[2][2] -> test
 
   if test {
     1 -> result
@@ -568,13 +570,13 @@ function module:testPassingAndReturningArrays()
 
 testReturnArray: () -> [2][2] boolean {
   array: new[2][2] true
-  array[1][1] <- true
+  true -> array[1][1]
   array -> result
 }
 
 entry point: () -> number {
   array: new[2][2] true
-  --array[1][1] <- false
+  --false -> array[1][1]
   testResult: = test11(testReturnArray())
 
   if testResult = true {
@@ -594,13 +596,13 @@ entry point: () -> number {
 
 testReturnArray: () -> [2][2] boolean {
   array: new[2][2] true
-  array[1][1] <- false
+  false -> array[1][1]
   array -> result
 }
 
 entry point: () -> number {
   array: new[2][2] true
-  --array[1][1] <- false
+  --false -> array[1][1]
   testResult: test11(testReturnArray())
 
   if testResult = true {
@@ -642,7 +644,7 @@ another function: () -> number {
 entry point: () -> number {
   a: 1
 
-  a <- 23 + another function()
+  23 + another function() -> a
   a -> result
 }
 
@@ -672,7 +674,7 @@ another function: () -> number {
 entry point: () -> number {
   a: 1
 
-  a <- 23 + another function()
+  23 + another function() -> a
   a -> result
 }
 entry point: () -> number {
@@ -704,7 +706,7 @@ function module:testIndirectRecursion()
 }
 even: () -> boolean {
   if n ~= 0 {
-    n <- n - 1
+    n - 1 -> n
     odd() -> result
   } else {
     true -> result
@@ -712,7 +714,7 @@ even: () -> boolean {
 }
 odd: () -> boolean {
   if n ~= 0 {
-    n <- n - 1
+    n - 1 -> n
     even() -> result
   } else {
     false -> result
@@ -735,7 +737,7 @@ entry point: () -> number {
 }
 even: () -> boolean {
   if n ~= 0 {
-    n <- n - 1
+    n - 1 -> n
     odd() -> result
   } else {
     true -> result
@@ -743,7 +745,7 @@ even: () -> boolean {
 }
 odd: () -> boolean {
   if n ~= 0 {
-    n <- n - 1
+    n - 1 -> n
     even() -> result
   } else {
     false -> result
@@ -764,7 +766,7 @@ entry point: () -> number {
 }
 even: () -> boolean {
   if n ~= 0 {
-    n <- n - 1
+    n - 1 -> n
     odd() -> result
   } else {
     true -> result
@@ -772,7 +774,7 @@ even: () -> boolean {
 }
 odd: () -> boolean {
   if n ~= 0 {
-    n <- n - 1
+    n - 1 -> n
     even() -> result
   } else {
     false -> result
@@ -795,7 +797,7 @@ entry point: () -> number {
 }
 even: () -> boolean {
   if n ~= 0 {
-    n <- n - 1
+    n - 1 -> n
     odd() -> result
   } else {
     true -> result
@@ -803,7 +805,7 @@ even: () -> boolean {
 }
 odd: () -> boolean {
   if n ~= 0 {
-    n <- n - 1
+    n - 1 -> n
     even() -> result
   } else {
     false -> result
@@ -867,7 +869,7 @@ function module:testLocalVariableUsage()
   y:number = 20
   {
     x:number = 30
-    y <- x + 3
+    x + 3 -> y
   }
   y -> result
 }
@@ -883,7 +885,7 @@ function module:testLocalVariableShadowingAndNameCollision()
     y: 20
     {
       y: 30
-      y <- x + 3
+      x + 3 -> y
     }
     y -> result
 }
@@ -897,7 +899,7 @@ input =
     y: 20
     {
       y: 30
-      y <- y + 3
+      y + 3 -> y
       y -> result
     }
 }
@@ -913,7 +915,7 @@ input =
     {
       y: 30
       y: 10
-      y <- y + 3
+      y + 3 -> y
       y -> result
     }
 }
@@ -1241,7 +1243,7 @@ function module:testMismatchedFunctionAssignments()
   }
 
   entry point: -> number {
-    test <- test2
+    test2 -> test
   }
   ]]
   lu.assertEquals(self:fullTest(input), 'Type checking failed!')
@@ -1255,7 +1257,7 @@ function module:testMismatchedFunctionAssignments()
   }
 
   entry point: -> number {
-    test <- test2
+    test2 -> test
   }
   ]]
   lu.assertEquals(self:fullTest(input), 'Type checking failed!')
@@ -1274,7 +1276,7 @@ testMismatchedResultType: (b:boolean, n:number, func: (n:number) ->) -> boolean 
 }
 
 entry point: -> number {
-  testMismatches <- testMismatchedParameter
+  testMismatchedParameter -> testMismatches
 }
   ]]
   lu.assertEquals(self:fullTest(input), 'Type checking failed!')
@@ -1291,7 +1293,7 @@ testMismatchedResultType: (b:boolean, n:number, func: (n:number) ->) -> boolean 
 }
 
 entry point: -> number {
-  testMismatches <- testMismatchedResultType
+  testMismatchedResultType -> testMismatches
 }
   ]]
   lu.assertEquals(self:fullTest(input), 'Type checking failed!')
@@ -1338,7 +1340,7 @@ test return 10: -> number {
 }
 
 entry point: -> number {
-  test return anything <- test return 10
+  test return 10 -> test return anything
 
   test return anything() -> result
 }]]
@@ -1362,21 +1364,21 @@ entry point: -> number {
 
     i: 1
     while i <= 10 {
-      array[i][1] <- to 12
+      to 12 -> array[i][1]
 
-      i <- i + 1
+      i + 1 -> i
     }
 
     sum: 0
 
-    i <- 1
+    1 -> i
     while i <= 10 {
       j: 1
       while j <= 2 {
-        sum <- sum + array[i][j]()
-        j <- j + 1
+        sum + array[i][j]() -> sum
+        j + 1 -> j
       }
-      i <- i + 1
+      i + 1 -> i
     }
 
   sum -> result
@@ -1389,16 +1391,16 @@ function module:testStrings()
   local input =
 [[entry point: -> number {
     a string: ''a string 'this is single quoted' and the end''
-    a string <- ''a string "this is double quoted" and the end''
-a string <- ''this is a multiline
-string using the same basic syntax, and you can insert single quotes as ' or double quotes as "''
+    ''a string "this is double quoted" and the end'' -> a string
+''this is a multiline
+string using the same basic syntax, and you can insert single quotes as ' or double quotes as "'' -> a string
 
 a unicode string: ''This is a string in UTF-8: 'いづれの御時にか、女御、更衣あまたさぶらひたまひけるなかに、いとやむごとなき際にはあらぬが、すぐれて時めきたまふありけり。'''
 
 a string with the at character as an escape: '@
         this is a string that will continuing until an @s character appears by itself.@
 
-a string <- a unicode string
+a unicode string -> a string
 }]]
 
   lu.assertEquals(self:fullTest(input), 0)
@@ -1406,9 +1408,9 @@ a string <- a unicode string
   input =
 [[entry point: -> number {
 a string: ''a string 'this is single quoted' and the end''
-a string <- ''a string "this is double quoted" and the end''
-a string <- ''this is a multiline
-string using the same basic syntax, and you can insert single quotes as ' or double quotes as "''
+''a string "this is double quoted" and the end'' -> a string
+''this is a multiline
+string using the same basic syntax, and you can insert single quotes as ' or double quotes as "'' -> a string
 a string with the at character as the end delimiter: '@
         this is a string that will continue until an @s character appears by itself.@
 
@@ -1434,17 +1436,17 @@ a string with leading spaces: ''
      You can include "double quotes" and 'single quotes'
      in this string without needing to escape them.''
 
-  s<-'@This is a string ending at the first @s symbol (other than the escaped one) '"\/!#$%^&*().@
+  '@This is a string ending at the first @s symbol (other than the escaped one) '"\/!#$%^&*().@ -> s
 
-  s<-'3@You don't even need to escape single @s in this string. Only @@@s need to be escaped.@@@
+  '3@You don't even need to escape single @s in this string. Only @@@s need to be escaped.@@@ -> s
 
-  s<-'2'This is a string ending in two single quotes.''
-  s<-'"This is a string that is terminated by a "s."'
-  s<-'1"This is a string that is terminated by a "s."
-  s<-'1@This is a string that is terminated by an @s.@'
-  s<-'3@This string ends in three @s @@@@@@'
-  s<-'''This string is surrounded by single quotes.'''
-  s<-'3@This string ends in three @s @@@s@@@'
+  '2'This is a string ending in two single quotes.'' -> s
+  '"This is a string that is terminated by a "s."' -> s
+  '1"This is a string that is terminated by a "s." -> s
+  '1@This is a string that is terminated by an @s.@' -> s
+  '3@This string ends in three @s @@@@@@' -> s
+  '''This string is surrounded by single quotes.''' -> s
+  '3@This string ends in three @s @@@s@@@' -> s
 }]]
   
   lu.assertEquals(self:fullTest(input), 0)
@@ -1466,7 +1468,7 @@ testReturnLocalFunction: -> -> number {
     a: 33
     {
       b: 22
-      a <- a + b
+      a + b -> a
     }
     a -> result
   }
@@ -1502,7 +1504,7 @@ testReturnLocalFunction: -> -> number {
     a: 33
     {
       b: 22
-      a <- a + b
+      a + b -> a
     }
     a -> result
   }
@@ -1518,7 +1520,7 @@ entry point: -> number {
     a: 33
     {
       b: 22
-      a <- a + b
+      a + b -> a
     }
     a -> result
   }
@@ -1577,10 +1579,10 @@ function module:testOffsetIndexing()
   local input =
 [[entry point: -> number {
     a: new [2][2] 3
-    a+[0][0] <- 0
-    a+[0][1] <- 1
-    a+[1][0] <- 10
-    a+[1][1] <- 11
+    0 -> a+[0][0]
+    1 -> a+[0][1]
+    10 -> a+[1][0]
+    11 -> a+[1][1]
 
     a+[0][0] + a+[0][1] + a+[1][0] + a+[1][1] -> result
 }
@@ -1592,12 +1594,12 @@ function module:testOffsetIndexing()
   input =
 [[entry point: -> number {
     a: new [2][3] 3
-    a+[0][0] <- 0
-    a+[0][1] <- 1
-    a+[0][2] <- 2
-    a+[1][0] <- 10
-    a+[1][1] <- 11
-    a+[1][2] <- 12
+    0 -> a+[0][0]
+    1 -> a+[0][1]
+    2 -> a+[0][2]
+    10 -> a+[1][0]
+    11 -> a+[1][1]
+    12 -> a+[1][2]
 
     a+[0][0] + a+[0][1] + a+[0][2] + a+[1][0] + a+[1][1] + a+[1][2] -> result
 }

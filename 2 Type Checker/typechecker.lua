@@ -317,7 +317,16 @@ function TypeChecker:checkFunctionCall(ast)
   return functionType.resultType
 end
 
+-- Wrapper that tags the expression with the resulting type.
 function TypeChecker:checkExpression(ast)
+  local type_, name = self:checkExpressionInner(ast)
+  ast.type_ = type_
+  return type_, name
+end
+
+-- Returns type and optionally name.
+-- Call checkExpression(), don't call this directly.
+function TypeChecker:checkExpressionInner(ast)
   -- Things like literal numbers, booleans, or strings.
   if isBasicType(ast.tag) then
     return self:createBasicType(ast.tag)
@@ -554,6 +563,15 @@ function TypeChecker:checkNewVariable(ast)
   -- so just overwrite the type in the AST.
   ast.type_ = inferredType
 
+  if inferredType.tag == 'function' then
+    if ast.name:match '^if ' or ast.name:match '^while ' then
+      self:addError('"'..ast.name..'" starts with the conditional keyword "'..
+                    ast.name:match('^(.*) ')..'," and is type "'..
+                    common.toReadableType(inferredType)..
+                    '." Function types may not start with conditional keywords, sorry.', ast)
+    end
+  end
+
   local scope = self:inferScope(ast)
 
   -- Unspecified scopes
@@ -584,51 +602,60 @@ function TypeChecker:checkStatement(ast)
   elseif ast.tag == 'statementSequence' then
     self:checkStatement(ast.firstChild)
     self:checkStatement(ast.secondChild)
-  elseif ast.tag == 'return' then
-    local returnType = self:checkExpression(ast.sentence)
-    -- Allow none: true
-    if not self:typeValid(returnType, true) then
-      self:addError('Could not determine type of return type.', ast)
-    -- Allow none: true
-    elseif not self:typeMatches(returnType, self.currentFunction.resultType, true) then
-      self:addError('Mismatched types with return, function "' .. self.currentFunction.name .. '" returns "' ..
-                    common.toReadableType(self.currentFunction.resultType) .. '," but returning type "' ..
-                    common.toReadableType(returnType) .. '."', ast)
-    end
   elseif ast.tag == 'functionCall' then
     self:checkFunctionCall(ast)
-  elseif ast.tag == 'assignment' then
-    -- Get the type of the thing we're writing to, and its root name
-    -- (e.g. given a two-dimensional array of numbers of 4x4, 'a,'
-    --  'a[1][2]' is the target, the type is {name='number', dimensions={4,4}},
-    --  and the root name is 'a.')
-    local targetType, targetRootName = self:checkExpression(ast.target)
+  elseif ast.tag == 'evalTo' then
+    -- Check return
+    if ast.target.tag == 'result' then
+      local returnType = self:checkExpression(ast.expression)
+      -- Allow none: true
+      if not self:typeValid(returnType, true) then
+        self:addError('Could not determine type of return type.', ast)
+      -- Allow none: true
+      elseif not self:typeMatches(returnType, self.currentFunction.resultType, true) then
+        self:addError('Mismatched types with return, function "' .. self.currentFunction.name .. '" returns "' ..
+                      common.toReadableType(self.currentFunction.resultType) .. '," but returning type "' ..
+                      common.toReadableType(returnType) .. '."', ast)
+      end
+    -- Evaluate the expression, but discard the result:
+    elseif ast.target.tag == 'none' then
+      -- Because we're discarding the result, so it doesn't have to match anything,
+      -- but the expression itself does have to be valid.
+      self:checkExpression(ast.expression)
+    -- This is an assignment:
+    else
+      -- Get the type of the thing we're writing to, and its root name
+      -- (e.g. given a two-dimensional array of numbers of 4x4, 'a,'
+      --  'a[1][2]' is the target, the type is {name='number', dimensions={4,4}},
+      --  and the root name is 'a.')
+      local targetType, targetRootName = self:checkExpression(ast.target)
 
-    -- Get the type of the source of the assignment
-    local expressionType, etRootName = self:checkExpression(ast.assignment)
-  
-    if not self:typeMatches(targetType, expressionType) then
-      local wttValid = self:typeValid(targetType)
-      local etValid = self:typeValid(expressionType)
-      
-      if not wttValid and not etValid then
-        local etMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
-        self:addError('Sorry, cannot assign '..etMessage..
-                      common.toReadableType(targetType)..
-                      '."\nThe invalid type of "'..targetRootName..'," the assignment target, also prevents this: "'..
-                      common.toReadableType(expressionType)..'."', ast)
-      elseif not wttValid then
-        self:addError('Sorry, cannot assign to "'..targetRootName..'" because its type is invalid: "' ..
-                      common.toReadableType(targetType) .. '."', ast)
-      elseif not etValid then
-        local endOfMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
+      -- Get the type of the source of the assignment
+      local expressionType, etRootName = self:checkExpression(ast.expression)
+    
+      if not self:typeMatches(targetType, expressionType) then
+        local wttValid = self:typeValid(targetType)
+        local etValid = self:typeValid(expressionType)
         
-        self:addError('Sorry, cannot assign '..endOfMessage..
-                      common.toReadableType(expressionType) .. '."', ast)
-      elseif wttValid and etValid then
-        self:addError('Attempted to change type from "' ..
-                      common.toReadableType(targetType) .. '" to "' ..
-                      common.toReadableType(expressionType) .. '." Disallowed, sorry!', ast)
+        if not wttValid and not etValid then
+          local etMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
+          self:addError('Sorry, cannot assign '..etMessage..
+                        common.toReadableType(targetType)..
+                        '."\nThe invalid type of "'..targetRootName..'," the assignment target, also prevents this: "'..
+                        common.toReadableType(expressionType)..'."', ast)
+        elseif not wttValid then
+          self:addError('Sorry, cannot assign to "'..targetRootName..'" because its type is invalid: "' ..
+                        common.toReadableType(targetType) .. '."', ast)
+        elseif not etValid then
+          local endOfMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
+          
+          self:addError('Sorry, cannot assign '..endOfMessage..
+                        common.toReadableType(expressionType) .. '."', ast)
+        elseif wttValid and etValid then
+          self:addError('Attempted to change type from "' ..
+                        common.toReadableType(targetType) .. '" to "' ..
+                        common.toReadableType(expressionType) .. '." Disallowed, sorry!', ast)
+        end
       end
     end
   elseif ast.tag == 'if' then
@@ -653,6 +680,11 @@ function TypeChecker:checkStatement(ast)
     self:checkStatement(ast.body)
   elseif ast.tag == 'print' then
     self:checkExpression(ast.toPrint)
+  elseif ast.tag == 'exit' then
+    if not self:typeMatches(kNoType, self.currentFunction.resultType, true) then
+      self:addError('Requested exit with no return value (with \'exit\' keyword), but function\'s result type is "'..
+                    common.toReadableType(self.currentFunction.resultType)..'," not "none."')
+    end
   else
     self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
   end
