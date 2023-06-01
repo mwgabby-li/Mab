@@ -40,7 +40,7 @@ function module.baseNumeralToNumber(capture)
   end
   
   -- Remove optional space separators/any captured trailing spaces.
-  local numeral, base = capture:gmatch('(.*) b(.*)$')()
+  local numeral, base = capture:gmatch('(.*) b(.+)$')()
 
   if numeral == nil or base == nil then
     return false
