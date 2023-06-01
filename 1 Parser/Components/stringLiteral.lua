@@ -75,15 +75,27 @@ local function captureString(subject, position, capture)
   if leadingSpace then
     -- Strip off leading spaces 
     result = result:gsub('\n'..leadingSpace, '\n')
+
+    local toSub
     if result:sub(1, 1) == '\r' then
       -- \r\n, start at the third character, 
       -- the first character after the \r\n.
-      result = result:sub(3)
+      toSub = 3
+      -- If there are two newlines, skip past both:
+      if result:sub(3,3) == '\r' then
+        toSub = toSub + 2
+      end
     else
-      -- Only \n, start at the second character, 
-      -- the first character after the newline.
-      result = result:sub(2)
+      -- Only \n?
+      -- Normally, skip past the \n to the start.
+      toSub = 2
+      -- If there are two \n, then skip past both.
+      if result:sub(2,2) == '\n' then
+        toSub = toSub + 1
+      end
     end
+
+    result = result:sub(toSub)
   end
 
   -- Do all escapes

@@ -93,11 +93,6 @@ In Mab, identifiers are allowed to contain the letters
 Identifiers may not start with `'return'`. Identifiers that refer to functions
 additionally may not start with any conditional keywords, such as `'if'` and `'while'`.
 
-This removes some ambiguity, preventing `return a = b` from being read as `(return a) = b`, `return function name()`
-from being read as `(return function name)()`, and `if ( a ) {}` from being read as `(if a)() {}`.\
-Note that the parenthesis grouping is for explanatory purposes only, to show how the parser might falsely group
-things. Calling a function in parentheses is not valid Mab syntax, nor is assigning to a value in parentheses.
-
 They may start with digits, but must contain at least one letter,
 and may not end with the following suffix, as it indicates a number in base notation:
 
@@ -168,6 +163,20 @@ dash-and -space-identifier: 10
 -- Valid:
 Bree Over-the-Water: 10
 ```
+
+> *Notes*
+> 
+> The dash exclusions are to prevent confusion between unary negative operators and dashed identifiers.
+> 
+> The keyword exclusions prevent some ambiguity, making it impossible for `return a = b` to be read as `(return a) = b`,
+> `return function name()` from being read as `(return function name)()`, and `if ( a ) {}`
+> from being read as `(if a)() {}`. Actually, the parser might still accept the function ones, because the check has to
+> occur at type checking time to know if an identifier is typed as a function, but there will at least be errors
+> about the variable definitions violating the rules.
+> 
+> Note also that the parenthesis grouping is for explanatory purposes only, to show how the parser might falsely group
+things. Calling a function in parentheses is not valid Mab syntax, nor is assigning to a value in parentheses.
+
 ### Literals
 
 #### Boolean
@@ -241,6 +250,19 @@ parts of the number and digit grouping.
 
 #### Strings
 
+##### Double-Quoted (With Single Quotes)
+The preferred Mab string notation is to start a string with two single quotes.
+
+These strings will continue until two single quotes not followed by an
+escape character or another single quote. This includes line breaks:
+```
+''This string's terminated in two single quotes.
+You can include "double quotes" and 'single quotes'
+in this string without needing to escape them.''
+```
+
+This format should almost never need escapes, as two single quotes next to each other are rare.
+
 ##### Double-Quoted
 A string starting with double quotes continues until a double quote not followed by an escape character or
 another double quote:
@@ -248,14 +270,6 @@ another double quote:
 "This string's terminated in a double quote."
 ```
 
-##### Double-Quoted (With Single Quotes)
-If you start a string with two single quotes, it will continue until two single quotes not followed by an
-escape character or another single quote. This includes line breaks:
-```
-''This string's terminated in two single quotes.
-You can include "double quotes" and 'single quotes'
-in this string without needing to escape them.''
-```
 ##### Special Character Delimited
 If you start a string with a single quote and a non-alphanumeric, non-whitespace character, it will continue until
 that character not followed by escape characters or repetitions of that character itself:
@@ -415,6 +429,26 @@ factorial: (n:number) -> number {
   return n * factorial(n - 1)
 }
 
+```
+
+To align the first line with whitespace, include an empty line of whitespace after the first newline, like so,
+where 's' is a space:
+
+```
+   @''
+ssssss
+sssssssssssText Starting Here
+ssssssLine 1
+ssssssLine 2''
+```
+
+This will result in this output. Everything up to and including the second end-of-line will not be included in the
+final string:
+
+```
+     Text Starting Here
+Line 1
+Line 2
 ```
 
 ### Function and Variable Definition
@@ -758,8 +792,10 @@ return a * b
 The expression may be omitted if the function returns nothing:
 ```
 returns nothing: -> {
-    @'I don't do anything. Wait, I print this string!'
-    
+    @'
+      I don't do anything...
+      Wait, I print this string!'
+
     return
 }
 ```
@@ -781,9 +817,9 @@ array identifier ['+']'[' expression ']'{ '[' expression ']' }
 The optional `+` before the first `[]` is array offset notation, aka zero-indexing:
 
 ```
--- This sets the first element of 'a'
--- to 12:
-a+[0] = 12
+-- This sets the first element of
+-- array to 12:
+array+[0] = 12
 
 -- A single '+' will make all indices
 -- in the list offset-indexed:
@@ -1013,7 +1049,8 @@ is identity: matrix:[2][2] number -> boolean {
       if i = j & matrix[i][j] ~= 1 {
         return false
       }
-      elseif i ~= j & matrix[i][j] ~= 0 {
+      elseif i ~= j &
+             matrix[i][j] ~= 0 {
         return false
       }
     }
