@@ -204,8 +204,6 @@ statement = blockStatement +
             -- While
             KW'while' * Cp() * expression * blockStatement / nodeWhile +
 
-            functionCall +
-
             Cp() * implicitNoValue * KW'exit' / nodeExit +
 
             -- Print

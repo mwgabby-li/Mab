@@ -9,7 +9,7 @@ display: new[18][32] empty value
 display width: 32
 display height: 18
 
-entry point: -> number {
+entry point: -> number [
     points: new[24][2] 1
     point count:24
 
@@ -21,25 +21,25 @@ entry point: -> number {
     19 -> points[ 5][1]  12 -> points[ 5][2]
     19 -> points[ 6][1]  11 -> points[ 6][2]
     20 -> points[ 7][1]  10 -> points[ 7][2]
-    20 -> points[ 8][1]  6 -> points[ 8][2]
-    19 -> points[ 9][1]  5 -> points[ 9][2]
-    19 -> points[10][1]  4 -> points[10][2]
-    18 -> points[11][1]  3 -> points[11][2]
-    17 -> points[12][1]  3 -> points[12][2]
-    16 -> points[13][1]  2 -> points[13][2]
-    12 -> points[14][1]  2 -> points[14][2]
-    11 -> points[15][1]  3 -> points[15][2]
-    10 -> points[16][1]  3 -> points[16][2]
-    9  -> points[17][1]  4 -> points[17][2]
-    9  -> points[18][1]  5 -> points[18][2]
-    8  -> points[19][1]  6 -> points[19][2]
+    20 -> points[ 8][1]  6  -> points[ 8][2]
+    19 -> points[ 9][1]  5  -> points[ 9][2]
+    19 -> points[10][1]  4  -> points[10][2]
+    18 -> points[11][1]  3  -> points[11][2]
+    17 -> points[12][1]  3  -> points[12][2]
+    16 -> points[13][1]  2  -> points[13][2]
+    12 -> points[14][1]  2  -> points[14][2]
+    11 -> points[15][1]  3  -> points[15][2]
+    10 -> points[16][1]  3  -> points[16][2]
+    9  -> points[17][1]  4  -> points[17][2]
+    9  -> points[18][1]  5  -> points[18][2]
+    8  -> points[19][1]  6  -> points[19][2]
     8  -> points[20][1]  10 -> points[20][2]
     9  -> points[21][1]  11 -> points[21][2]
     9  -> points[22][1]  12 -> points[22][2]
     10 -> points[23][1]  13 -> points[23][2]
     11 -> points[24][1]  13 -> points[24][2]
 
-    closed polygon(points, 24, trace value)
+    closed polygon(points, 24, trace value) -> none
 
     -- A smaller circle. Kind of like a moon or something.
     21 -> points[1][1]  17 -> points[1][2]
@@ -51,7 +51,7 @@ entry point: -> number {
     20 -> points[7][1]  14 -> points[7][2]
     20 -> points[8][1]  16 -> points[8][2]
 
-    closed polygon(points, 8, trace value)
+    closed polygon(points, 8, trace value) -> none
 
     -- A smaller circle inside the bigger circle, what?
     16 -> points[1][1]  8  -> points[1][2]
@@ -63,32 +63,32 @@ entry point: -> number {
     15 -> points[7][1]  10 -> points[7][2]
     15 -> points[8][1]  9  -> points[8][2]
 
-    closed polygon(points, 8, trace value)
+    closed polygon(points, 8, trace value) -> none
 
-    fill()
-    finalize()
+    fill() -> none
+    finalize() -> none
 
     @display
-}
+]
 
 -- Draws a closed polygon. Connects the last point with the first point again at the end.
-closed polygon: (points:[24][2] number, point count:number, value to draw:number) -> {
+closed polygon: (points:[24][2] number, point count:number, value to draw:number) -> [
     i: 1
-    while i <= point count {
+    while i <= point count [
         point: points[i]
 
         start point:points[i]
         end point:points[(i%point count)+1]
 
-        line(start point, end point, value to draw)
+        line(start point, end point, value to draw) -> none
 
         i + 1 -> i
-    }
+    ]
     
-}
+]
 
 -- Draws a line using the idea of the Bresenham algorithm, but not optimized.
-line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
+line: (start point:[2] number, end point:[2] number, value to draw:number) -> [
   delta x: end point[1] - start point[1]
   delta y: end point[2] - start point[2]
 
@@ -104,127 +104,126 @@ line: (start point:[2] number, end point:[2] number, value to draw:number) -> {
   error: 0
 
   -- Zero delta in the X means this is a line going straight along Y.
-  if delta x = 0 {
+  if delta x = 0 [
     x: start point[1]
     start y: start point[2]
 
     current y: start y
-    while current y ~= end y {
-      set(x, current y, value to draw)
+    while current y ~= end y [
+      set(x, current y, value to draw) -> none
       current y + y increment -> current y
-    }
+    ]
     --/ Done drawing:
     --\
     exit
-  }
+  ]
   -- Zero delta in the Y means this is a line going straight along X.
-  if delta y = 0 {
+  if delta y = 0 [
     y: start point[2]
     start x: start point[1]
     end x: end point[1]
     
     current x: start x
-    while current x ~= end x {
-      set(current x, y, value to draw)
+    while current x ~= end x [
+      set(current x, y, value to draw) -> none
       current x + x increment -> current x
-    }
+    ]
     --/ Done drawing:
     --\
     exit
-  }
+  ]
 
-  if delta x > delta y {
+  if delta x > delta y [
     slope: delta y / delta x
 
-    while current x ~= end x {
-      set(current x, current y, value to draw)
+    while current x ~= end x [
+      set(current x, current y, value to draw) -> none
       current x + x increment -> current x
 
       error + slope -> error
 
-      if error > 0.5 {
+      if error > 0.5 [
         current y + y increment -> current y
         error - 1 -> error
-      }
-    }
-  } else {
+      ]
+    ]
+  ] else [
     slope: delta x / delta y
 
-    while current y ~= end y {
-      set(current x, current y, value to draw)
+    while current y ~= end y [
+      set(current x, current y, value to draw) -> none
       current y + y increment -> current y
 
       error + slope -> error
 
-      if error > 0.5 {
+      if error > 0.5 [
         current x + x increment -> current x
         error - 1 -> error
-      }
-    }
-  }
-}
+      ]
+    ]
+  ]
+]
 
 -- Scans over the buffer and fills with the in-out rule.
-fill: -> {
+fill: -> [
     drawing: false
     entered: false
     enter state: 0
     enter x: 0
     y: 1
-    while y <= display height {
+    while y <= display height [
       x: 1
-      while x <= display width {
+      while x <= display width [
 
-        if get(x, y) = trace value {
-          if !entered {
+        if get(x, y) = trace value [
+          if !entered [
             true -> entered
             get enter state(x, y) -> enter state
             x -> enter x
-          }
-        } else {
-          if entered {
+          ]
+        ] else [
+          if entered [
             false -> entered
 
             -- We just entered!
-            if enter x + 1 = x {
-              if enter state = 0 {
+            if enter x + 1 = x [
+              if enter state = 0 [
                 !drawing -> drawing
-              }
-            } elseif enter state ~= 0 & (enter state + get enter state(x - 1, y) = 0) {
+              ]
+            ] elseif enter state ~= 0 & (enter state + get enter state(x - 1, y) = 0) [
               !drawing -> drawing
-            }
-          }
-          if drawing {
-            set(x,y,filled value)
-          }
-        }
+            ]
+          ]
+          if drawing [
+            set(x,y,filled value) -> none
+          ]
+        ]
 
         x + 1 -> x
-      }
+      ]
       false -> drawing
       false -> entered
       y + 1 -> y
-    }
-}
+    ]
+]
 
 --/
  Replaces the 'trace' value with the 'filled' value so that the image
  has the same fill color even at the edges.
 --\
-finalize: -> {
-
+finalize: -> [
     y: 1
-    while y <= display height {
+    while y <= display height [
       x: 1
-      while x <= display width {
-        if get(x, y) = trace value {
-          set(x, y, filled value)
-        }
+      while x <= display width [
+        if get(x, y) = trace value [
+          set(x, y, filled value) -> none
+        ]
          x + 1 -> x
-      }
+      ]
        y + 1 -> y
-    }
-}
+    ]
+]
 
 --/
  Searches the six positions around a point for any 1 values:
@@ -237,67 +236,67 @@ finalize: -> {
   0: Some above and some below, or none above or below.
  -1: Some below, none above.
 --\
-get enter state: (x:number y:number) -> number {
+get enter state: (x:number y:number) -> number [
   sum: 0
   
   above: false
   below: false
 
   -- Search the six positions.
-  if x - 1 >= 1 {
-    if y + 1 <= display height {
-      if get(x - 1, y + 1) = trace value {
+  if x - 1 >= 1 [
+    if y + 1 <= display height [
+      if get(x - 1, y + 1) = trace value [
          true -> above
-      }
-    }
-    if y - 1 >= 1 {
-      if get(x - 1, y - 1) = trace value {
+      ]
+    ]
+    if y - 1 >= 1 [
+      if get(x - 1, y - 1) = trace value [
          true -> below
-      }
-    }
-  }
-  if y + 1 <= display height {
-    if get(x, y + 1) = trace value {
+      ]
+    ]
+  ]
+  if y + 1 <= display height [
+    if get(x, y + 1) = trace value [
        true -> above
-    }
-  }
-  if y - 1 >= 1 {
-    if get(x, y - 1) = trace value {
+    ]
+  ]
+  if y - 1 >= 1 [
+    if get(x, y - 1) = trace value [
        true -> below
-    }
-  }
-  if x + 1 <= display width {
-    if y + 1 <= display height {
-      if get(x + 1, y + 1) = trace value {
+    ]
+  ]
+  if x + 1 <= display width [
+    if y + 1 <= display height [
+      if get(x + 1, y + 1) = trace value [
          true -> above
-      }
-    }
-    if y - 1 >= 1 {
-      if get(x + 1, y - 1) = trace value {
+      ]
+    ]
+    if y - 1 >= 1 [
+      if get(x + 1, y - 1) = trace value [
          true -> below
-      }
-    }
-  }
+      ]
+    ]
+  ]
   
-  if above & below {
+  if above & below [
     0 -> result
-  } elseif above {
+  ] elseif above [
     +1 -> result
-  } elseif below {
+  ] elseif below [
     -1 -> result
-  }
+  ]
   
   0 -> result
-}
+]
 
-get: (x:number y:number) -> number {
+get: (x:number y:number) -> number [
   -- To fix graphviz, swap these two lines..
   display[18 - y + 1][x] -> result
   --return display[y][x]
-}
+]
 
-set: (x:number y:number value:number) -> {
+set: (x:number y:number value:number) -> [
   -- To fix graphviz, swap these two lines..
   value -> display[18 - y + 1][x]
   --display[y][x] = value
-}
+]
