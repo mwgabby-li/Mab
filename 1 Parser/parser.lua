@@ -170,11 +170,11 @@ parameters = Ct((parameter * (sep.argument^-1 * parameter)^0)^-1),
 
 statementList = ((statement * statementList^-1)) / nodeStatementSequence,
 
-blockStatement = delim.openBlock * (statementList + emptyStatement) * delim.closeBlock / nodeBlock,
+blockStatement = KW'do' * (statementList + emptyStatement) * KW'end' / nodeBlock,
 
 emptyStatement = lpeg.P(true) / node('emptyStatement'),
 
-elses = (KW'elseif' * Cp() * expression * blockStatement) * elses / nodeIf + (KW'else' * blockStatement)^-1,
+elses = KW'elseif' * Cp() * expression * KW'then' * ((statementList + emptyStatement) / nodeBlock) * elses / nodeIf + (KW'else' * ((statementList + emptyStatement) / nodeBlock) * KW'end') + KW'end',
 
 variable = Cp() * identifier / nodeVariable,
 target = Ct(variable * (((op.indexByOffset * Cc(true)) + Cc(false)) * (delim.openArray * Cp() * expression * delim.closeArray)^1)^0) / foldArrayElement,
@@ -200,9 +200,9 @@ statement = blockStatement +
             -- New variable
             newVariable +
             -- If
-            KW'if' * Cp() * expression * blockStatement * elses / nodeIf +
+            KW'if' * Cp() * expression * KW'then' * ((statementList + emptyStatement) / nodeBlock) * elses / nodeIf +
             -- While
-            KW'while' * Cp() * expression * blockStatement / nodeWhile +
+            KW'while' * Cp() * expression * KW'do' * ((statementList + emptyStatement) / nodeBlock) * KW'end' / nodeWhile +
 
             functionCall +
 
