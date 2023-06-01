@@ -35,6 +35,11 @@ local function captureString(subject, position, capture)
       number = numeral.baseNumeralToNumber(numberString)
       numberLength = #numberString
       character = remainder:match '[%w%s]+(.)'
+      
+      -- It would be nice to support single-quoted strings.
+      if not number then
+        return false
+      end
     end
 
     -- Add to the matched character count: The number (if any) and the character itself
