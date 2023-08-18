@@ -87,11 +87,12 @@ The grammar examples are in Extended Backus-Naur Form,
 
 ### Identifiers
 
-In Mab, identifiers are allowed to contain the letters
-`A`-`Z`, `a`-`z`, the digits `0`-`9`, and underscores.
+In Mab, the set of characters used in identifiers is
+`A`-`Z`, `a`-`z`, the digits `0`-`9`, underscores, dashes, and single spaces.
 
 Identifiers may not start with `'return'`. Identifiers that refer to functions
-additionally may not start with any conditional keywords, such as `'if'` and `'while'`.
+additionally may not start with any conditional keywords, such as `'if'` and `'while'`.\
+This removes some ambiguity, so `if a {}` is always read as `if (a) {}` and `while true {}` is always read as `while (true) {}`.
 
 They may start with digits, but must contain at least one letter,
 and may not end with the following suffix, as it indicates a number in base notation:
@@ -100,11 +101,9 @@ and may not end with the following suffix, as it indicates a number in base nota
 ' b' digit {[' '] digit}
 ```
 
-Note the space between the `b` and the digit.
+Note the space before `b`. E.g. `aab12` is a valid identifier, but `aa b12` is not.
 
-In addition to this, Mab supports single spaces and dashes in identifiers with more
-rules.
-Note that it does not support _whitespace generally_, just single spaces,
+As far as spaces in identifiers, note that Mab does not support _whitespace generally_, just single spaces,
 and the spaces are part of the identifier.
 
 The variables `delta x:number` and `deltax:number` are two different identifiers,
@@ -114,7 +113,7 @@ between `delta` and `x`:
 delta    x:number
 ```
 
-Dashes may only be placed between two other alphanumeric characters+underscores in a
+Dashes also have some additional rules. They may only be placed between two other alphanumeric characters+underscores in a
 variable name:
 ```
 -- Valid
