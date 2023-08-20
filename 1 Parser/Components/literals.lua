@@ -24,6 +24,7 @@ module.op.and_ = '&'
 module.op.or_ = '|'
 module.op.ternary = '?'
 module.op.ternaryBranch = ':'
+module.op.evalTo = '->'
 
 -- Literals for unary operators
 module.op.not_ = '!'

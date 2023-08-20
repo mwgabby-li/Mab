@@ -349,10 +349,55 @@ function Translator:codeNewVariable(ast)
   end
 end
 
+function Translator:codeExitFunction(expression)
+    -- Code the expression. This is what we're exiting with 
+    --  (aka returning, aka our result.)
+    if expression then
+      self:codeExpression(expression)
+    end
+
+    -- If we coded an expression and it wasn't 'none,' then return.
+    -- This code tells the interpreter to preserve the top element of the stack.
+    --  (i.e. the return value)
+    if expression and expression.type_.tag ~= 'none' then
+      self:addCode 'return'
+    -- Otherwise, exit, which tells the interpreter not to try to preserve the top of the stack.
+    --  (i.e. there's no return value, don't try to preserve it.)
+    else
+      self:addCode 'exit'
+    end
+    
+    -- Add the number of locals at this time so we can update the stack.
+    local localsBeforeFunctionCodeStart = self.blockBases[self.functionBlockBase] - 1
+    self:addCode((#self.locals - localsBeforeFunctionCodeStart) + #self.currentParameters)
+end
+
+function Translator:codeEvalTo(ast)
+  -- An eval to nothing dicards the result, if any.
+  if ast.target.tag == 'none' then
+    -- Code the expression
+    self:codeExpression(ast.expression)
+
+    -- Type checker tags all expressions, check what it left here.
+    if ast.expression.type_.tag ~= 'none' then
+      -- TODO: Multiple return values
+      self:addCode 'pop'
+      self:addCode(1)
+    end
+  -- An eval to the result is a return.
+  elseif ast.target.tag == 'result' then
+    self:codeExitFunction(ast.expression)
+  -- Otherwise, this is an assignment.
+  --  (Put this last so that any new assignment code can be localized to the assignment function.)
+  else
+    self:codeAssignment(ast)
+  end
+end
+
 function Translator:codeAssignment(ast)
   local target = ast.target
   if target.tag == 'variable' then
-    self:codeExpression(ast.assignment)
+    self:codeExpression(ast.expression)
     local index = (self:findLocal(ast.target.name))
     if index then
       self:addCode('storeLocal')
@@ -366,7 +411,7 @@ function Translator:codeAssignment(ast)
   elseif target.tag == 'arrayElement' then
     self:codeExpression(ast.target.array)
     self:codeExpression(ast.target.index)
-    self:codeExpression(ast.assignment)
+    self:codeExpression(ast.expression)
 
     if ast.target.indexByOffset then
       self:addCode('setArrayOffset')
@@ -419,36 +464,23 @@ function Translator:codeStatement(ast)
   elseif ast.tag == 'statementSequence' then
     self:codeStatement(ast.firstChild)
     self:codeStatement(ast.secondChild)
-  elseif ast.tag == 'return' then
-    -- If this function has no return values,
-    -- we need to code an 'exit' instead of a 'return,'
-    -- so the interpreter doesn't try to preserve a return
-    -- value that doesn't exist and put the stack in an
-    -- inconsistent state.
-    local numInstructions = #self.currentCode
-    self:codeExpression(ast.sentence)
-    if #self.currentCode > numInstructions then
-      self:addCode 'return'
-    else
-      self:addCode 'exit'
-    end
-    -- Add the number of locals at this time so we can update the stack.
-    local localsBeforeFunctionCodeStart = self.blockBases[self.functionBlockBase] - 1
-    self:addCode((#self.locals - localsBeforeFunctionCodeStart) + #self.currentParameters)
+  elseif ast.tag == 'exit' then
+    self:codeExitFunction()
   elseif ast.tag == 'functionCall' then
     self:codeFunctionCall(ast)
 
     local name = getTargetName(ast)
     local variable = self:getVariable(name)
     -- Discard return value for function statements, since it's not used by anything.
+    --  (If they return anything.)
     if variable.type_.resultType.tag ~= 'none' then
       self:addCode('pop')
       self:addCode(1)
     end
   elseif ast.tag == 'newVariable' then
     self:codeNewVariable(ast)
-  elseif ast.tag == 'assignment' then
-    self:codeAssignment(ast)
+  elseif ast.tag == 'evalTo' then
+    self:codeEvalTo(ast)
   elseif ast.tag == 'if' then
     -- Expression and jump
     self:codeExpression(ast.expression)

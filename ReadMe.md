@@ -90,8 +90,7 @@ The grammar examples are in Extended Backus-Naur Form,
 In Mab, the set of characters used in identifiers is
 `A`-`Z`, `a`-`z`, the digits `0`-`9`, underscores, dashes, and single spaces.
 
-Identifiers may not start with `'return'`. Identifiers that refer to functions
-additionally may not start with any conditional keywords, such as `'if'` and `'while'`.\
+Identifiers that refer to functions may not start with any conditional keywords, such as `'if'` and `'while'`.\
 This removes some ambiguity, so `if a {}` is always read as `if (a) {}` and `while true {}` is always read as `while (true) {}`.
 
 They may start with digits, but must contain at least one letter,
@@ -132,13 +131,7 @@ Blob10: true
 -- is not allowed.
 Blo b10: true
 
--- Not valid, identifiers may not start with 'return .'
-return test: 12
-
--- This is OK, though:
-returnTest: 12
-
--- Valid. It's not a function type.
+-- Valid. It's a boolean (not a function type).
 if test: true
 
 -- Not valid, it's a function type.
@@ -165,16 +158,7 @@ Bree Over-the-Water: 10
 
 > *Notes*
 > 
-> The dash exclusions are to prevent confusion between unary negative operators and dashed identifiers.
-> 
-> The keyword exclusions prevent some ambiguity, making it impossible for `return a = b` to be read as `(return a) = b`,
-> `return function name()` from being read as `(return function name)()`, and `if ( a ) {}`
-> from being read as `(if a)() {}`. Actually, the parser might still accept the function ones, because the check has to
-> occur at type checking time to know if an identifier is typed as a function, but there will at least be errors
-> about the variable definitions violating the rules.
-> 
-> Note also that the parenthesis grouping is for explanatory purposes only, to show how the parser might falsely group
-things. Calling a function in parentheses is not valid Mab syntax, nor is assigning to a value in parentheses.
+> The dash exclusions are to prevent confusion between the negative operators and dashed identifiers.
 
 ### Literals
 
@@ -396,14 +380,14 @@ entry point: -> number {
     ''
     -- Our favorite recursive program
     entry point: -> number {
-      return factorial(10)
+      factorial(10) -> result
     }
     
     factorial: (n:number) -> number {
       if n = 0 {
-        return 1
+        1 -> result
       }
-      return n * factorial(n - 1)
+      n * factorial(n - 1) -> result
     }
     ''
 
@@ -418,14 +402,14 @@ Will output:
 -- Let's have "fun!"
 -- Our favorite recursive program
 entry point: -> number {
-  return factorial(10)
+  factorial(10) -> result
 }
 
 factorial: (n:number) -> number {
   if n = 0 {
-    return 1
+    1 -> result
   }
-  return n * factorial(n - 1)
+  n * factorial(n - 1) -> result
 }
 
 ```
@@ -516,21 +500,21 @@ It's currently an error to specify a top-level function as anything else.
 ```
 factorial: (n:number) -> number {
     if n = 0 {
-        return 1
+        1 -> result
     } else {
-        return n * factorial(n - 1)
+        n * factorial(n - 1) -> result
     }
 }
 
 entry point: () -> number {
-    return factorial(5)
+    factorial(5) -> result
 }
 ```
 
 #### The Entry Point
 
 Mab programs must contain a function named `entry point` that takes no arguments and
-returns a number.\
+results in a number.\
 This entry point will be executed when the program starts.
 
 ### Scope
@@ -591,11 +575,11 @@ Example:
 
 ```
 default arguments: (n:number = 12 * 17) -> number {
-  return n
+  n -> result
 }
 
 entry point: -> number {
-  return default arguments()
+  default arguments() -> result
 }
 ```
 
@@ -604,7 +588,7 @@ entry point: -> number {
 An example of some functions and variables in this syntax:
 ```
 -- This function has no input or
--- return types.
+-- result types.
 global container: -> {
     g:global = 12
     @g
@@ -612,20 +596,20 @@ global container: -> {
 
 factorial: (n:number) -> number {
     if n = 0 {
-        return 1
+        1 -> result
     } else {
-        return n * factorial(n - 1)
+        n * factorial(n - 1) -> result
     }
 }
 
 sum: (a:number b:number) -> number = {
-    return a + b
+    a + b -> result
 }
 
 -- Commas can also be added if
 -- desired:
 div: (a:number, b:number) -> number {
-    return a / b
+    a / b -> result
 }
 
 -- This could also be written as
@@ -642,7 +626,7 @@ entry point: () -> number {
     -- as the two previous.
     c: 2
 
-    return factorial( div( sum( a, b ) * c, 2 ) )
+    factorial( div( sum( a, b ) * c, 2 ) ) -> result
 }
 ```
 
@@ -653,22 +637,23 @@ The result of executing the above example is `24.0`.
 The grammar for assignments is:
 
 ```
-identifier {'[' expression ']'} '=' expression
+expression -> identifier {'[' expression ']'}
 ```
 
-The middle part is the array index syntax. Note that each array index must evaluate 
-to a number. (But it is not necessary for them to be *literal* numbers,
+The part at the end is the array index syntax.
+Note that each array index must evaluate  to a number.
+(But it is not necessary for them to be *literal* numbers,
 again, just a thing that *evaluates* to a number.)
 
 A couple of basic assignment examples:
 ```
 a:default number
 
-a = 3 * 6 + 4
+3 * 6 + 4 -> a
 
 b: new[2][2] boolean
 
-b[1][1] = true
+true -> b[1][1]
 ```
 
 ### Unary and Binary Operators
@@ -772,12 +757,12 @@ From lowest to highest:
 | <center>`-` </center>                        | Unary Minus                           |
 | <center>`^` </center>                        | Exponent                              |
 
-### Return
+### Function Results
 
-Syntax for returns is as follows:
+Syntax for results is as follows:
 
 ```
-'return' expression
+expression -> 'result'
 ```
 
 A basic example:
@@ -785,17 +770,16 @@ A basic example:
 a: 12
 b: 10
 
-return a * b
+a * b -> result
 ```
 
-The expression may be omitted if the function returns nothing:
+If the function has no result, `exit` can be used to exit early.\
+It may also be optionally placed at the end:
 ```
-returns nothing: -> {
-    @'
-      I don't do anything...
-      Wait, I print this string!'
+no result: -> {
+    @'I don't do anything. Wait, I print this string!'
 
-    return
+    exit
 }
 ```
 
@@ -816,13 +800,13 @@ array identifier ['+']'[' expression ']'{ '[' expression ']' }
 The optional `+` before the first `[]` is array offset notation, aka zero-indexing:
 
 ```
--- This sets the first element of
--- array to 12:
-array+[0] = 12
+-- This sets the first element of 'a'
+-- to 12:
+12 -> a+[0]
 
 -- A single '+' will make all indices
 -- in the list offset-indexed:
-b+[0][1] = 10
+10 -> b+[0][1]
 ```
 
 When creating an array, you use the `new` keyword:
@@ -892,7 +876,7 @@ b: 10
 -- 1 through 10 inclusive:
 while a <= b {
     @a
-    a = a + 1
+    a + 1 -> a
 }
 ```
 
@@ -906,7 +890,7 @@ entry point: -> number {
     @n
     
     a: new [2][2] true
-    a[1][1] = false
+    false -> a[1][1]
     @a
 }
 ```
@@ -958,8 +942,8 @@ between operands and in parts of statements.
 
 For example, this code will check if `true` is a boolean, because it must be to be the
 condition of the ternary operator. It will then check to make sure both arms of the 
-ternary match in type (which they don't!) and then return the type of the first arm in
-order to continue checking, whether the check passed.
+ternary match in type (which they don't!). The result will be assumed to be type of the
+first arm in order to continue checking, whether the check passed.
 
 ```
 test: true ? 1 : false
@@ -976,13 +960,13 @@ Specified as a number, can be assigned a number later.
 Note the `default` keyword is required for variables without assignments:
 ```
 var:default number
-var = 15
+15 -> var
 ```
 
 This is not valid; variables must have a type or an initializer when first created:
 ```
 var:
-var = true
+true -> var
 ```
 
 Conditionals only accept expressions that evaluate to booleans:
@@ -1015,7 +999,7 @@ a boolean: number & another one
 However, logical operators will cause a type conversion of the expression to a boolean, 
 which will then be acceptable for conditionals or assignment to booleans:
 ``` 
-a boolean = another number > number
+another number > number -> a boolean
 ```
 
 Arrays are also typed in both their number of dimensions and the size of each dimension.
@@ -1027,14 +1011,14 @@ subarray: = new[2] false
 -- We can assign here because
 -- array[1] is a 2-element array of
 -- booleans, the same as subarray.
-array[1] = subarray
+subarray -> array[1]
 
 mismatched array: [3] true
 
 -- This will fail in the type checker
 -- because the array sizes are
 -- different:
-array[2] = mismatched array
+mismatched array -> array[2]
 ```
 
 Array types can be specified, which is necessary for functions since the language is
@@ -1045,16 +1029,13 @@ is identity: matrix:[2][2] number -> boolean {
   while i <= 2 {
     j: 1
     while j <= 2 {
-      if i = j & matrix[i][j] ~= 1 {
-        return false
-      }
-      elseif i ~= j &
-             matrix[i][j] ~= 0 {
-        return false
+      if (i = j & matrix[i][j] ~= 1) |
+         (i ~= j & matrix[i][j] ~= 0) {
+        false -> result
       }
     }
   }
-  return true
+  true -> result
 }
 ```
 
@@ -1064,9 +1045,9 @@ entry point: -> number {
     matrix:[2][2] number = new[2][2] 0
     -- Same as matrix: new[2][2] 0
 
-    matrix[1][1] = 1
-    matrix[2][2] = 1
-    return is identity(matrix)
+    1 -> matrix[1][1]
+    1 -> matrix[2][2]
+    is identity(matrix) -> result
 }
 ```
 Notably, array types are required to have initializers because default values are not
@@ -1090,25 +1071,25 @@ For example, this is valid Mab code:
 entry point: -> number {
   n:global = 10
   if even() = true {
-    return 1
+    1 -> result
   } else {
-    return 0
+    0 -> result
   }
 }
 even: -> boolean {
   if n ~= 0 {
-    n = n - 1
-    return odd()
+    n - 1 -> n
+    odd() -> result
   } else {
-    return true
+    true -> result
   }
 }
 odd: -> boolean {
   if n ~= 0 {
-    n = n - 1
-    return even()
+    n - 1 -> n
+    even() -> result
   } else {
-    return false
+    false -> result
   }
 }
 ```
@@ -1122,7 +1103,7 @@ Mab supports a robust array of command-line options:
 * `--ast`/`-a`: Print the AST.
 * `--code`/`-c`: Output the generated code.
 * `--trace`/`-t`: Output an execution trace, with stack state after each instruction.
-* `--result`/`-r`: Output the result of the program. (The return value from `entry point`.)
+* `--result`/`-r`: Output the result of the program. (The result value from `entry point`.)
 * `--echo-input`/`-e`: Output what was sent in to translate.
 * `--graphviz`/`-g`: Generate a graphviz visualization and open it in the default application.
 * `--pegdebug`/`-p`: Annotate the grammar with PegDebug before translating.
@@ -1131,7 +1112,7 @@ Mab supports a robust array of command-line options:
 * `--unpoetic`/`-u`: Suppress poetry.
 
 You can use the format `-{option character}` to select multiple options at a time.
-For example, `-vr` will output verbose information and the program return value.
+For example, `-vr` will output verbose information and the program result value.
 
 You can also send in a filename directly and Mab will execute it, as long as it doesn't start with a dash.
 If it *does*, use the `-i` option.
