@@ -5,6 +5,7 @@ package.path = package.path .. ';1 Parser/Components/?.lua'
 package.path = package.path .. ';2 Type Checker/?.lua'
 package.path = package.path .. ';3 Translators/?.lua'
 package.path = package.path .. ';4 Interpreter/?.lua'
+package.path = package.path .. ';Strings/?.lua'
 
 local parser = require 'parser'
 local typeChecker = require 'typechecker'

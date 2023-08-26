@@ -141,7 +141,7 @@ function Translator:codeFunctionCall(ast)
   end
 
   if not functionCodeReference then
-    self:addError('Cannot call function, "'..target.name..'" is undefined.', target)
+    self:addError('ERROR STACKVM TRANSLATOR UNDEFINED FUNCTION CALL', {funcName = target.name}, target)
     return
   end
 
@@ -165,8 +165,9 @@ function Translator:codeFunctionCall(ast)
   else
     local pCount = #functionType.parameters
     local aCount = #ast.arguments
-    self:addError('Function "'..target.name..'" has '..common.toReadableNumber(pCount, 'parameter')..
-                  ' but was sent '..common.toReadableNumber(aCount, 'argument')..'.', target)
+    self:addError('ERROR STACKVM TRANSLATOR FUNCTION PARAMETER MISMATCH',
+                  {funcName = target.name, paramCount = common.toReadableNumber(pCount, 'parameter'),
+                   argCount = common.toReadableNumber(aCount, 'argument')}, target)
     -- Try to do what they asked, I guess...
     for i=1,#arguments do
       self:codeExpression(arguments[i])
@@ -188,7 +189,7 @@ function Translator:codeLoadVariable(ast, localIndex, globalID)
       self:addCode('load')
       self:addCode(globalID or self:globalToID(ast))
     else
-      self:addError('Trying to load from undefined variable "' .. ast.name .. '."', ast)
+      self:addError('ERROR STACKVM TRANSLATOR UNDEFINED VARIABLE', {varName = ast.name}, ast)
     end
 end
 
@@ -212,7 +213,7 @@ function Translator:codeExpression(ast)
     end
   elseif ast.tag == 'newArray' then
     if ast.size.tag ~= 'number' then
-      self:addError('New array sizes must be literal numbers.', ast)
+      self:addError('ERROR STACKVM TRANSLATOR ARRAY SIZE NOT LITERAL', {}, ast)
     end
 
     self:codeExpression(ast.initialValue)
@@ -257,7 +258,7 @@ function Translator:codeExpression(ast)
     --  (Again, the PC is incremented after a jump.)
     self:fixupJump(skipFalseExpressionFixup)
   else
-    self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
+    self:addError('ERROR STACKVM TRANSLATOR UNKNOWN EXPRESSION NODE', {tag = ast.tag}, ast)
   end
 end
 
@@ -271,19 +272,19 @@ function Translator:checkForVariableNameCollisions(ast)
     if numLocals > 0 then
       for i=numLocals,self.blockBases[#self.blockBases],-1 do
         if self.locals[i].name == ast.name then
-          self:addError('Variable "' .. ast.name .. '" already defined in this scope.', ast)
+          self:addError('ERROR STACKVM TRANSLATOR VARIABLE ALREADY DEFINED', {varName = ast.name}, ast)
         end
       end
     end
   elseif scope == 'global' then
     if self.globals[ast.name] ~= nil then
-      self:addError('Re-defining global variable "' .. ast.name .. '."', ast)
+      self:addError('ERROR STACKVM TRANSLATOR REDEFINING GLOBAL VARIABLE', {varName = ast.name}, ast)
     end
   else
     if scope ~= nil then
-      self:addError('Unknown scope .."'..tostring(scope)..'."', ast)
+      self:addError('ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN SCOPE', {scope = tostring(scope)}, ast)
     else
-      self:addError('Scope undefined.', ast)
+      self:addError('ERROR STACKVM TRANSLATOR INTERNAL UNDEFINED SCOPE', {}, ast)
     end
   end
 end
@@ -307,8 +308,7 @@ function Translator:codeNewVariable(ast)
   else
     if ast.type_ then
       if ast.type_.tag == 'array' then
-        self:addError('Default values required for array types. To-Do: Allow this! For now, add a default value to: "' ..
-                      ast.name .. '."', ast)
+        self:addError('ERROR STACKVM TRANSLATOR ARRAY DEFAULT REQUIRED', {varName = ast.name}, ast)
       elseif ast.type_.tag == 'number' then
         self:addCode 'push'
         self:addCode(0)
@@ -323,7 +323,7 @@ function Translator:codeNewVariable(ast)
         self:addCode 'push'
         self:addCode(0)
       else
-        self:addError('No type for variable "' .. ast.name .. '."', ast)
+        self:addError('ERROR STACKVM TRANSLATOR VARIABLE NO TYPE', {varName = ast.name}, ast)
         self:addCode 'push'
         self:addCode(0)
       end
@@ -342,9 +342,9 @@ function Translator:codeNewVariable(ast)
     self:addCode( (self:globalToID(ast)) )
   else
     if scope ~= nil then
-      self:addError('Unknown scope .."'..tostring(scope)..'."', ast)
+      self:addError('ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN SCOPE', {scope = tostring(scope)}, ast)
     else
-      self:addError('Scope undefined.', ast)
+      self:addError('ERROR STACKVM TRANSLATOR INTERNAL SCOPE UNDEFINED', {}, ast)
     end
   end
 end
@@ -406,7 +406,7 @@ function Translator:codeAssignment(ast)
       self:addCode('store')
       self:addCode( (self:globalToID(ast.target)) )
     else
-      self:addError('Assigning to undefined variable "'..ast.target.name..'."', ast.target)
+      self:addError('ERROR STACKVM TRANSLATOR ASSIGN UNDEFINED VARIABLE', {targetName = ast.target.name}, ast.target)
     end
   elseif target.tag == 'arrayElement' then
     self:codeExpression(ast.target.array)
@@ -419,7 +419,7 @@ function Translator:codeAssignment(ast)
       self:addCode('setArray')
     end
   else
-    self:addError('Unknown write target type, tag was "'..tostring(ast.tag)..'."', ast)
+    self:addError('ERROR STACKVM TRANSLATOR UNKNOWN WRITE TARGET TYPE', {tag = tostring(ast.tag)}, ast)
   end
 end
 
@@ -514,7 +514,7 @@ function Translator:codeStatement(ast)
     self:codeExpression(ast.toPrint)
     self:addCode('print')
   else
-    self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
+    self:addError('ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN STATEMENT NODE', {tag = ast.tag}, ast)
   end
 end
 
@@ -543,8 +543,9 @@ function Translator:duplicateParameterCheck(ast)
 
   if duplicateCount == 1 then
     local name, countAndPosition = next(duplicates)
-    local errorMessage = 'Function "'..ast.name..'" has '..common.toReadableNumber(countAndPosition.count)..' instances of the parameter "'..name..'."'
-    self:addError(errorMessage, parameters[1])
+    self:addError("ERROR STACKVM TRANSLATOR DUPLICATE FUNCTION PARAMETER",
+                  {funcName = ast.name, paramName = name,
+                   paramCount = common.toReadableNumber(countAndPosition.count)}, parameters[1])
   elseif duplicateCount > 1 then
     local errorMessage = 'Function "'..ast.name..'" has:\n'
     local num = 0
@@ -594,8 +595,8 @@ function Translator:codeFunction(ast)
       self:addCode('push')
       -- TODO: Doesn't support creating default returns for arrays.
       if resultTypeTag == 'array' then
-        self:addError('TODO: Returning default array type not supported, add an explicit return to: "' ..
-                ast.name or 'anonymous function' .. '."', ast.assignment)
+        self:addError('ERROR STACKVM TRANSLATOR TODO DEFAULT ARRAY RETURN',
+                      {funcName = ast.name or 'anonymous function'}, ast.assignment)
       elseif resultTypeTag == 'number' then
         self:addCode(0)
       elseif resultTypeTag == 'boolean' then
@@ -603,7 +604,7 @@ function Translator:codeFunction(ast)
       elseif resultTypeTag == 'string' then
         self:addCode ''
       else
-        self:addError('Internal error: unknown type "'..resultTypeTag..'" when generating automatic return value.')
+        self:addError('ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN TYPE', {typeTag = resultTypeTag})
         self:addCode(0)
       end
       self:addCode('return')
@@ -646,11 +647,13 @@ function Translator:translate(ast)
 
   local entryPoint = self.globals[literals.entryPointName]
   if not entryPoint then
-    self:addError('No entry point found. (Program must contain a function named "entry point.")')
+    self:addError('ERROR STACKVM TRANSLATOR NO ENTRY POINT', {})
   else
     local eppCount = #entryPoint.type_.parameters
     if eppCount > 0 then
-      self:addError('Entry point has '..common.toReadableNumber(eppCount, 'parameter')..' but should have none.', entryPoint.type_.parameters[1])
+      self:addError('ERROR STACKVM TRANSLATOR ENTRY POINT PARAMETER MISMATCH',
+                    {paramCount = common.toReadableNumber(eppCount, 'parameter')},
+                    entryPoint.type.parameters[1])
     end
   end
 
@@ -670,7 +673,7 @@ function Translator:translate(ast)
     elseif ast[i].tag == 'emptyStatement' then
       -- Do nothing
     else
-      self:addError('Unhandled tag "'..ast[i].tag.. '" at top level. Ignoring...')
+      self:addError('ERROR STACKVM TRANSLATOR INTERNAL UNHANDLED TAG', {tag = ast[i].tag})
     end
  end
 

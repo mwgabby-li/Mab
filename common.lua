@@ -1,5 +1,6 @@
 local lpeg = require "lpeg"
 local literals = require 'literals'
+local text = require 'text'
 
 local P = lpeg.P
 local V = lpeg.V
@@ -320,7 +321,7 @@ function common.ErrorReporter:new(o)
   return o
 end
 
-function common.ErrorReporter:addError(message, tableWithPositionOrPositionOrNil)
+function common.ErrorReporter:addError(key, replacements, tableWithPositionOrPositionOrNil)
   local position
   if type(tableWithPositionOrPositionOrNil) == 'table' then
     position = tableWithPositionOrPositionOrNil.position
@@ -328,10 +329,17 @@ function common.ErrorReporter:addError(message, tableWithPositionOrPositionOrNil
     position = tableWithPositionOrPositionOrNil
   end
 
+  local message = text.get(key .. ' MESSAGE'):gsub('{(w+)}', replacements)
+
   self.errors[#self.errors + 1] = {
+    key = key,
     message = message,
     position = position,
   }
+end
+
+function common.ErrorReporter:addErrorRaw(key, tableWithPositionOrPositionOrNil)
+
 end
 
 function common.ErrorReporter:count()

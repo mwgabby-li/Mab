@@ -288,7 +288,7 @@ function TypeChecker:typeMatches(apple, orange, allowNone)
     
     return true
   else
-    self:addError('Internal error: Unknown type tag "'..apple.tag..'."')
+    self:addError('ERROR TYPECHECK INTERNAL UNKNOWN TYPE TAG', {typeTag = apple.tag})
     return false
   end
 
@@ -308,9 +308,11 @@ function TypeChecker:checkFunctionCall(ast)
     local parameterType = parameter.type_
     local argumentType = self:checkExpression(ast.arguments[i])
     if not self:typeMatches(parameterType, argumentType) then
-      self:addError('Argument '..common.toReadableNumber(i)..' to function called via "' .. rootName.. '" evaluates to type "'..
-                    common.toReadableType(argumentType)..'," but parameter "'..parameter.name..'" is type "'..
-                    common.toReadableType(parameterType)..'."', ast.arguments[i])
+      self:addError('ERROR TYPECHECK PARAMETER ARGUMENT TYPE MISMATCH',
+                    {number = common.toReadableNumber(i),
+                     variableName=rootName, argumentTypeName = common.toReadableType(argumentType),
+                     parameterName=parameter.name, parameterTypeName=common.toReadableType(parameterType)},
+                     ast.arguments[i])
     end
   end
 
@@ -336,21 +338,21 @@ function TypeChecker:checkExpressionInner(ast)
     local variableType = self:getVariablesType(ast.name)
     
     if not self:typeValid(variableType) then
-      self:addError('Attempting to use undefined variable "'..ast.name..'."', ast)
+      self:addError('ERROR TYPECHECK USING UNDEFINED VARIABLE', {variableName=ast.name}, ast)
     end
 
     return variableType, ast.name
   elseif ast.tag == 'newArray' then
     local sizeType = self:checkExpression(ast.size)
     if not self:typeMatches(sizeType, kNumberType) then
-      self:addError('Creating a new array indexed with "' ..
-                    sizeType.tag .. '", only "number" is allowed. Sorry!', ast.size)
+      self:addError('ERROR TYPECHECK NEW ARRAY NON NUMERIC DIMENSION TYPE',
+                    {indexedType=common.toReadableType(sizeType.tag)}, ast.size)
     end
     
     -- Set size to a special 'invalid' value if the array's not indexed with a number.
     local size = ast.size.value or 'invalid'
     if ast.size.tag ~= 'number' then
-      self:addError('New arrays must be created with literal numbers. Sorry!', ast)
+      self:addError('ERROR TYPECHECK NEW ARRAYS LITERAL ONLY', {}, ast)
     end
 
     local initType = self:checkExpression(ast.initialValue)
@@ -375,15 +377,15 @@ function TypeChecker:checkExpressionInner(ast)
     local indexType = self:checkExpression(ast.index)
     if not self:typeMatches(indexType, kNumberType) then
       indexType = indexType or tostring(indexType)
-      self:addError('Array indexing with type "' ..
-                    common.toReadableType(indexType) .. '", only "number" is allowed. Sorry!', ast)
+      self:addError('ERROR TYPECHECK NON NUMERIC ARRAY INDEX',
+                    {indexedType=common.toReadableType(indexType)}, ast)
     end
 
     local arrayType, variableName = self:checkExpression(ast.array)
 
     if arrayType.tag ~= 'array' then
-      self:addError('Attempting to index into "'..variableName..'," which is a "'..
-                    arrayType.tag..'," not an array.', ast.array)
+      self:addError('ERROR TYPECHECK INDEXING NON ARRAY',
+                    {variableName=variableName, arrayTypeTag=arrayType.tag}, ast.array)
       -- EARLY RETURN, can't recover.
       return arrayType, variableName
     end
@@ -420,16 +422,16 @@ function TypeChecker:checkExpressionInner(ast)
     end
 
     if not self:typeMatches(firstChildType, secondChildType) then
-      self:addError('Mismatched types with operator "' .. ast.op ..
-                    '"! (' .. common.toReadableType(firstChildType) .. ' ' .. ast.op ..
-                    ' ' .. common.toReadableType(secondChildType) .. ').', ast)
+      self:addError('ERROR TYPECHECK MISMATCHED TYPES WITH OPERATOR',
+                    {operator=ast.op, firstType=common.toReadableType(firstChildType),
+                     secondType=common.toReadableType(secondChildType)}, ast)
       return kNoType
     end
     local expressionType = firstChildType
     -- is binary op? - true
     if not self:isCompatible(ast.op, true, expressionType) then
-      self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
-                    common.toReadableType(expressionType) .. '."', ast)
+      self:addError('ERROR TYPECHECK BINARY OPERATOR INVALID TYPE',
+                    {operator=ast.op, type=common.toReadableType(expressionType)}, ast)
       return kNoType
     else
       -- is binary op? - true
@@ -439,8 +441,8 @@ function TypeChecker:checkExpressionInner(ast)
     local childType = self:checkExpression(ast.child)
     -- is binary op? - false (unary op)
     if not self:isCompatible(ast.op, false, childType) then
-      self:addError('Operator "' .. ast.op .. '" cannot be used with type "' ..
-                    common.toReadableType(childType) .. '."', ast)
+      self:addError('ERROR TYPECHECK UNARY OPERATOR INVALID TYPE',
+                    {operator=ast.op, type=common.toReadableType(childType)}, ast)
       return kNoType
     else
       -- is binary op? - false (unary op)
@@ -449,27 +451,22 @@ function TypeChecker:checkExpressionInner(ast)
   elseif ast.tag == 'ternary' then
     local testType = self:checkExpression(ast.test)
     if not self:typeMatches(testType, kBooleanType) then
-      self:addError('Ternary condition expression must evaluate to boolean.\n'..
-                    'This expression evaluates to "'..common.toReadableType(testType)..
-                    '."', ast.testPosition)
+      self:addError('ERROR TYPECHECK TERNARY CONDITION MUST BE BOOLEAN',
+                    {testType=common.toReadableType(testType)}, ast.testPosition)
     end
 
     local trueBranchType = self:checkExpression(ast.trueExpression)
     local falseBranchType = self:checkExpression(ast.falseExpression)
     if not self:typeMatches(trueBranchType, falseBranchType) then
-      self:addError('The two branches of the ternary operator must have the same type.\n'..
-                    ' Currently, the type of the true branch is "'..
-                    common.toReadableType(trueBranchType)..
-                    ',"\n and the type of the false branch is "'..
-                    common.toReadableType(falseBranchType)..'."\n'..
-                    ' Further type checks in this run will assume this evaluated to "'..
-                    common.toReadableType(trueBranchType)..'."', ast)
+      self:addError('ERROR TYPECHECK TERNARY BRANCHES TYPE MISMATCH',
+                    {trueBranchType=common.toReadableType(trueBranchType),
+                     falseBranchType=common.toReadableType(falseBranchType)}, ast)
     end
 
     -- Assume true branch type.
     return trueBranchType
   else
-    self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
+    self:addError('ERROR TYPECHECK INTERNAL UNKNOWN EXPRESSION NODE TAG', {tag=ast.tag}, ast)
     return kNoType
   end
 end
@@ -488,9 +485,9 @@ function TypeChecker:inferScope(ast)
     end
   elseif ast.scope ~= 'global' and ast.scope ~= 'local' then
     if ast.scope ~= nil then
-      self:addError('Unknown scope .."'..tostring(ast.scope)..'."', ast)
+      self:addError('ERROR TYPECHECK INTERNAL UNKNOWN SCOPE WHILE INFERRING', {scope=tostring(ast.scope)}, ast)
     else
-      self:addError('Scope undefined.', ast)
+      self:addError('ERROR TYPECHECK INTERNAL UNDEFINED SCOPE WHILE INFERRING', {}, ast)
     end
     result = 'local'
   end
@@ -517,16 +514,18 @@ function TypeChecker:checkNewVariable(ast)
       local assignmentType = self:checkExpression(ast.assignment)
 
       if not self:typeMatches(specifiedType, assignmentType) then
-        self:addError('Type of variable is ' .. common.toReadableType(specifiedType) ..'.', ast.type_)
-        self:addError('But variable is being initialized with ' .. common.toReadableType(assignmentType) .. '.', ast.assignment)
+        self:addError('ERROR TYPECHECK VARIABLE INIT TYPE MISMATCH',
+                      {specifiedType=common.toReadableType(specifiedType),
+                       assignmentType=common.toReadableType(assignmentType)}, ast.type_)
       end
     elseif not ast.assignment then
       -- Functions without default values are currently disallowed.
-      self:addError('Function type specified for variable "'..ast.name..'", but no value was provided. Defaults required for functions, sorry!', ast)
+      self:addError('ERROR TYPECHECK FUNCTION TYPE NO DEFAULT VALUE', {variableName=ast.name}, ast)
     end
   -- We aren't inferring, but invalid type specified:
   elseif not specifiedType.tag == 'infer' and not self:typeValid(specifiedType) then
-    self:addError('Type of variable "'..ast.name..'" specified, but type is invalid: "'..common.toReadableType(specifiedType)..'."', ast)
+    self:addError('ERROR TYPECHECK INVALID TYPE SPECIFIED',
+                  {variableName=ast.name, specifiedType=common.toReadableType(specifiedType)}, ast)
   -- No type specified:
   elseif specifiedType.tag == 'infer' then
     -- Assignment?
@@ -534,12 +533,12 @@ function TypeChecker:checkNewVariable(ast)
       -- Set the type to the assignment value.
       inferredType = self:checkExpression(ast.assignment)
       if not self:typeValid(inferredType) then
-        self:addError('Cannot determine type of variable "'..ast.name..'" because no type was specified and the assignment has no type.', ast)
+        self:addError('ERROR TYPECHECK CANNOT INFER TYPE', {variableName=ast.name}, ast)
       end
     -- No assignment?
     else
       -- This is not currently allowed.
-      self:addError('Cannot determine type of variable "'..ast.name..'" because no type was specified and no assignment was made.', ast)
+      self:addError('ERROR TYPECHECK CANNOT INFER TYPE NO ASSIGNMENT', {variableName=ast.name}, ast)
     end
 
   -- Type specified and assignment.
@@ -547,8 +546,9 @@ function TypeChecker:checkNewVariable(ast)
     -- MUST MATCH.
     local assignmentType = self:checkExpression(ast.assignment)
     if not self:typeMatches(specifiedType, assignmentType) then
-      self:addError('Type of variable is ' .. common.toReadableType(specifiedType) ..'.', ast.type_)
-      self:addError('But variable is being initialized with ' .. common.toReadableType(assignmentType) .. '.', ast.assignment)
+      self:addError('ERROR TYPECHECK VARIABLE INIT TYPE MISMATCH',
+                    {specifiedType=common.toReadableType(specifiedType),
+                     assignmentType=common.toReadableType(assignmentType)}, ast.type_)
     end
     
   -- Type specified, no assignment.
@@ -562,19 +562,11 @@ function TypeChecker:checkNewVariable(ast)
   -- in the later translator unless it's stored here,
   -- so just overwrite the type in the AST.
   ast.type_ = inferredType
-  
   if inferredType.tag == 'function' then
     if ast.name:match '^if ' or ast.name:match '^while ' then
-      self:addError('"'..ast.name..'" starts with the conditional keyword "'..ast.name:match('^(.*) ')..'," and is type "'..common.toReadableType(inferredType)..'." Function types may not start with conditional keywords, sorry.', ast)
-    end
-  end
-
-  if inferredType.tag == 'function' then
-    if ast.name:match '^if ' or ast.name:match '^while ' then
-      self:addError('"'..ast.name..'" starts with the conditional keyword "'..
-                    ast.name:match('^(.*) ')..'," and is type "'..
-                    common.toReadableType(inferredType)..
-                    '." Function types may not start with conditional keywords, sorry.', ast)
+      self:addError('ERROR TYPECHECK FUNCTION NAME STARTS WITH CONDITIONAL',
+                    {variableName=ast.name, keyword=ast.name:match('^(.*) '),
+                     type=common.toReadableType(inferredType)}, ast)
     end
   end
 
@@ -587,9 +579,11 @@ function TypeChecker:checkNewVariable(ast)
     self.variableTypes[ast.name] = inferredType
   else
     if scope ~= nil then
-      self:addError('Unknown scope .."'..tostring(scope)..'."', ast)
+      self:addError('ERROR TYPECHECK INTERNAL UNKNOWN SCOPE POST INFER',
+                    {scope=tostring(scope), variableName=ast.name}, ast)
     else
-      self:addError('Scope undefined.', ast)
+      self:addError('ERROR TYPECHECK INTERNAL UNDEFINED SCOPE POST INFER',
+                    {variableName=ast.name}, ast)
     end
   end
 end
@@ -616,12 +610,13 @@ function TypeChecker:checkStatement(ast)
       local returnType = self:checkExpression(ast.expression)
       -- Allow none: true
       if not self:typeValid(returnType, true) then
-        self:addError('Could not determine type of return type.', ast)
+        self:addError('ERROR TYPECHECK RETURN TYPE UNDETERMINABLE', {}, ast)
       -- Allow none: true
       elseif not self:typeMatches(returnType, self.currentFunction.resultType, true) then
-        self:addError('Mismatched types with return, function "' .. self.currentFunction.name .. '" returns "' ..
-                      common.toReadableType(self.currentFunction.resultType) .. '," but returning type "' ..
-                      common.toReadableType(returnType) .. '."', ast)
+        self:addError('ERROR TYPECHECK RETURN TYPE MISMATCH',
+                      {functionName=self.currentFunction.name,
+                       expectedType=common.toReadableType(self.currentFunction.resultType),
+                       actualType=common.toReadableType(returnType)}, ast)
       end
     -- Evaluate the expression, but discard the result:
     elseif ast.target.tag == 'none' then
@@ -644,23 +639,31 @@ function TypeChecker:checkStatement(ast)
         local etValid = self:typeValid(expressionType)
         
         if not wttValid and not etValid then
-          local etMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
-          self:addError('Sorry, cannot assign '..etMessage..
-                        common.toReadableType(targetType)..
-                        '."\nThe invalid type of "'..targetRootName..'," the assignment target, also prevents this: "'..
-                        common.toReadableType(expressionType)..'."', ast)
-        elseif not wttValid then
-          self:addError('Sorry, cannot assign to "'..targetRootName..'" because its type is invalid: "' ..
-                        common.toReadableType(targetType) .. '."', ast)
+          if etRootName then
+            self:addError('ERROR TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE TO TARGET WITH INVALID TYPE',
+                          {expressionRootName=etRootName, expressionType=common.toReadableType(expressionType),
+                           targetRootName=targetRootName, targetType=common.toReadableType(targetType)}, ast.target)
+          else
+            self:addError('ERROR TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE TO TARGET WITH INVALID TYPE',
+                          {expressionType=common.toReadableType(expressionType),
+                           targetRootName=targetRootName, targetType=common.toReadableType(targetType)}, ast.target)
+          end
         elseif not etValid then
-          local endOfMessage = etRootName and 'from "'..etRootName..'," because its type is invalid: "' or 'from an invalid type: "'
-          
-          self:addError('Sorry, cannot assign '..endOfMessage..
-                        common.toReadableType(expressionType) .. '."', ast)
+          if etRootName then
+            self:addError('ERROR TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE',
+                          {expressionRootName=etRootName, expressionType=common.toReadableType(expressionType)},
+                          ast.expression)
+          else
+            self:addError('ERROR TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE',
+                          {expressionType=common.toReadableType(expressionType)}, ast.expression)
+          end
+        elseif not wttValid then
+          self:addError('ERROR TYPECHECK CANNOT ASSIGN TO TARGET WITH INVALID TYPE',
+                        {targetRootName= targetRootName, targetType=common.toReadableType(targetType)}, ast.target)
         elseif wttValid and etValid then
-          self:addError('Attempted to change type from "' ..
-                        common.toReadableType(targetType) .. '" to "' ..
-                        common.toReadableType(expressionType) .. '." Disallowed, sorry!', ast)
+          self:addError('ERROR TYPECHECK ASSIGNMENT MISMATCHED TYPES',
+                        {fromType=common.toReadableType(expressionType), toType=common.toReadableType(targetType)},
+                        ast.target)
         end
       end
     end
@@ -668,9 +671,7 @@ function TypeChecker:checkStatement(ast)
     local expressionType = self:checkExpression(ast.expression)
 
     if not self:typeMatches(expressionType, kBooleanType) then
-      self:addError('if statements require a boolean value,' ..
-                    ' or an expression evaluating to a boolean.'..
-                    'Type was "'..common.toReadableType(expressionType)..'."', ast)
+      self:addError('ERROR TYPECHECK IF CONDITION NOT BOOLEAN', {type=common.toReadableType(expressionType)}, ast)
     end
     self:checkStatement(ast.body)
     if ast.elseBody then
@@ -679,20 +680,17 @@ function TypeChecker:checkStatement(ast)
   elseif ast.tag == 'while' then
     local expressionType = self:checkExpression(ast.expression)
     if not self:typeMatches(expressionType, kBooleanType) then
-      self:addError('while loop conditionals require a boolean value,' ..
-                    ' or an expression evaluating to a boolean.'..
-                    'Type was "'..common.toReadableType(expressionType)..'."', ast)
+      self:addError('ERROR TYPECHECK WHILE CONDITION NOT BOOLEAN', {type=common.toReadableType(expressionType)}, ast)
     end
     self:checkStatement(ast.body)
   elseif ast.tag == 'print' then
     self:checkExpression(ast.toPrint)
   elseif ast.tag == 'exit' then
     if not self:typeMatches(kNoType, self.currentFunction.resultType, true) then
-      self:addError('Requested exit with no return value (with \'exit\' keyword), but function\'s result type is "'..
-                    common.toReadableType(self.currentFunction.resultType)..'," not "none."')
+      self:addError('ERROR TYPECHECK EXIT NO RETURN', {type=common.toReadableType(self.currentFunction.resultType)})
     end
   else
-    self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
+    self:addError('ERROR TYPECHECK INTERNAL UNKNOWN STATEMENT NODE', {tag=ast.tag}, ast)
   end
 end
 
@@ -722,8 +720,7 @@ function TypeChecker:check(ast)
       if scope ~= 'global' then
         -- TODO: Export?
         -- TODO: This only checks functions. But others should also be checked for this...
-        self:addError('Top-level variables cannot use any scope besides global, which is the default.'..
-                      ' Otherwise, they would be inaccessible.', ast[i])
+        self:addError('ERROR TYPECHECK INVALID TOP LEVEL SCOPE', {}, ast[i])
         scope = 'global'
       end
 
@@ -734,8 +731,9 @@ function TypeChecker:check(ast)
       -- Error for a function being defined with two types. Errors in other parts of the compiler for duplicate function names...
       -- TODO: Overloading support, etc. No checks on function parameters and so on...
       elseif not self:typeMatches(self.variableTypes[name].resultType, resultType) then
-        self:addError('Function "' .. name .. '" redefined returning type "' .. common.toReadableType(resultType) ..
-                      '," was "' .. common.toReadableType(self.variableTypes[name].resultType)..'."')
+        self:addError('ERROR TYPECHECK FUNCTION REDEFINED',
+                      {name=name, newType=common.toReadableType(resultType),
+                       oldType=common.toReadableType(self.variableTypes[name].resultType)})
       end
 
       -- Check type of default argument expression against last parameter
@@ -744,14 +742,15 @@ function TypeChecker:check(ast)
         local defaultArgumentType = self:checkExpression(type_.defaultArgument)
         local numParameters = #type_.parameters
         if numParameters == 0 then
-          self:addError('Function "'..name..'" has a default argument but no parameters.', ast[i])
+          self:addError('ERROR TYPECHECK FUNCTION DEFAULT ARG NO PARAMS', {name=name}, ast[i])
         else
           local lastParameter = type_.parameters[numParameters]
           local parameterType = lastParameter.type_
           if not self:typeMatches(defaultArgumentType,parameterType) then
-          self:addError('Default argument for function "'..name..'" evaluates to type "'..
-                        common.toReadableType(defaultArgumentType)..'," but parameter "'..lastParameter.name..'" is type "'..
-                        common.toReadableType(parameterType)..'."', lastParameter)
+            self:addError('ERROR TYPECHECK FUNCTION DEFAULT ARG TYPE MISMATCH',
+                          {name=name, defaultArgType=common.toReadableType(defaultArgumentType),
+                           parameterName=lastParameter.name,
+                           parameterType=common.toReadableType(parameterType)}, lastParameter)
           end
         end
       end
@@ -762,7 +761,7 @@ function TypeChecker:check(ast)
   local entryPoint = self.variableTypes[literals.entryPointName]
   if entryPoint then
     if not self:typeMatches(entryPoint.resultType, kNumberType) then
-      self:addError('Entry point must return a number because that\'s what OSes expect.', entryPoint.returnType)
+      self:addError('ERROR TYPECHECK ENTRY POINT MUST RETURN NUMBER', entryPoint.returnType)
     end
   end
 
