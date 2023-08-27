@@ -1,195 +1,303 @@
 local module = {}
 
 local errors = {
-  ['ERROR TYPECHECK INTERNAL UNKNOWN TYPE TAG'] = 'Unknown type tag.',
-  ['ERROR TYPECHECK INTERNAL UNKNOWN TYPE TAG MESSAGE'] = 'Internal error: Unknown type tag "{typeTag}"',
+  ['TYPECHECK INTERNAL UNKNOWN TYPE TAG'] = 'Unknown type tag.',
 
-  ['ERROR TYPECHECK PARAMETER ARGUMENT TYPE MISMATCH'] = 'Parameter does not match argument type.',
-  ['ERROR TYPECHECK PARAMETER ARGUMENT TYPE MISMATCH MESSAGE'] = 'Argument {number} to function called via "{rootName}" evaluates to type "{argumentType}," but parameter "{parameterName}" is type "{parameterType}."',
+  ['TYPECHECK PARAMETER ARGUMENT TYPE MISMATCH'] = 'Parameter does not match argument type.',
   
-  ['ERROR TYPECHECK USING UNDEFINED VARIABLE'] = 'Use of undefined variable.',
-  ['ERROR TYPECHECK USING UNDEFINED VARIABLE MESSAGE'] = 'Attempting to use undefined variable "{name}."',
+  ['TYPECHECK USING UNDEFINED VARIABLE'] = 'Use of undefined variable.',
   
-  ['ERROR TYPECHECK NEW ARRAY NON NUMERIC DIMENSION TYPE'] = 'Creating array with dimension of non-number type.',
-  ['ERROR TYPECHECK NEW ARRAY NON NUMERIC DIMENSION TYPE MESSAGE'] = 'Creating a new array with dimension of type "{sizeType}", only "number" is allowed. Sorry!',
+  ['TYPECHECK NEW ARRAY NON NUMERIC DIMENSION TYPE'] = 'Creating array with dimension of non-number type.',
   
-  ['ERROR TYPECHECK NEW ARRAYS LITERAL ONLY'] = 'New arrays must be created with literal numbers.',
-  ['ERROR TYPECHECK NEW ARRAYS LITERAL ONLY MESSAGE'] = 'New arrays must be created with literal numbers. Sorry!',
+  ['TYPECHECK NEW ARRAYS LITERAL ONLY'] = 'New arrays must be created with literal numbers.',
   
-  ['ERROR TYPECHECK NON NUMERIC ARRAY INDEX'] = 'Array indexing with invalid type.',
-  ['ERROR TYPECHECK NON NUMERIC ARRAY INDEX MESSAGE'] = 'Array indexing with type "{indexType}", only "number" is allowed. Sorry!',
+  ['TYPECHECK NON NUMERIC ARRAY INDEX'] = 'Array indexing with invalid type.',
   
-  ['ERROR TYPECHECK INDEXING NON ARRAY'] = 'Attempting to index into a non-array variable.',
-  ['ERROR TYPECHECK INDEXING NON ARRAY MESSAGE'] = 'Attempting to index into "{variableName}", which is a "{arrayType}", not an array.',
+  ['TYPECHECK INDEXING NON ARRAY'] = 'Attempting to index into a non-array variable.',
   
-  ['ERROR TYPECHECK MISMATCHED TYPES WITH OPERATOR'] = 'Mismatched types with operator.',
-  ['ERROR TYPECHECK MISMATCHED TYPES WITH OPERATOR MESSAGE'] = 'Mismatched types with operator "{operator}"! ({firstChildType} {operator} {secondChildType}).',
+  ['TYPECHECK MISMATCHED TYPES WITH OPERATOR'] = 'Mismatched types with operator.',
   
-  ['ERROR TYPECHECK BINARY OPERATOR INVALID TYPE'] = 'Binary operator cannot be used with type.',
-  ['ERROR TYPECHECK BINARY OPERATOR INVALID TYPE MESSAGE'] = 'Binary operator "{operator}" cannot be used with type "{expressionType}."',
+  ['TYPECHECK BINARY OPERATOR INVALID TYPE'] = 'Binary operator cannot be used with type.',
   
-  ['ERROR TYPECHECK UNARY OPERATOR INVALID TYPE'] = 'Unary operator cannot be used with type.',
-  ['ERROR TYPECHECK UNARY OPERATOR INVALID TYPE MESSAGE'] = 'Unary operator "{operator}" cannot be used with type "{childType}."',
+  ['TYPECHECK UNARY OPERATOR INVALID TYPE'] = 'Unary operator cannot be used with type.',
   
-  ['ERROR TYPECHECK TERNARY CONDITION MUST BE BOOLEAN'] = 'Ternary condition must evaluate to boolean.',
-  ['ERROR TYPECHECK TERNARY CONDITION MUST BE BOOLEAN MESSAGE'] = 'Ternary condition expression must evaluate to boolean. This expression evaluates to "{testType}."',
+  ['TYPECHECK TERNARY CONDITION MUST BE BOOLEAN'] = 'Ternary condition must evaluate to boolean.',
 
-  ['ERROR TYPECHECK TERNARY BRANCHES TYPE MISMATCH'] = 'Ternary branches have different types.',
-  ['ERROR TYPECHECK TERNARY BRANCHES TYPE MISMATCH MESSAGE'] = 'The two branches of the ternary operator must have the same type. Currently, the type of the true branch is "{trueBranchType}", and the type of the false branch is "{falseBranchType}."',
+  ['TYPECHECK TERNARY BRANCHES TYPE MISMATCH'] = 'Ternary branches have different types.',
   
-  ['ERROR TYPECHECK INTERNAL UNKNOWN EXPRESSION NODE TAG'] = 'Unknown expression node.',
-  ['ERROR TYPECHECK INTERNAL UNKNOWN EXPRESSION NODE TAG MESSAGE'] = 'Internal error: Unknown expression node tag "{tag}"',
+  ['TYPECHECK INTERNAL UNKNOWN EXPRESSION NODE TAG'] = 'Unknown expression node.',
   
-  ['ERROR TYPECHECK INTERNAL UNKNOWN SCOPE WHILE INFERRING'] = 'Unknown scope while inferring.',
-  ['ERROR TYPECHECK INTERNAL UNKNOWN SCOPE WHILE INFERRING MESSAGE'] = 'Internal error: Unknown scope "{scope}" while inferring scope.',
+  ['TYPECHECK INTERNAL UNKNOWN SCOPE WHILE INFERRING'] = 'Unknown scope while inferring.',
   
-  ['ERROR TYPECHECK INTERNAL UNDEFINED SCOPE WHILE INFERRING'] = 'Undefined scope while inferring.',
-  ['ERROR TYPECHECK INTERNAL UNDEFINED SCOPE WHILE INFERRING MESSAGE'] = 'Internal error: Undefined scope while inferring scope.',
+  ['TYPECHECK INTERNAL UNDEFINED SCOPE WHILE INFERRING'] = 'Undefined scope while inferring.',
   
-  ['ERROR TYPECHECK VARIABLE INIT TYPE MISMATCH'] = 'Variable initialization type mismatch.',
-  ['ERROR TYPECHECK VARIABLE INIT TYPE MISMATCH MESSAGE'] = 'Type of variable is "{specifiedType}" but variable is being initialized with "{assignmentType}."',
+  ['TYPECHECK VARIABLE INIT TYPE MISMATCH'] = 'Variable initialization type mismatch.',
   
-  ['ERROR TYPECHECK FUNCTION TYPE NO DEFAULT VALUE'] = 'Function type specified but no value provided.',
-  ['ERROR TYPECHECK FUNCTION TYPE NO DEFAULT VALUE MESSAGE'] = 'Function type specified for variable "{name}", but no value was provided. Defaults required for functions, sorry!',
+  ['TYPECHECK FUNCTION TYPE NO DEFAULT VALUE'] = 'Function type specified but no value provided.',
   
-  ['ERROR TYPECHECK INVALID TYPE SPECIFIED'] = 'Invalid specified type for variable.',
-  ['ERROR TYPECHECK INVALID TYPE SPECIFIED MESSAGE'] = 'Type of variable "{name}" specified, but type is invalid: "{specifiedType}."',
+  ['TYPECHECK INVALID TYPE SPECIFIED'] = 'Invalid specified type for variable.',
   
-  ['ERROR TYPECHECK CANNOT INFER TYPE'] = 'Cannot infer variable type.',
-  ['ERROR TYPECHECK CANNOT INFER TYPE MESSAGE'] = 'Cannot determine type of variable "{name}" because no type was specified and the assignment has no type.',
+  ['TYPECHECK CANNOT INFER TYPE'] = 'Cannot infer variable type.',
   
-  ['ERROR TYPECHECK CANNOT INFER TYPE NO ASSIGNMENT'] = 'Cannot determine type with no assignment.',
-  ['ERROR TYPECHECK CANNOT INFER TYPE NO ASSIGNMENT MESSAGE'] = 'Cannot determine type of variable "{name}" because no type was specified and no assignment was made.',
+  ['TYPECHECK CANNOT INFER TYPE NO ASSIGNMENT'] = 'Cannot determine type with no assignment.',
   
-  ['ERROR TYPECHECK FUNCTION NAME STARTS WITH CONDITIONAL'] = 'Invalid function prefix.',
-  ['ERROR TYPECHECK FUNCTION NAME STARTS WITH CONDITIONAL'] = '"{name}" starts with the conditional keyword "{keyword}," and is type "{inferredType}." Function types may not start with conditional keywords, sorry.',
+  ['TYPECHECK FUNCTION NAME STARTS WITH CONDITIONAL'] = 'Invalid function prefix.',
+  ['TYPECHECK FUNCTION NAME STARTS WITH CONDITIONAL'] = '"{name}" starts with the conditional keyword "{keyword}," and is type "{inferredType}." Function types may not start with conditional keywords, sorry.',
   
-  ['ERROR TYPECHECK INTERNAL UNKNOWN SCOPE POST INFER'] = 'Unknown scope after infer called.',
-  ['ERROR TYPECHECK INTERNAL UNKNOWN SCOPE POST INFER MESSAGE'] = 'Internal error: Unknown scope {scope} after infer called. Could not assign inferred type because the scope of "{variableName}" was not inferred.',
+  ['TYPECHECK INTERNAL UNKNOWN SCOPE POST INFER'] = 'Unknown scope after infer called.',
 
-  ['ERROR TYPECHECK INTERNAL UNDEFINED SCOPE POST INFER'] = 'Undefined scope after infer called.',
-  ['ERROR TYPECHECK INTERNAL UNDEFINED SCOPE POST INFER MESSAGE'] = 'Internal error: Scope undefined after infer called. Could not assign inferred type because the scope of "{variableName}" was not inferred.',
+  ['TYPECHECK INTERNAL UNDEFINED SCOPE POST INFER'] = 'Undefined scope after infer called.',
 
-  ['ERROR TYPECHECK RETURN TYPE UNDETERMINABLE'] = 'Could not determine type of return.',
-  ['ERROR TYPECHECK RETURN TYPE UNDETERMINABLE MESSAGE'] = 'Could not determine type of return type.',
+  ['TYPECHECK RETURN TYPE UNDETERMINABLE'] = 'Could not determine type of return.',
   
-  ['ERROR TYPECHECK RETURN TYPE MISMATCH'] = 'Mismatched return types.',
-  ['ERROR TYPECHECK RETURN TYPE MISMATCH MESSAGE'] = 'Mismatched types with return, function "{functionName}" returns "{expectedReturnType}", but returning type "{actualReturnType}".',
+  ['TYPECHECK RETURN TYPE MISMATCH'] = 'Mismatched return types.',
 
-  ['ERROR TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE TO TARGET WITH INVALID TYPE'] = 'Assignment from a source with invalid type.',
-  ['ERROR TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE TO TARGET WITH INVALID TYPE MESSAGE'] = 'Sorry, cannot assign from "{expressionRootName}," because its type is invalid: "{expressionType}."\n The invalid type of "{targetRootName}" the assignment target, also prevents this: "{targetType}."',
+  ['TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE TO TARGET WITH INVALID TYPE'] = 'Assignment from a source with invalid type.',
 
-  ['ERROR TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE TO TARGET WITH INVALID TYPE'] = 'Assignment from expression with invalid type to target with invalid type.',
-  ['ERROR TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE TO TARGET WITH INVALID TYPE MESSAGE'] =  'Sorry, cannot assign from invalid type: "{expressionType}."\n The invalid type of "{targetRootName}" the assignment target, also prevents this: "{targetType}."',
+  ['TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE TO TARGET WITH INVALID TYPE'] = 'Assignment from expression with invalid type to target with invalid type.',
 
-  ['ERROR TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE'] = 'Assignment from source with invalid type.',
-  ['ERROR TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE MESSAGE'] = 'Sorry, cannot assign from "{expressionRootName}," because its type is invalid: "{expressionType}."',
+  ['TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE'] = 'Assignment from source with invalid type.',
 
-  ['ERROR TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE'] = 'Assignment from expression with invalid type.',
-  ['ERROR TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE MESSAGE'] = 'Sorry, cannot assign from an invalid type: "{expressionType}."',
+  ['TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE'] = 'Assignment from expression with invalid type.',
 
-  ['ERROR TYPECHECK CANNOT ASSIGN TO TARGET WITH INVALID TYPE'] = 'Assignment to target with invalid type.',
-  ['ERROR TYPECHECK CANNOT ASSIGN TO TARGET WITH INVALID TYPE MESSAGE'] = 'Sorry, cannot assign to "{targetRootName}" because its type is invalid: "{targetType}."',
+  ['TYPECHECK CANNOT ASSIGN TO TARGET WITH INVALID TYPE'] = 'Assignment to target with invalid type.',
 
-  ['ERROR TYPECHECK ASSIGNMENT MISMATCHED TYPES'] = 'Assignment source and target have mismatched types.',
-  ['ERROR TYPECHECK ASSIGNMENT MISMATCHED TYPES MESSAGE'] = 'Assigning from "{fromType}" to "{toType}". Disallowed, sorry!',
+  ['TYPECHECK ASSIGNMENT MISMATCHED TYPES'] = 'Assignment source and target have mismatched types.',
 
-  ['ERROR TYPECHECK IF CONDITION NOT BOOLEAN'] = 'if statements require a boolean value.',
-  ['ERROR TYPECHECK IF CONDITION NOT BOOLEAN MESSAGE'] = 'if statements require a boolean value, or an expression evaluating to a boolean. Type was "{type}".',
+  ['TYPECHECK IF CONDITION NOT BOOLEAN'] = 'if statements require a boolean value.',
   
-  ['ERROR TYPECHECK WHILE CONDITION NOT BOOLEAN'] = 'while loop conditionals require a boolean value.',
-  ['ERROR TYPECHECK WHILE CONDITION NOT BOOLEAN MESSAGE'] = 'while loop conditionals require a boolean value, or an expression evaluating to a boolean. Type was "{type}".',
+  ['TYPECHECK WHILE CONDITION NOT BOOLEAN'] = 'while loop conditionals require a boolean value.',
   
-  ['ERROR TYPECHECK EXIT NO RETURN'] = 'Invalid exit with no return value.',
-  ['ERROR TYPECHECK EXIT NO RETURN MESSAGE'] = 'Requested exit with no return value (with \'exit\' keyword), but function\'s result type is "{type}", not "none."',
+  ['TYPECHECK EXIT NO RETURN'] = 'Invalid exit with no return value.',
   
-  ['ERROR TYPECHECK INTERNAL UNKNOWN STATEMENT NODE'] = 'Unknown statement node.',
-  ['ERROR TYPECHECK INTERNAL UNKNOWN STATEMENT NODE MESSAGE'] = 'Internal error: Unknown statement node tag "{tag}".',
+  ['TYPECHECK INTERNAL UNKNOWN STATEMENT NODE'] = 'Unknown statement node.',
   
-  ['ERROR TYPECHECK INVALID TOP LEVEL SCOPE'] = 'Invalid top-level variable scope.',
-  ['ERROR TYPECHECK INVALID TOP LEVEL SCOPE MESSAGE'] = 'Top-level variables cannot use any scope besides global, which is the default. Otherwise, they would be inaccessible.',
+  ['TYPECHECK INVALID TOP LEVEL SCOPE'] = 'Invalid top-level variable scope.',
   
-  ['ERROR TYPECHECK FUNCTION REDEFINED'] = 'Function redefined with different return type.',
-  ['ERROR TYPECHECK FUNCTION REDEFINED MESSAGE'] = 'Function "{name}" redefined returning type "{newType}", was "{oldType}".',
+  ['TYPECHECK FUNCTION REDEFINED'] = 'Function redefined with different return type.',
   
-  ['ERROR TYPECHECK FUNCTION DEFAULT ARG NO PARAMS'] = 'Default argument but no parameters in function.',
-  ['ERROR TYPECHECK FUNCTION DEFAULT ARG NO PARAMS MESSAGE'] = 'Function "{name}" has a default argument but no parameters.',
+  ['TYPECHECK FUNCTION DEFAULT ARG NO PARAMS'] = 'Default argument but no parameters in function.',
   
-  ['ERROR TYPECHECK FUNCTION DEFAULT ARG TYPE MISMATCH'] = 'Default argument type does not match parameter type.',
-  ['ERROR TYPECHECK FUNCTION DEFAULT ARG TYPE MISMATCH MESSAGE'] = 'Default argument for function "{name}" evaluates to type "{defaultArgType}", but parameter "{parameterName}" is type "{parameterType}".',
+  ['TYPECHECK FUNCTION DEFAULT ARG TYPE MISMATCH'] = 'Default argument type does not match parameter type.',
   
-  ['ERROR TYPECHECK ENTRY POINT MUST RETURN NUMBER'] = 'Entry point must return a number.',
-  ['ERROR TYPECHECK ENTRY POINT MUST RETURN NUMBER MESSAGE'] = 'Entry point must return a number because that\'s what OSes expect.',
+  ['TYPECHECK ENTRY POINT MUST RETURN NUMBER'] = 'Entry point must return a number.',
 
 
-  ['ERROR STACKVM TRANSLATOR UNDEFINED FUNCTION CALL'] = "Attempted to call an undefined function.",
-  ['ERROR STACKVM TRANSLATOR UNDEFINED FUNCTION CALL MESSAGE'] = 'Cannot call function, "{funcName}" is undefined.',
+  ['STACKVM TRANSLATOR UNDEFINED FUNCTION CALL'] = "Attempted to call an undefined function.",
 
-  ['ERROR STACKVM TRANSLATOR FUNCTION PARAMETER MISMATCH'] = "Function called with incorrect number of arguments.",
-  ['ERROR STACKVM TRANSLATOR FUNCTION PARAMETER MISMATCH MESSAGE'] = 'Function "{funcName}" has {paramCount} but was sent {argCount}.',
+  ['STACKVM TRANSLATOR FUNCTION PARAMETER MISMATCH'] = "Function called with incorrect number of arguments.",
 
-  ['ERROR STACKVM TRANSLATOR UNDEFINED VARIABLE'] = "Attempted to access an undefined variable.",
-  ['ERROR STACKVM TRANSLATOR UNDEFINED VARIABLE MESSAGE'] = 'Trying to load from undefined variable "{varName}".',
+  ['STACKVM TRANSLATOR UNDEFINED VARIABLE'] = "Attempted to access an undefined variable.",
 
-  ['ERROR STACKVM TRANSLATOR ARRAY SIZE NOT LITERAL'] = "New array sizes must be literal numbers.",
-  ['ERROR STACKVM TRANSLATOR ARRAY SIZE NOT LITERAL MESSAGE'] = 'New array sizes must be literal numbers.',
+  ['STACKVM TRANSLATOR ARRAY SIZE NOT LITERAL'] = "New array sizes must be literal numbers.",
 
-  ['ERROR STACKVM TRANSLATOR UNKNOWN EXPRESSION NODE'] = "Unknown type of expression encountered.",
-  ['ERROR STACKVM TRANSLATOR UNKNOWN EXPRESSION NODE MESSAGE'] = 'Unknown expression node tag "{tag}".',
+  ['STACKVM TRANSLATOR UNKNOWN EXPRESSION NODE'] = "Unknown type of expression encountered.",
 
-  ['ERROR STACKVM TRANSLATOR VARIABLE ALREADY DEFINED'] = "Variable already defined in this scope.",
-  ['ERROR STACKVM TRANSLATOR VARIABLE ALREADY DEFINED MESSAGE'] = 'Variable "{varName}" already defined in this scope.',
+  ['STACKVM TRANSLATOR VARIABLE ALREADY DEFINED'] = "Variable already defined in this scope.",
 
-  ['ERROR STACKVM TRANSLATOR REDEFINING GLOBAL VARIABLE'] = "Global variable redefined.",
-  ['ERROR STACKVM TRANSLATOR REDEFINING GLOBAL VARIABLE MESSAGE'] = 'Re-defining global variable "{varName}".',
+  ['STACKVM TRANSLATOR REDEFINING GLOBAL VARIABLE'] = "Global variable redefined.",
 
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNDEFINED SCOPE'] = "Internal error: Scope undefined.",
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNDEFINED SCOPE MESSAGE'] = 'Internal error: Scope undefined.',
+  ['STACKVM TRANSLATOR INTERNAL UNDEFINED SCOPE'] = "Internal error: Scope undefined.",
 
-  ['ERROR STACKVM TRANSLATOR ARRAY DEFAULT REQUIRED'] = "Default values required for array types.",
-  ['ERROR STACKVM TRANSLATOR ARRAY DEFAULT REQUIRED MESSAGE'] = 'Default values required for array types. To-Do: Allow this! For now, add a default value to: "{varName}".',
+  ['STACKVM TRANSLATOR ARRAY DEFAULT REQUIRED'] = "Default values required for array types.",
 
-  ['ERROR STACKVM TRANSLATOR VARIABLE NO TYPE'] = "Variable declared without a type.",
-  ['ERROR STACKVM TRANSLATOR VARIABLE NO TYPE MESSAGE'] = 'No type for variable "{varName}".',
+  ['STACKVM TRANSLATOR VARIABLE NO TYPE'] = "Variable declared without a type.",
 
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN SCOPE'] = "Internal error: Unknown scope.",
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN SCOPE MESSAGE'] = 'Internal error: Unknown scope "{scope}".',
+  ['STACKVM TRANSLATOR INTERNAL UNKNOWN SCOPE'] = "Internal error: Unknown scope.",
 
-  ['ERROR STACKVM TRANSLATOR INTERNAL SCOPE UNDEFINED'] = "Internal error: Scope undefined.",
-  ['ERROR STACKVM TRANSLATOR INTERNAL SCOPE UNDEFINED MESSAGE'] = 'Internal error: Scope undefined.',
+  ['STACKVM TRANSLATOR INTERNAL SCOPE UNDEFINED'] = "Internal error: Scope undefined.",
 
-  ['ERROR STACKVM TRANSLATOR ASSIGN UNDEFINED VARIABLE'] = "Assigning to an undefined variable.",
-  ['ERROR STACKVM TRANSLATOR ASSIGN UNDEFINED VARIABLE MESSAGE'] = 'Assigning to undefined variable "{targetName}".',
+  ['STACKVM TRANSLATOR ASSIGN UNDEFINED VARIABLE'] = "Assigning to an undefined variable.",
 
-  ['ERROR STACKVM TRANSLATOR UNKNOWN WRITE TARGET TYPE'] = "Unknown write target type encountered.",
-  ['ERROR STACKVM TRANSLATOR UNKNOWN WRITE TARGET TYPE MESSAGE'] = 'Unknown write target type, tag was "{tag}".',
+  ['STACKVM TRANSLATOR UNKNOWN WRITE TARGET TYPE'] = "Unknown write target type encountered.",
 
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN STATEMENT NODE'] = "Internal error: Unknown statement node.",
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN STATEMENT NODE MESSAGE'] = 'Internal error: Unknown statement node tag "{tag}".',
+  ['STACKVM TRANSLATOR INTERNAL UNKNOWN STATEMENT NODE'] = "Internal error: Unknown statement node.",
 
-  ['ERROR STACKVM TRANSLATOR DUPLICATE FUNCTION PARAMETER'] = "Function has duplicate instances of the same parameter.",
-  ['ERROR STACKVM TRANSLATOR DUPLICATE FUNCTION PARAMETER MESSAGE'] = 'Function "{funcName}" has {paramCount} instances of the parameter "{paramName}".',
+  ['STACKVM TRANSLATOR DUPLICATE FUNCTION PARAMETER'] = "Function has duplicate instances of the same parameter.",
 
-  ['ERROR STACKVM TRANSLATOR TODO DEFAULT ARRAY RETURN'] = "Returning default array type not supported.",
-  ['ERROR STACKVM TRANSLATOR TODO DEFAULT ARRAY RETURN MESSAGE'] = 'TODO: Returning default array type not supported, add an explicit return to: "{funcName}".',
+  ['STACKVM TRANSLATOR TODO DEFAULT ARRAY RETURN'] = "Returning default array type not supported.",
 
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN TYPE'] = "Internal error: Unknown type.",
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNKNOWN TYPE MESSAGE'] = 'Internal error: unknown type "{typeTag}" when generating automatic return value.',
+  ['STACKVM TRANSLATOR INTERNAL UNKNOWN TYPE'] = "Internal error: Unknown type.",
 
-  ['ERROR STACKVM TRANSLATOR NO ENTRY POINT'] = "No entry point found in the program.",
-  ['ERROR STACKVM TRANSLATOR NO ENTRY POINT MESSAGE'] = 'No entry point found. (Program must contain a function named "entry point.")',
+  ['STACKVM TRANSLATOR NO ENTRY POINT'] = "No entry point found in the program.",
 
-  ['ERROR STACKVM TRANSLATOR ENTRY POINT PARAMETER MISMATCH'] = "Entry point function should not have parameters.",
-  ['ERROR STACKVM TRANSLATOR ENTRY POINT PARAMETER MISMATCH MESSAGE'] = 'Entry point has {paramCount} but should have none.',
+  ['STACKVM TRANSLATOR ENTRY POINT PARAMETER MISMATCH'] = "Entry point function should not have parameters.",
 
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNHANDLED TAG'] = "Internal error: Unhandled tag at top level.",
-  ['ERROR STACKVM TRANSLATOR INTERNAL UNHANDLED TAG MESSAGE'] = 'Internal error: Unhandled tag "{tag}" at top level. Ignoring...',
+  ['STACKVM TRANSLATOR INTERNAL UNHANDLED TAG'] = "Internal error: Unhandled tag at top level.",
+  
+  
+  ['GRAPHVIZ TRANSLATOR UNKNOWN EXPRESSION NODE TAG'] = 'Graphviz translator encountered an unknown expression node tag.',
+  
+  ['GRAPHVIZ TRANSLATOR UNKNOWN STATEMENT NODE TAG'] = 'Graphviz translator encountered an unknown statement node tag.',
+  
+  
+  ['STACKVM INTERPRETER ARRAY INDEX OUT OF RANGE ON GET'] = 'Array index out-of-range when getting value.',
+  
+  ['STACKVM INTERPRETER ARRAY INDEX OUT OF RANGE ON SET'] = 'Array index out-of-range when setting value.',
 
-  ['INTERNAL ERROR PREFIX'] = 'Internal error: ',
+  ['STACKVM INTERPRETER EMPTY PROGRAM'] = 'Stack VM was sent empty program.',
+  
+  ['STACKVM INTERPRETER UNKNOWN INSTRUCTION'] = 'Stack VM interpreter encountered an unknown instruction.',
+
+  ['STACKVM INTERPRETER INCORRECT STACK COUNT ON EXIT'] = 'Stack VM interpreter reported incorrect stack size on exit.',
+  
+  
+  ['PCALL CATCH'] = 'Internal error caught by pcall.',
+}
+
+local errorMessages = {
+  ['TYPECHECK INTERNAL UNKNOWN TYPE TAG'] = 'Internal error: Unknown type tag "{typeTag}"',
+
+  ['TYPECHECK PARAMETER ARGUMENT TYPE MISMATCH'] = 'Argument {number} to function called via "{rootName}" evaluates to type "{argumentType}," but parameter "{parameterName}" is type "{parameterType}."',
+
+  ['TYPECHECK USING UNDEFINED VARIABLE'] = 'Attempting to use undefined variable "{name}."',
+
+  ['TYPECHECK NEW ARRAY NON NUMERIC DIMENSION TYPE'] = 'Creating a new array with dimension of type "{sizeType}", only "number" is allowed. Sorry!',
+
+  ['TYPECHECK NEW ARRAYS LITERAL ONLY'] = 'New arrays must be created with literal numbers. Sorry!',
+
+  ['TYPECHECK NON NUMERIC ARRAY INDEX'] = 'Array indexing with type "{indexType}", only "number" is allowed. Sorry!',
+
+  ['TYPECHECK INDEXING NON ARRAY'] = 'Attempting to index into "{variableName}", which is a "{arrayType}", not an array.',
+
+  ['TYPECHECK MISMATCHED TYPES WITH OPERATOR'] = 'Mismatched types with operator "{operator}"! ({firstChildType} {operator} {secondChildType}).',
+
+  ['TYPECHECK BINARY OPERATOR INVALID TYPE'] = 'Binary operator "{operator}" cannot be used with type "{expressionType}."',
+
+  ['TYPECHECK UNARY OPERATOR INVALID TYPE'] = 'Unary operator "{operator}" cannot be used with type "{childType}."',
+
+  ['TYPECHECK TERNARY CONDITION MUST BE BOOLEAN'] = 'Ternary condition expression must evaluate to boolean. This expression evaluates to "{testType}."',
+
+  ['TYPECHECK TERNARY BRANCHES TYPE MISMATCH'] = 'The two branches of the ternary operator must have the same type. Currently, the type of the true branch is "{trueBranchType}", and the type of the false branch is "{falseBranchType}."',
+
+  ['TYPECHECK INTERNAL UNKNOWN EXPRESSION NODE TAG'] = 'Internal error: Unknown expression node tag "{tag}"',
+
+  ['TYPECHECK INTERNAL UNKNOWN SCOPE WHILE INFERRING'] = 'Internal error: Unknown scope "{scope}" while inferring scope.',
+
+  ['TYPECHECK INTERNAL UNDEFINED SCOPE WHILE INFERRING'] = 'Internal error: Undefined scope while inferring scope.',
+
+  ['TYPECHECK VARIABLE INIT TYPE MISMATCH'] = 'Type of variable is "{specifiedType}" but variable is being initialized with "{assignmentType}."',
+
+  ['TYPECHECK FUNCTION TYPE NO DEFAULT VALUE'] = 'Function type specified for variable "{name}", but no value was provided. Defaults required for functions, sorry!',
+
+  ['TYPECHECK INVALID TYPE SPECIFIED'] = 'Type of variable "{name}" specified, but type is invalid: "{specifiedType}."',
+
+  ['TYPECHECK CANNOT INFER TYPE'] = 'Cannot determine type of variable "{name}" because no type was specified and the assignment has no type.',
+
+  ['TYPECHECK CANNOT INFER TYPE NO ASSIGNMENT'] = 'Cannot determine type of variable "{name}" because no type was specified and no assignment was made.',
+
+  ['TYPECHECK FUNCTION NAME STARTS WITH CONDITIONAL'] = '"{name}" starts with the conditional keyword "{keyword}," and is type "{inferredType}." Function types may not start with conditional keywords, sorry.',
+
+  ['TYPECHECK INTERNAL UNKNOWN SCOPE POST INFER'] = 'Internal error: Unknown scope {scope} after infer called. Could not assign inferred type because the scope of "{variableName}" was not inferred.',
+
+  ['TYPECHECK INTERNAL UNDEFINED SCOPE POST INFER'] = 'Internal error: Scope undefined after infer called. Could not assign inferred type because the scope of "{variableName}" was not inferred.',
+
+  ['TYPECHECK RETURN TYPE UNDETERMINABLE'] = 'Could not determine type of return type.',
+
+  ['TYPECHECK RETURN TYPE MISMATCH'] = 'Mismatched types with return, function "{functionName}" returns "{expectedReturnType}", but returning type "{actualReturnType}".',
+
+  ['TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE TO TARGET WITH INVALID TYPE'] = 'Sorry, cannot assign from "{expressionRootName}," because its type is invalid: "{expressionType}."\n The invalid type of "{targetRootName}" the assignment target, also prevents this: "{targetType}."',
+
+  ['TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE TO TARGET WITH INVALID TYPE'] =  'Sorry, cannot assign from invalid type: "{expressionType}."\n The invalid type of "{targetRootName}" the assignment target, also prevents this: "{targetType}."',
+
+  ['TYPECHECK CANNOT ASSIGN FROM SOURCE WITH INVALID TYPE'] = 'Sorry, cannot assign from "{expressionRootName}," because its type is invalid: "{expressionType}."',
+
+  ['TYPECHECK CANNOT ASSIGN FROM EXPRESSION WITH INVALID TYPE'] = 'Sorry, cannot assign from an invalid type: "{expressionType}."',
+
+  ['TYPECHECK CANNOT ASSIGN TO TARGET WITH INVALID TYPE'] = 'Sorry, cannot assign to "{targetRootName}" because its type is invalid: "{targetType}."',
+
+  ['TYPECHECK ASSIGNMENT MISMATCHED TYPES'] = 'Assigning from "{fromType}" to "{toType}". Disallowed, sorry!',
+
+  ['TYPECHECK IF CONDITION NOT BOOLEAN'] = 'if statements require a boolean value, or an expression evaluating to a boolean. Type was "{type}".',
+
+  ['TYPECHECK WHILE CONDITION NOT BOOLEAN'] = 'while loop conditionals require a boolean value, or an expression evaluating to a boolean. Type was "{type}".',
+
+  ['TYPECHECK EXIT NO RETURN'] = 'Requested exit with no return value (with \'exit\' keyword), but function\'s result type is "{type}", not "none."',
+
+  ['TYPECHECK INTERNAL UNKNOWN STATEMENT NODE'] = 'Internal error: Unknown statement node tag "{tag}".',
+
+  ['TYPECHECK INVALID TOP LEVEL SCOPE'] = 'Top-level variables cannot use any scope besides global, which is the default. Otherwise, they would be inaccessible.',
+
+  ['TYPECHECK FUNCTION REDEFINED'] = 'Function "{name}" redefined returning type "{newType}", was "{oldType}".',
+
+  ['TYPECHECK FUNCTION DEFAULT ARG NO PARAMS'] = 'Function "{name}" has a default argument but no parameters.',
+
+  ['TYPECHECK FUNCTION DEFAULT ARG TYPE MISMATCH'] = 'Default argument for function "{name}" evaluates to type "{defaultArgType}", but parameter "{parameterName}" is type "{parameterType}".',
+
+  ['TYPECHECK ENTRY POINT MUST RETURN NUMBER'] = 'Entry point must return a number because that\'s what OSes expect.',
+
+  ['STACKVM TRANSLATOR UNDEFINED FUNCTION CALL'] = 'Cannot call function, "{funcName}" is undefined.',
+
+  ['STACKVM TRANSLATOR FUNCTION PARAMETER MISMATCH'] = 'Function "{funcName}" has {paramCount} but was sent {argCount}.',
+
+  ['STACKVM TRANSLATOR UNDEFINED VARIABLE'] = 'Trying to load from undefined variable "{varName}".',
+
+  ['STACKVM TRANSLATOR ARRAY SIZE NOT LITERAL'] = 'New array sizes must be literal numbers.',
+
+  ['STACKVM TRANSLATOR UNKNOWN EXPRESSION NODE'] = 'Unknown expression node tag "{tag}".',
+
+  ['STACKVM TRANSLATOR VARIABLE ALREADY DEFINED'] = 'Variable "{varName}" already defined in this scope.',
+
+  ['STACKVM TRANSLATOR REDEFINING GLOBAL VARIABLE'] = 'Re-defining global variable "{varName}".',
+
+  ['STACKVM TRANSLATOR INTERNAL UNDEFINED SCOPE'] = 'Internal error: Scope undefined.',
+
+  ['STACKVM TRANSLATOR ARRAY DEFAULT REQUIRED'] = 'Default values required for array types. To-Do: Allow this! For now, add a default value to: "{varName}".',
+
+  ['STACKVM TRANSLATOR VARIABLE NO TYPE'] = 'No type for variable "{varName}".',
+
+  ['STACKVM TRANSLATOR INTERNAL UNKNOWN SCOPE'] = 'Internal error: Unknown scope "{scope}".',
+
+  ['STACKVM TRANSLATOR INTERNAL SCOPE UNDEFINED'] = 'Internal error: Scope undefined.',
+
+  ['STACKVM TRANSLATOR ASSIGN UNDEFINED VARIABLE'] = 'Assigning to undefined variable "{targetName}".',
+
+  ['STACKVM TRANSLATOR UNKNOWN WRITE TARGET TYPE'] = 'Unknown write target type, tag was "{tag}".',
+
+  ['STACKVM TRANSLATOR INTERNAL UNKNOWN STATEMENT NODE'] = 'Internal error: Unknown statement node tag "{tag}".',
+
+  ['STACKVM TRANSLATOR DUPLICATE FUNCTION PARAMETER'] = 'Function "{funcName}" has {paramCount} instances of the parameter "{paramName}".',
+
+  ['STACKVM TRANSLATOR TODO DEFAULT ARRAY RETURN'] = 'TODO: Returning default array type not supported, add an explicit return to: "{funcName}".',
+
+  ['STACKVM TRANSLATOR INTERNAL UNKNOWN TYPE'] = 'Internal error: unknown type "{typeTag}" when generating automatic return value.',
+
+  ['STACKVM TRANSLATOR NO ENTRY POINT'] = 'No entry point found. (Program must contain a function named "entry point.")',
+
+  ['STACKVM TRANSLATOR ENTRY POINT PARAMETER MISMATCH'] = 'Entry point has {paramCount} but should have none.',
+
+  ['STACKVM TRANSLATOR INTERNAL UNHANDLED TAG'] = 'Internal error: Unhandled tag "{tag}" at top level. Ignoring...',
+  
+  
+  ['GRAPHVIZ TRANSLATOR UNKNOWN EXPRESSION NODE TAG'] = 'Unknown expression node tag "{tag}."',
+
+  ['GRAPHVIZ TRANSLATOR UNKNOWN STATEMENT NODE TAG'] = 'Unknown statement node tag "{tag}."',
+
+
+  ['STACKVM INTERPRETER ARRAY INDEX OUT OF RANGE ON GET'] = 'Out of range when getting value from array. Array is size {size} but indexed at {index}.',
+
+  ['STACKVM INTERPRETER ARRAY INDEX OUT OF RANGE ON SET'] = 'Out of range when setting value in array. Array is size {size} but indexed at {index}.',
+
+  ['STACKVM INTERPRETER EMPTY PROGRAM'] = 'Empty program. Aborting...',
+  
+  ['STACKVM INTERPRETER UNKNOWN INSTRUCTION'] = 'Unknown instruction "{code}."',
+
+  ['STACKVM INTERPRETER INCORRECT STACK COUNT ON EXIT'] = 'Internal error: Expected stack count of one at the end of the program, but stack count is {count}.',
+
+
+  ['PCALL CATCH'] = 'Internal error caught by pcall: "{message}"',
 }
 
 function module.get(key)
-  return strings[key]
+  return text[key]
+end
+
+function module.getError(key)
+  return errors[key]
+end
+
+function module.getErrorMessage(key)
+  return errorMessages[key]
 end
 
 return module

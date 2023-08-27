@@ -231,7 +231,7 @@ function StackVM:run(code)
       self:traceCustom(code[pc] .. ' ' .. '[' .. index .. '] = ' .. tostring(value))
 
       if index > array.size or index < 1 then
-        self:addError('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
+        self:addError('ARRAY INDEX OUT OF RANGE ON SET', {size=array.size, index=index})
       end
       
       -- Set the array to this value
@@ -256,7 +256,7 @@ function StackVM:run(code)
       self:popStack(1)
       
       if index > array.size or index < 1 then
-        self:addError('Out of range. Array is size ' .. array.size .. ' but indexed at ' .. index .. '.')
+        self:addError('ARRAY INDEX OUT OF RANGE ON GET', {size=array.size, index=index})
       end
       
       -- Set the top of the stack to the value of this index of the array.
@@ -319,7 +319,7 @@ function StackVM:run(code)
 
       self:run(functionCode)
     else
-      self:addError('Unknown instruction "'..code[pc]..'."')
+      self:addError('STACKVM INTERPRETER UNKNOWN INSTRUCTION', {code=code[pc]})
     end
     self:traceStack(base)
     pc = pc + 1
@@ -328,15 +328,14 @@ end
 
 function StackVM:execute(code)
   if #code == 0 then
-    self:addError 'Empty program. Aborting...'
+    self:addError 'STACKVM INTERPRETER EMPTY PROGRAM'
     return false
   end
   
   self:run(code)
   
   if self.top ~= 1 then
-    self:addError('Internal error: Expected stack size of one at the end of the program, but stack size is '..
-                  common.toReadableNumber(self.top)..'.')
+    self:addError('STACKVM INTERPRETER INCORRECT STACK COUNT ON EXIT', {count=common.toReadableNumber(self.top)})
   end
   
   return self.stack[self.top]

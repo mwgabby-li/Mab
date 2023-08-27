@@ -329,10 +329,11 @@ function common.ErrorReporter:addError(key, replacements, tableWithPositionOrPos
     position = tableWithPositionOrPositionOrNil
   end
 
-  local message = text.get(key .. ' MESSAGE'):gsub('{(w+)}', replacements)
+  local message = text.getErrorMessage(key):gsub('{(%w+)}', replacements)
 
   self.errors[#self.errors + 1] = {
     key = key,
+    description = text.getError(key),
     message = message,
     position = position,
   }
@@ -365,7 +366,7 @@ end
 function common.ErrorReporter:pcallAddErrorOnFailure(...)
   local result, message = pcall(...)
   if result == false then
-    self:addError('Internal error: '..message)
+    self:addError('PCALL CATCH', {message=message})
     return false
   end
 

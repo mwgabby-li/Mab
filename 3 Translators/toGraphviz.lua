@@ -107,7 +107,7 @@ function Translator:nodeExpression(ast, depth)
     self:appendNode(ast, false, ast.op, ast.child)
     self:nodeExpression(ast.child, depth)
   else
-    self:addError('Unknown expression node tag "' .. ast.tag .. '."', ast)
+    self:addError('GRAPHVIZ TRANSLATOR UNKNOWN EXPRESSION NODE TAG', {tag=ast.tag}, ast)
   end
 end
 
@@ -321,7 +321,7 @@ function Translator:nodeStatement(ast, depth, fromIf)
     self:nodeExpression(ast.toPrint, depth)
     self:appendNode(ast, false, 'Print', ast.toPrint)
   else
-    self:addError('Unknown statement node tag "' .. ast.tag .. '."', ast)
+    self:addError('GRAPHVIZ TRANSLATOR UNKNOWN STATEMENT NODE TAG', {tag=ast.tag}, ast)
   end
 end
 
