@@ -107,9 +107,10 @@ As morning breaks, and all is lost.
     return result
 end
 
--- defaultPrefix: Used when backup does not occur.
--- backedUpPrefix: Used when backup occurs.
-function common.generateErrorMessage(input, position, backup, defaultPrefix, backedUpPrefix)
+-- input: The input string that had an error.
+-- position: The character in the input string that we are reporting an error on.
+-- backup: 
+function common.getPositionAndContextLines(input, position, backup)
     local errorMessage = ''
     
     -- Count the number of newlines - the number of line breaks plus one is the current line
@@ -135,12 +136,9 @@ function common.generateErrorMessage(input, position, backup, defaultPrefix, bac
         end
         position = position - 1
         backedUp = true
-        prefix = backedUpPrefix or (prefix or '')
         character = input:sub(position - 1, position - 1)
       end
     end
-
-    errorMessage = errorMessage .. (prefix .. errorLine .. ':\n')
 
     local contextAfter = 2
     local contextBefore = 2
@@ -168,7 +166,39 @@ function common.generateErrorMessage(input, position, backup, defaultPrefix, bac
       currentCharacter = currentCharacter + #line
     end
     
-    return errorMessage
+    return errorMessage, errorLine, backedUp
+end
+
+local cachedFilePositionToLineAndContext = {}
+
+local function fillOutLine(file, subject)
+  file = file or ''
+  return function (position)
+    local key = file..':'..position
+    if not cachedFilePositionToLineAndContext[key] then
+      local context, errorLine = common.getPositionAndContextLines(subject, position)
+      cachedFilePositionToLineAndContext[key] = {context=context, errorLine=errorLine}
+    end
+    return cachedFilePositionToLineAndContext[key].errorLine
+  end
+end
+
+local function fillOutContext(file, subject)
+  file = file or ''
+  return function (position)
+    local key = file..':'..position
+    if not cachedFilePositionToLineAndContext[key] then
+      local context, errorLine = common.getPositionAndContextLines(subject, position)
+      cachedFilePositionToLineAndContext[key] = {context=context, errorLine=errorLine}
+    end
+    return cachedFilePositionToLineAndContext[key].context
+  end
+end
+
+function fillOutPositionalInformation(message, file, subject, backup)  
+  message = message:gsub('{file}', file)
+  message = message:gsub('{line:(%d+)}', fillOutLine(file, subject))
+  return message:gsub('{context:(%d+)}', fillOutContext(file, subject))
 end
 
 function common.copyObjectNoSelfReferences(object)
@@ -322,14 +352,27 @@ function common.ErrorReporter:new(o)
 end
 
 function common.ErrorReporter:addError(key, replacements, tableWithPositionOrPositionOrNil)
+  local message = text.getErrorMessage(key):gsub('{(%w+)}', replacements)
+
+  self:addErrorRaw(key, message, tableWithPositionOrPositionOrNil)
+end
+
+function common.ErrorReporter:addErrorRaw(key, message, tableWithPositionOrPositionOrNil)
   local position
   if type(tableWithPositionOrPositionOrNil) == 'table' then
     position = tableWithPositionOrPositionOrNil.position
   else
     position = tableWithPositionOrPositionOrNil
   end
-
-  local message = text.getErrorMessage(key):gsub('{(%w+)}', replacements)
+  
+  local prefix = ''
+  if position then
+    prefix = '{context:'..position..'}\n'
+    if self.inputFile then
+      prefix = '{file}:{line:'..position..'}:\n'..prefix
+    end
+  end
+  message = fillOutPositionalInformation(prefix..message, self.inputFile, self.subject)
 
   self.errors[#self.errors + 1] = {
     key = key,
@@ -339,20 +382,12 @@ function common.ErrorReporter:addError(key, replacements, tableWithPositionOrPos
   }
 end
 
-function common.ErrorReporter:addErrorRaw(key, tableWithPositionOrPositionOrNil)
-
-end
-
 function common.ErrorReporter:count()
   return #self.errors
 end
 
 function common.ErrorReporter:outputErrors(input, filename)
   for _, errorTable in ipairs(self.errors) do
-    -- backup = false (positions for type errors are precise)
-    if errorTable.position then
-      io.stderr:write(common.generateErrorMessage(input, errorTable.position, false, filename and filename..':' or 'On line '))
-    end
     io.stderr:write(errorTable.message)
     io.stderr:write'\n\n'
 

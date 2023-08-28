@@ -2,6 +2,7 @@ local module = {}
 local literals = require 'literals'
 local l_op = literals.op
 local common = require 'common'
+local text = require 'text'
 
 local Translator = {}
 
@@ -56,6 +57,12 @@ end
 function Translator:addError(...)
   if self.errorReporter then
     self.errorReporter:addError(...)
+  end
+end
+
+function Translator:addErrorRaw(...)
+  if self.errorReporter then
+    self.errorReporter:addErrorRaw(...)
   end
 end
 
@@ -660,10 +667,12 @@ function Translator:translate(ast)
   -- Report error. Since we list the number of duplicates, we do this as a second pass.
   for name, duplicate_positions in pairs(duplicates) do
     if #duplicate_positions > 0 then
-      --self:addError(#duplicate_positions .. ' duplicate top-level variables sharing name "'..name..'."')
-      --for index,position in ipairs(duplicate_positions) do
-      --  self:addError(index .. ': ', {position=position})
-      --end
+      local message = text.getErrorMessage('STACKVM TRANSLATOR DUPLICATE TOP-LEVEL VARIABLES'):gsub('{(%w+)}', {duplicateCount=common.toReadableNumber(#duplicate_positions), name=name})
+      
+      for index,position in ipairs(duplicate_positions) do
+        message = message .. '\n'..index..':\n{file}:{line:'..position..'}:\n{context:'..position..'}'
+      end
+      self:addErrorRaw('STACKVM TRANSLATOR DUPLICATE TOP-LEVEL VARIABLES', message)
     end
   end
 
@@ -693,6 +702,8 @@ function module.translate(ast, parameters)
   translator.errorReporter = common.ErrorReporter:new()
   if parameters then
     translator.errorReporter.stopAtFirstError = parameters.stopAtFirstError
+    translator.errorReporter.inputFile = parameters.inputFile
+    translator.errorReporter.subject = parameters.subject
   end
   return translator.errorReporter,
          translator.errorReporter:pcallAddErrorOnFailure(translator.translate, translator, ast)

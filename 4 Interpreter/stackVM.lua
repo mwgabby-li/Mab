@@ -346,6 +346,8 @@ function module.execute(code, parameters)
   interpreter.errorReporter = common.ErrorReporter:new()
   if parameters then
     interpreter.errorReporter.stopAtFirstError = parameters.stopAtFirstError
+    interpreter.errorReporter.inputFile = parameters.inputFile
+    interpreter.errorReporter.subject = parameters.subject
     if parameters.show.trace ~= nil then
       interpreter.trace = {stack = {}}
     end

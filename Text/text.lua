@@ -122,6 +122,8 @@ local errors = {
   ['STACKVM TRANSLATOR NO ENTRY POINT'] = "No entry point found in the program.",
 
   ['STACKVM TRANSLATOR ENTRY POINT PARAMETER MISMATCH'] = "Entry point function should not have parameters.",
+  
+  ['STACKVM TRANSLATOR DUPLICATE TOP-LEVEL VARIABLES'] = 'Multiple top-level variables sharing the same name.',
 
   ['STACKVM TRANSLATOR INTERNAL UNHANDLED TAG'] = "Internal error: Unhandled tag at top level.",
   
@@ -265,6 +267,8 @@ local errorMessages = {
   ['STACKVM TRANSLATOR NO ENTRY POINT'] = 'No entry point found. (Program must contain a function named "entry point.")',
 
   ['STACKVM TRANSLATOR ENTRY POINT PARAMETER MISMATCH'] = 'Entry point has {paramCount} but should have none.',
+
+  ['STACKVM TRANSLATOR DUPLICATE TOP-LEVEL VARIABLES'] = 'Found {duplicateCount} duplicate top-level variables sharing name "{name}."',
 
   ['STACKVM TRANSLATOR INTERNAL UNHANDLED TAG'] = 'Internal error: Unhandled tag "{tag}" at top level. Ignoring...',
   

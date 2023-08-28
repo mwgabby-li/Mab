@@ -337,6 +337,8 @@ function module.translate(ast, parameters)
   translator.errorReporter = common.ErrorReporter:new()
   if parameters then
     translator.errorReporter.stopAtFirstError = parameters.stopAtFirstError
+    translator.errorReporter.inputFile = parameters.inputFile
+    translator.errorReporter.subject = parameters.subject
   end
   return translator.errorReporter,
          translator.errorReporter:pcallAddErrorOnFailure(translator.translate, translator, ast)

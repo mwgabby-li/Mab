@@ -272,22 +272,22 @@ function ParserErrorReporter:count()
   return self.position and 1 or 0
 end
 
-function ParserErrorReporter:outputErrors(input)
+function ParserErrorReporter:outputErrors()
   if self.position then
-    -- For support to jump to error messages, put the filename, if any, on the beginning of the line.
-    -- It would be nice to say "at" and "after," but jumping is more important.
-    local defaultPrefix, backedUpPrefix = self.filename and
-                                          self.filename..':', self.filename..':' or
-                                          'at line ', 'after line '
-    io.stderr:write(common.generateErrorMessage(input, self.position, true,
-                                                defaultPrefix, backedUpPrefix)..'\n')
+    local message = '{context:'..self.position..'}\n'
+    if self.inputFile then
+      message = '{file}:{line:'..self.position..'}:\n'..message
+    end
+
+    io.stderr:write(common.fillOutPositionalInformation(message, self.inputFile, self.subject, position))
   end
 end
 
 function module.parse(input, parameters)
   ParserErrorReporter.position = false
   if parameters then
-    ParserErrorReporter.filename = parameters.inputFile
+    ParserErrorReporter.inputFile = parameters.inputFile
+    ParserErrorReporter.subject = parameters.subject
   end
 
   local grammar = grammar

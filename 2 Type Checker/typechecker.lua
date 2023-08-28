@@ -775,6 +775,8 @@ function module.check(ast, parameters)
   typeChecker.errorReporter = common.ErrorReporter:new()
   if parameters then
     typeChecker.errorReporter.stopAtFirstError = parameters.stopAtFirstError
+    typeChecker.errorReporter.inputFile = parameters.inputFile
+    typeChecker.errorReporter.subject = parameters.subject
   end
   typeChecker.errorReporter:pcallAddErrorOnFailure(typeChecker.check, typeChecker, ast)
   return typeChecker.errorReporter,
