@@ -1,6 +1,9 @@
 local module = {}
 
 local errors = {
+  ['PARSER PARSING FAILED'] = 'Parsing failed.',
+
+
   ['TYPECHECK INTERNAL UNKNOWN TYPE TAG'] = 'Unknown type tag.',
 
   ['TYPECHECK PARAMETER ARGUMENT TYPE MISMATCH'] = 'Parameter does not match argument type.',
@@ -115,6 +118,8 @@ local errors = {
 
   ['STACKVM TRANSLATOR DUPLICATE FUNCTION PARAMETER'] = "Function has duplicate instances of the same parameter.",
 
+  ['STACKVM TRANSLATOR DUPLICATED FUNCTION PARAMETERS'] = 'Function has multiple duplicate instances of the same parameters.',
+
   ['STACKVM TRANSLATOR TODO DEFAULT ARRAY RETURN'] = "Returning default array type not supported.",
 
   ['STACKVM TRANSLATOR INTERNAL UNKNOWN TYPE'] = "Internal error: Unknown type.",
@@ -148,6 +153,11 @@ local errors = {
 }
 
 local errorMessages = {
+  ['PARSER PARSING FAILED ON LINE'] = '{file}:{line}: Parsing failed here:',
+
+  ['PARSER PARSING FAILED AFTER LINE'] = '{file}:{line}: Parsing failed after here:',
+
+
   ['TYPECHECK INTERNAL UNKNOWN TYPE TAG'] = 'Internal error: Unknown type tag "{typeTag}"',
 
   ['TYPECHECK PARAMETER ARGUMENT TYPE MISMATCH'] = 'Argument {number} to function called via "{rootName}" evaluates to type "{argumentType}," but parameter "{parameterName}" is type "{parameterType}."',
@@ -228,6 +238,7 @@ local errorMessages = {
 
   ['TYPECHECK ENTRY POINT MUST RETURN NUMBER'] = 'Entry point must return a number because that\'s what OSes expect.',
 
+
   ['STACKVM TRANSLATOR UNDEFINED FUNCTION CALL'] = 'Cannot call function, "{funcName}" is undefined.',
 
   ['STACKVM TRANSLATOR FUNCTION PARAMETER MISMATCH'] = 'Function "{funcName}" has {paramCount} but was sent {argCount}.',
@@ -259,6 +270,10 @@ local errorMessages = {
   ['STACKVM TRANSLATOR INTERNAL UNKNOWN STATEMENT NODE'] = 'Internal error: Unknown statement node tag "{tag}".',
 
   ['STACKVM TRANSLATOR DUPLICATE FUNCTION PARAMETER'] = 'Function "{funcName}" has {paramCount} instances of the parameter "{paramName}".',
+
+  ['STACKVM TRANSLATOR DUPLICATED FUNCTION PARAMETERS'] = 'Function "{funcName}" has {duplicatedCount} parameters that are duplicated:',
+
+  ['STACKVM TRANSLATOR DUPLICATED FUNCTION PARAMETER'] = ' {paramName}: {paramCount} instances.',
 
   ['STACKVM TRANSLATOR TODO DEFAULT ARRAY RETURN'] = 'TODO: Returning default array type not supported, add an explicit return to: "{funcName}".',
 

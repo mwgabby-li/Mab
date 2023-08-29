@@ -530,7 +530,7 @@ function Translator:duplicateParameterCheck(ast)
 
   -- Duplicate parameter check
   local duplicates = {}
-  local duplicateCount = 0
+  local duplicatesCount = 0
   for i = 1,#parameters - 1 do
     local parameterName = parameters[i].name
     -- If we haven't counted the duplicates of this parameter yet
@@ -541,33 +541,29 @@ function Translator:duplicateParameterCheck(ast)
             duplicates[parameterName].count = duplicates[parameterName].count + 1
           else
             duplicates[parameterName] = { position=parameters[i].position, count=2 }
-            duplicateCount = duplicateCount + 1
+            duplicatesCount = duplicatesCount + 1
           end
         end
       end
     end
   end
 
-  if duplicateCount == 1 then
+  if duplicatesCount == 1 then
     local name, countAndPosition = next(duplicates)
     self:addError("STACKVM TRANSLATOR DUPLICATE FUNCTION PARAMETER",
                   {funcName = ast.name, paramName = name,
                    paramCount = common.toReadableNumber(countAndPosition.count)}, parameters[1])
-  elseif duplicateCount > 1 then
-    local errorMessage = 'Function "'..ast.name..'" has:\n'
-    local num = 0
+  elseif duplicatesCount > 1 then
+    local errorMessage = text.getErrorMessage('STACKVM TRANSLATOR DUPLICATED FUNCTION PARAMETERS')
+    errorMessage = errorMessage:gsub('{(%w+)}', {funcName = ast.name, duplicatedCount = common.toReadableNumber(duplicatesCount)})
+
     for name, countAndPosition in pairs(duplicates) do
-      errorMessage = errorMessage..' '..common.toReadableNumber(countAndPosition.count)..' instances of the parameter "'..name
-      num = num + 1
-      if num + 1 == duplicateCount then
-        errorMessage = errorMessage..',"\n and'
-      elseif num == duplicateCount then
-        errorMessage = errorMessage..'."'
-      else
-        errorMessage = errorMessage..',"\n'
-      end
+      local duplicatedMessage = text.getErrorMessage('STACKVM TRANSLATOR DUPLICATED FUNCTION PARAMETER')
+      duplicatedMessage = duplicatedMessage:gsub('{(%w+)}', {paramName = name, paramCount = common.toReadableNumber(countAndPosition.count)})
+
+      errorMessage = errorMessage..'\n'..duplicatedMessage
     end
-    self:addError(errorMessage, parameters[1])
+    self:addErrorRaw('STACKVM TRANSLATOR DUPLICATED FUNCTION PARAMETERS', errorMessage, parameters[1])
   end
 end
 

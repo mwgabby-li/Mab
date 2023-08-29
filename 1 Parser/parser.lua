@@ -4,6 +4,7 @@ local endToken = common.endToken
 local numeral = require 'numeral'
 local stringLiteral = require 'stringLiteral'
 local identifierPattern = require 'identifier'
+local text = require 'text'
 
 local tokens = require 'tokens'
 local op = tokens.op
@@ -274,12 +275,18 @@ end
 
 function ParserErrorReporter:outputErrors()
   if self.position then
-    local message = '{context:'..self.position..'}\n'
-    if self.inputFile then
-      message = '{file}:{line:'..self.position..'}:\n'..message
+    local context, line, backedUp = common.getPositionAndContextLines(self.subject, self.position, true)
+    
+    local errorMessage
+    if backedUp then
+      errorMessage = text.getErrorMessage('PARSER PARSING FAILED AFTER LINE'):gsub('{(%w+)}', {file=self.inputFile, line=line})
+    else
+      errorMessage = text.getErrorMessage('PARSER PARSING FAILED ON LINE'):gsub('{(%w+)}', {file=self.inputFile, line=line})
     end
+    
+    errorMessage = errorMessage..'\n'..context
 
-    io.stderr:write(common.fillOutPositionalInformation(message, self.inputFile, self.subject, position))
+    io.stderr:write(errorMessage)
   end
 end
 

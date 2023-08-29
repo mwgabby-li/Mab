@@ -195,7 +195,7 @@ local function fillOutContext(file, subject)
   end
 end
 
-function fillOutPositionalInformation(message, file, subject, backup)  
+function common.fillOutPositionalInformation(message, file, subject, backup)  
   message = message:gsub('{file}', file)
   message = message:gsub('{line:(%d+)}', fillOutLine(file, subject))
   return message:gsub('{context:(%d+)}', fillOutContext(file, subject))
@@ -372,7 +372,7 @@ function common.ErrorReporter:addErrorRaw(key, message, tableWithPositionOrPosit
       prefix = '{file}:{line:'..position..'}:\n'..prefix
     end
   end
-  message = fillOutPositionalInformation(prefix..message, self.inputFile, self.subject)
+  message = common.fillOutPositionalInformation(prefix..message, self.inputFile, self.subject)
 
   self.errors[#self.errors + 1] = {
     key = key,
